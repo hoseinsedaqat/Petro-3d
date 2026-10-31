@@ -157,6 +157,7 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  {[-31.7,-29.35,-27,-24.65,-22.3,-19.95].map((x,i)=><CampusCar key={`fallback-car-${i}`} position={[x,.04,25.8]} color={['#5b716f','#c5c0ad','#87918b'][i%3]}/>)}
  {[[-31.4,17.3],[-30.5,23.8],[-17,17.6],[-17,21.8]].map(([x,z],i)=><CampusTree key={`fallback-tree-${i}`} position={[x,0,z]}/>)}
  <Box position={[-15.5,1.65,28.55]} scale={[5,.32,.45]} color="#536359"/><Box position={[-15.5,1.1,27.8]} scale={[4.15,.12,.13]} color="#d2bd78"/>
+ <CompanyCampusDetails gatehouse={items.find(x=>x.id==='SEC-01')!}/>
  <ShipFallback item={items.find(x=>x.id==='VES-08')!}/>
  {[-1,5,11,17,23,29].map(z=><group key={`port-bollard-${z}`} position={[36.72,.48,z]}><mesh><cylinderGeometry args={[.18,.22,.96,10]}/><meshStandardMaterial color="#4d5852" metalness={.45}/></mesh><mesh position={[0,.43,0]}><torusGeometry args={[.22,.045,6,14]}/><meshStandardMaterial color="#d0b774" metalness={.45}/></mesh></group>)}
  <MarineLoadingArm position={[32.2,0,4]} color="#c69d5d"/><MarineLoadingArm position={[32.2,0,18]} color="#d6d0bc"/>
@@ -270,6 +271,77 @@ function Building({item, color='#7c8980', size=[5,2.5,4]}:{item:SiteItem;color?:
    <mesh position={[size[0]/2-.38,size[1]+.46,-size[2]/2+.42]}><cylinderGeometry args={[.12,.16,.85,10]}/><meshStandardMaterial color="#78857b" metalness={.28}/></mesh>
    <Box position={[0,size[1]+.27,-size[2]/2-.25]} scale={[size[0]+.25,.3,.18]} color="#878c7e"/>
  </ClickGroup>;
+}
+function SecurityGatehouse({item}:{item:SiteItem}){
+ const night=useStore(s=>s.night);
+ return <ClickGroup item={item} position={item.position}>
+  <Box position={[0,.12,0]} scale={[5.25,.24,4.15]} color="#646d66"/>
+  <Box position={[0,1.2,0]} scale={[4.25,2.05,3.08]} color="#8c9388"/>
+  <Box position={[0,.42,0]} scale={[4.32,.28,3.12]} color="#666f68"/>
+  {/* Deep, wraparound security glazing, framed mullions and protected side entrance. */}
+  <Box position={[0,1.52,-1.57]} scale={[3.02,.78,.075]} color="#263b3c"/>
+  <Box position={[0,1.52,-1.615]} scale={[2.76,.59,.028]} color={night?'#f0d9af':'#91a8a5'}/>
+  {[-.92,0,.92].map(x=><Box key={`gatehouse-front-mullion-${x}`} position={[x,1.52,-1.65]} scale={[.055,.69,.055]} color="#d0bd88"/>)}
+  <Box position={[0,1.08,-1.66]} scale={[3.02,.07,.06]} color="#c4b17e"/>
+  <Box position={[-2.16,1.52,.1]} scale={[.07,.75,1.65]} color="#263b3c"/>
+  <Box position={[-2.205,1.52,.1]} scale={[.028,.56,1.42]} color={night?'#e5cfaa':'#809a98'}/>
+  <Box position={[2.16,.99,.88]} scale={[.075,1.5,.92]} color="#374744"/>
+  <Box position={[2.21,.99,.88]} scale={[.035,1.24,.67]} color="#273c3b"/>
+  <Box position={[2.01,1.04,.45]} scale={[.035,.095,.09]} color="#d2bd86"/>
+  {/* Flat overhanging roof, front canopy, gutters, downpipe and screened rooftop HVAC. */}
+  <Box position={[0,2.34,0]} scale={[4.58,.2,3.38]} color="#59665f"/>
+  <Box position={[0,2.2,-1.93]} scale={[3.66,.16,.82]} color="#6d7970"/>
+  {[-1.42,1.42].map(x=><Box key={`gatehouse-canopy-bracket-${x}`} position={[x,1.99,-1.73]} scale={[.09,.54,.11]} color="#ae9a6c"/>)}
+  <Box position={[0,2.47,1.48]} scale={[4.18,.22,.14]} color="#9d9b8b"/>
+  <Box position={[0,2.47,-1.48]} scale={[4.18,.22,.14]} color="#9d9b8b"/>
+  <Box position={[-2.04,2.47,0]} scale={[.14,.22,3]} color="#9d9b8b"/><Box position={[2.04,2.47,0]} scale={[.14,.22,3]} color="#9d9b8b"/>
+  <Box position={[1.24,2.67,.35]} scale={[.92,.42,.78]} color="#747e75"/>
+  <mesh position={[1.24,2.9,.35]}><cylinderGeometry args={[.19,.19,.04,14]}/><meshStandardMaterial color="#4f5a54"/></mesh>
+  <Pipe a={[-1.92,.34,1.25]} b={[-1.92,2.2,1.25]} color="#69766d" radius={.045}/>
+  <mesh position={[-1.92,2.08,1.25]}><torusGeometry args={[.07,.022,6,12]}/><meshStandardMaterial color="#b2a276"/></mesh>
+  {/* Entry step and impact-protection bollards; the booth stays outside the vehicle lane. */}
+  <Box position={[2.58,.12,.88]} scale={[.82,.18,1.18]} color="#a3a294"/>
+  {[-1.55,0,1.55].map(x=><group key={`gatehouse-bollard-${x}`} position={[x,.48,-2.37]}>
+   <mesh><cylinderGeometry args={[.105,.14,.92,10]}/><meshStandardMaterial color="#454f4a" metalness={.25}/></mesh>
+   <mesh position={[0,.27,0]}><torusGeometry args={[.111,.024,6,12]}/><meshStandardMaterial color="#d8bd72"/></mesh>
+   <mesh position={[0,.44,0]}><sphereGeometry args={[.12,10,8]}/><meshStandardMaterial color="#d1b368"/></mesh>
+  </group>)}
+  <mesh position={[.92,2.1,-2.06]}><boxGeometry args={[.38,.08,.18]}/><meshStandardMaterial color="#f1d59c" emissive={night?'#ffbd67':'#000000'} emissiveIntensity={night?1.3:0}/></mesh>
+  {night&&<pointLight position={[.92,2.04,-2.17]} color="#ffe2af" intensity={1.2} distance={6} decay={2}/>}
+  <group position={[0,3.18,-2.02]} rotation={[0,Math.PI,0]}><EquipmentTag label={item.id} position={[0,0,0]}/></group>
+ </ClickGroup>
+}
+function CampusWalkLight({position,night}:{position:[number,number,number];night:boolean}){return <group position={position}>
+ <Box position={[0,1.68,0]} scale={[.1,3.36,.1]} color="#58665f"/><Box position={[.27,3.31,0]} scale={[.68,.11,.18]} color="#b8a271"/>
+ <mesh position={[.52,3.24,0]}><boxGeometry args={[.16,.1,.22]}/><meshStandardMaterial color={night?'#fff0cc':'#c8c8b5'} emissive={night?'#ffd18a':'#000000'} emissiveIntensity={night?1.8:0}/></mesh>
+ {night&&<pointLight position={[.52,3.08,0]} color="#ffe1b0" intensity={2.1} distance={8} decay={2}/>}
+ </group>}
+function CompanyCampusDetails({gatehouse}:{gatehouse:SiteItem}){
+ const night=useStore(s=>s.night);
+ return <group>
+  {/* Paved, kerbed gate approach and a clear vehicle stopping line. */}
+  <mesh rotation={[-Math.PI/2,0,0]} position={[-15.5,-.045,32.8]}><planeGeometry args={[10.2,11.8]}/><meshStandardMaterial color={night?'#252e2b':'#4c5550'} roughness={.94}/></mesh>
+  <Box position={[-20.58,.08,28.95]} scale={[.18,.16,3.8]} color="#a3a292"/><Box position={[-20.58,.08,36.65]} scale={[.18,.16,3.8]} color="#a3a292"/>
+  <Box position={[-10.42,.08,32.8]} scale={[.18,.16,11.5]} color="#a3a292"/>
+  <Box position={[-21.02,-.005,32.8]} scale={[.88,.06,3.75]} color="#aaa99a"/>
+  <Box position={[-15.5,.012,29.45]} scale={[5.3,.025,.16]} color="#e0d8bd"/>
+  {[31,34,37].map(z=><Box key={`entry-dash-${z}`} position={[-15.5,.012,z]} scale={[.11,.025,1.05]} color="#d6cfaf"/>)}
+  {/* Wheel stops, protected pedestrian path and a marked gate crossing, kept clear of parked-car footprints. */}
+  {[-31.7,-29.35,-27,-24.65,-22.3,-19.95].map(x=><Box key={`parking-stop-${x}`} position={[x,.1,27.82]} scale={[1,.16,.17]} color="#777d75"/>)}
+  <Box position={[-25.75,.015,22.48]} scale={[14.5,.07,.96]} color="#a2a498"/>
+  <Box position={[-18.15,.015,24.05]} scale={[.94,.07,3.16]} color="#a2a498"/>
+  <Box position={[-25.75,.095,23.04]} scale={[14.5,.16,.13]} color="#777f77"/>
+  {[-32,-28,-24,-20.5].map(x=><group key={`walkway-bollard-${x}`} position={[x,.47,23.1]}>
+   <mesh><cylinderGeometry args={[.095,.13,.9,10]}/><meshStandardMaterial color="#505d56"/></mesh>
+   <mesh position={[0,.28,0]}><torusGeometry args={[.101,.022,6,12]}/><meshStandardMaterial color="#d3bb79"/></mesh>
+  </group>)}
+  {[-18.8,-18,-17.2,-16.4,-15.6,-14.8,-14,-13.2].map(x=><Box key={`campus-zebra-${x}`} position={[x,.015,27.15]} scale={[.42,.025,1.1]} color="#ded9c7"/>)}
+  <Box position={[-18.15,.016,26.15]} scale={[.96,.025,1.1]} color="#a2a498"/>
+  {/* Low hedge planting and human-scale lights enrich the office-side forecourt. */}
+  {[-27,-25.5,-24,-22.5,-21].map((x,i)=><mesh key={`office-hedge-${i}`} position={[x,.51,16.8]} castShadow><dodecahedronGeometry args={[.36,1]}/><meshStandardMaterial color={i%2?'#637460':'#748168'} roughness={.95}/></mesh>)}
+  <CampusWalkLight position={[-33.35,0,22]} night={night}/><CampusWalkLight position={[-23.5,0,21]} night={night}/><CampusWalkLight position={[-18.95,0,22.15]} night={night}/>
+  <SecurityGatehouse item={gatehouse}/>
+ </group>
 }
 function FlareFire(){
  const outer=useRef<THREE.Group>(null),core=useRef<THREE.Group>(null),embers=useRef<(THREE.Mesh|null)[]>([]);const phase=useRef(0);const night=useStore(s=>s.night);
@@ -648,7 +720,8 @@ export function World(){
   <Box position={[-15.5,3.25,28.24]} scale={[4.1,.32,.055]} color="#b99d64"/>
   <Box position={[-15.5,1.1,27.8]} scale={[4.15,.12,.13]} color="#d2bd78" rotation={[0,0,-.02]}/>
   {[-17.1,-16.3,-15.5,-14.7,-13.9].map(x=><Box key={`barrier-mark-${x}`} position={[x,1.1,27.8]} scale={[.35,.14,.15]} color="#c34e3f" rotation={[0,0,-.02]}/>)}
-  {[[-31.4,17.3],[-30.5,23.8],[-17,17.6],[-17,21.8]].map(([x,z],i)=><CampusTree key={`campus-tree-${i}`} position={[x,0,z]}/>)}
+  <CompanyCampusDetails gatehouse={items.find(x=>x.id==='SEC-01')!}/>
+  <CampusTree key="campus-tree-unique" position={[-30.5,0,23.8]}/>
   {/* Road network */}
   {[[-1,0,4,2.3],[0,7,2.3,44],[1,13,2.5,26],[-15,0,2.2,23]].map((r,i)=><mesh key={i} rotation={[-Math.PI/2,0,0]} position={[r[0],-.035,r[1]]}><planeGeometry args={[r[3],r[2]]}/><meshStandardMaterial color="#414b47"/></mesh>)}
   {Array.from({length:10},(_,i)=><mesh key={'dash'+i} rotation={[-Math.PI/2,0,0]} position={[-20+i*4,.005,7]}><planeGeometry args={[2,.12]}/><meshBasicMaterial color="#d8cf9d"/></mesh>)}

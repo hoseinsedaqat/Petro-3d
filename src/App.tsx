@@ -91,7 +91,7 @@ function App(){
    </aside>
   </main>
   <footer className="bottom-bar">
-   <div className="bottom-left"><span className="bottom-state"><i/> {rtl?'شبیه‌سازی فعال':'SIMULATION ACTIVE'}</span><span className="bottom-sep"/><span><Building2 size={14}/>{rtl?'۲۱ واحد':'21 units'}</span><span><Cpu size={14}/>{rtl?'۴۹ تجهیز':'49 assets'}</span><span><Users size={14}/>{rtl?'۱۲ نفر':'12 personnel'}</span></div>
+   <div className="bottom-left"><span className="bottom-state"><i/> {rtl?'شبیه‌سازی فعال':'SIMULATION ACTIVE'}</span><span className="bottom-sep"/><span><Building2 size={14}/>{rtl?'۲۱ واحد':'21 units'}</span><span><Cpu size={14}/>{rtl?'۵۰ تجهیز':'50 assets'}</span><span><Users size={14}/>{rtl?'۱۲ نفر':'12 personnel'}</span></div>
    <div className="bottom-controls"><button className={`flow-toggle ${flow?'enabled':''}`} onClick={()=>set('flow',!flow)}><span className="flow-toggle-icon"><Activity size={15}/></span>{flow?t.flowOn:t.flow}</button><div className="playback"><button onClick={()=>set('playing',!playing)} title={playing?t.pause:t.play}>{playing?<Pause size={15}/>:<Play size={15}/>}</button><button onClick={reset} title={t.reset}><RotateCcw size={14}/></button><button className="speed-button" onClick={()=>set('speed',speed===.5?1:speed===1?2:speed===2?4:.5)}>{speed}×<ChevronDown size={12}/></button></div></div>
    <div className="bottom-right"><button className="mode-pill" onClick={()=>set('night',!night)}>{night?<Moon size={14}/>:<Sun size={14}/>} {night?t.night:t.day}</button><span className="bottom-sep"/><span className="time-label">{t.time}</span><b className="bottom-clock">{clockText}</b></div>
   </footer>

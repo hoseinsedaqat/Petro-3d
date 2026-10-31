@@ -1160,17 +1160,19 @@ function AirCoolerBank({item}:{item:SiteItem}){
  const fanXs=[-2.25,0,2.25],tubeXs=[-2.85,-1.71,-.57,.57,1.71,2.85],tubeYs=[9.76,9.98,10.2,10.42];
  return <ClickGroup item={item} position={item.position}>
   {/* The cooler's portal legs continue the existing pipe-rack bents; the new structure begins above the highest pipe and cable tiers. */}
-  {[-5,0,5].flatMap(x=>[-1.65,1.65].map(z=><group key={`ache-support-${x}-${z}`}>
+  {[-5,0,5].flatMap(x=>[-1.65,1.95].map(z=><group key={`ache-support-${x}-${z}`}>
+   {/* The outer row cantilevers just beyond the rack edge to stay outside the cable-tray envelope. */}
+   {z>1.7&&<Box position={[x,5.58,1.8]} scale={[.5,.14,.4]} color="#8b9386"/>}
    <Box position={[x,5.58,z]} scale={[.5,.15,.5]} color="#a69770"/>
-   <Box position={[x,6.77,z]} scale={[.16,2.38,.16]} color="#66766d"/>
+   <Box position={[x,6.79,z]} scale={[.16,2.38,.16]} color="#66766d"/>
   </group>))}
-  {[-1,1].map(side=><group key={`ache-long-brace-${side}`}>
-   <Pipe a={[-5,5.68,side*1.65]} b={[0,7.84,side*1.65]} color="#74847a" radius={.045}/>
-   <Pipe a={[-5,7.84,side*1.65]} b={[0,5.68,side*1.65]} color="#74847a" radius={.045}/>
-   <Pipe a={[0,5.68,side*1.65]} b={[5,7.84,side*1.65]} color="#74847a" radius={.045}/>
-   <Pipe a={[0,7.84,side*1.65]} b={[5,5.68,side*1.65]} color="#74847a" radius={.045}/>
+  {[-1.65,1.95].map(z=><group key={`ache-long-brace-${z}`}>
+   <Pipe a={[-5,5.68,z]} b={[0,7.84,z]} color="#74847a" radius={.045}/>
+   <Pipe a={[-5,7.84,z]} b={[0,5.68,z]} color="#74847a" radius={.045}/>
+   <Pipe a={[0,5.68,z]} b={[5,7.84,z]} color="#74847a" radius={.045}/>
+   <Pipe a={[0,7.84,z]} b={[5,5.68,z]} color="#74847a" radius={.045}/>
   </group>)}
-  {[-1.65,1.65].map(z=><group key={`ache-long-girder-${z}`}>
+  {[-1.65,1.95].map(z=><group key={`ache-long-girder-${z}`}>
    <Box position={[0,7.91,z]} scale={[10.4,.2,.2]} color="#718077"/>
    <Box position={[0,5.67,z]} scale={[10.1,.16,.2]} color="#718077"/>
   </group>)}

@@ -131,7 +131,7 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  <color attach="background" args={[night?'#09121d':'#d6e0d5']}/><fog attach="fog" args={[night?'#09121d':'#d6e0d5',80,145]}/><ambientLight intensity={night?.2:1.25}/><directionalLight position={[-25,45,20]} intensity={night?.3:2} castShadow/>
  <NightLighting night={night}/>
  <SiteTerrain night={night}/>
- <SitePerimeterFence/><CompanyArrivalLandscape/>
+ <SitePerimeterFence/><CompanyArrivalLandscape/><CompanyMonumentSign/><RoadDrainageAndEmergencyAccess/>
  <mesh rotation={[-Math.PI/2,0,0]} position={[-10,-.05,-8]}><planeGeometry args={[40,32]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',40/9,32/9)} color={night?'#59635d':'#cdd1c8'} roughness={.96}/></mesh>
  <mesh rotation={[-Math.PI/2,0,0]} position={[16,-.05,-8]}><planeGeometry args={[24,22]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',24/9,22/9)} color={night?'#59635d':'#d1cebc'} roughness={.96}/></mesh>
  <WaterSurface position={[61.25,-.16,14]} size={[47.5,48]} night={night}/>
@@ -150,7 +150,7 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  <CrudeReceiving item={items.find(x=>x.id==='CRUDE-01')!}/><SulfurRecovery item={items.find(x=>x.id==='SRU-01')!}/><DesalterUnit item={items.find(x=>x.id==='DS-101')!}/><CoolingBattery item={items.find(x=>x.id==='CW-01')!}/><WastewaterPlant item={items.find(x=>x.id==='WWT-01')!}/><ElectricalSubstation item={items.find(x=>x.id==='SUB-01')!}/><FirewaterFacility item={items.find(x=>x.id==='FW-01')!}/><FirewaterRing/><TransferPumpStation item={items.find(x=>x.id==='P-301A')!}/>
  {items.filter(x=>x.kind==='worker').map((person,i)=><WorkerFallback key={`fallback-${person.id}`} item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>)}
  <ControlBuilding item={items.find(x=>x.id==='CCR-01')!}/><LaboratoryBuilding item={items.find(x=>x.id==='LAB-01')!}/>
- <WaterTreatmentFacility item={items.find(x=>x.id==='WW-01')!}/>
+ <WaterTreatmentFacility item={items.find(x=>x.id==='WW-01')!}/><SteamBoilerStation item={items.find(x=>x.id==='SB-01')!}/><SteamUtilityNetwork/>
  <FireStation item={items.find(x=>x.id==='FIRE-01')!}/>
  <mesh rotation={[-Math.PI/2,0,0]} position={[-24,-.07,22]}><planeGeometry args={[20,12]}/><meshStandardMaterial color="#999d91"/></mesh>
  <mesh rotation={[-Math.PI/2,0,0]} position={[-25.8,-.03,25.85]}><planeGeometry args={[14.2,5.1]}/><meshStandardMaterial color="#555c57"/></mesh>
@@ -703,6 +703,176 @@ function ProcessPumpSet({x}:{x:number}){
   <Box position={[0,.35,.5]} scale={[.16,.18,.15]} color="#596b60"/>
  </group>;
 }
+function SteamBoilerStation({item}:{item:SiteItem}){
+ const night=useStore(s=>s.night);
+ return <ClickGroup item={item} position={item.position}>
+  {/* Independent package-boiler pad, kept clear of the existing treatment plant and gate approach. */}
+  <mesh position={[0,.1,0]} receiveShadow><boxGeometry args={[8.6,.2,4.5]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',8.6/9,4.5/9)} color="#8b8e82" roughness={.94}/></mesh>
+  <Box position={[0,.22,0]} scale={[8.2,.06,4.16]} color="#4b5750"/>
+  {/* Open modular steel frame leaves the boiler train legible from the overview camera. */}
+  {[-3.9,3.9].flatMap(x=>[-1.85,1.85].map(z=><group key={`boiler-frame-${x}-${z}`}>
+   <Box position={[x,2.88,z]} scale={[.16,5.35,.16]} color="#607168"/><Box position={[x,.35,z]} scale={[.42,.18,.42]} color="#9b9274"/>
+  </group>))}
+  {[2.05,4.45].map(y=><group key={`boiler-tie-${y}`}>
+   {[-3.9,3.9].map(z=><Box key={z} position={[0,y,z]} scale={[7.9,.12,.12]} color="#718078"/>)}
+   {[-3.9,3.9].map(x=><Box key={x} position={[x,y,0]} scale={[.12,.12,3.8]} color="#718078"/>)}
+  </group>)}
+  {/* Water-tube package: radiant furnace, burner register and convection/economizer bank. */}
+  <mesh position={[-1.45,1.85,-.15]} castShadow receiveShadow>
+   <boxGeometry args={[3.55,3.35,2.85]}/><meshStandardMaterial color="#718078" map={getWeatheredSteelMap()} metalness={.48} roughness={.61}/>
+  </mesh>
+  {[-3.18,.28].map(x=><Box key={`boiler-side-seam-${x}`} position={[x,1.84,-.15]} scale={[.09,3.18,2.92]} color="#56645d"/>)}
+  {[-2.45,-1.45,-.45].map(x=><group key={`boiler-burner-${x}`}>
+   <mesh position={[x,1.45,1.31]}><cylinderGeometry args={[.36,.43,.18,16]}/><meshStandardMaterial color="#414d47" metalness={.55}/></mesh>
+   <mesh position={[x,1.46,1.42]}><circleGeometry args={[.24,16]}/><meshBasicMaterial color={night?'#f2a24d':'#794b2c'} toneMapped={false}/></mesh>
+   <Box position={[x,1.04,1.36]} scale={[.11,.68,.12]} color="#bd7d49"/>
+  </group>)}
+  <Box position={[-1.45,3.55,-.15]} scale={[3.25,.22,2.58]} color="#a1a495"/>
+  {/* Tube bank cassette and individually readable tube rows. */}
+  <Box position={[.82,3.25,-.2]} scale={[1.42,1.72,2.62]} color="#65756d"/>
+  {Array.from({length:8},(_,i)=><mesh key={`boiler-tube-${i}`} position={[.2+i*.18,3.28,1.16]} rotation={[Math.PI/2,0,0]}>
+   <cylinderGeometry args={[.045,.045,2.28,8]}/><meshStandardMaterial color={i%2?'#a4aaa0':'#89958a'} metalness={.48} roughness={.48}/>
+  </mesh>)}
+  {/* Steam drum, safety valves, level glass, handwheel and manway. */}
+  <mesh position={[-1.15,4.28,-.2]} rotation={[0,0,Math.PI/2]} castShadow>
+   <cylinderGeometry args={[.48,.48,3.1,24,1,false]}/><meshStandardMaterial color="#aab1a5" map={getWeatheredSteelMap()} metalness={.52} roughness={.55}/>
+  </mesh>
+  {[-2.64,.34].map(x=><mesh key={`boiler-drum-head-${x}`} position={[x,4.28,-.2]} scale={[.26,.48,.48]}><sphereGeometry args={[1,16,12]}/><meshStandardMaterial color="#aab1a5" map={getWeatheredSteelMap()} metalness={.5} roughness={.56}/></mesh>)}
+  {[-2.15,-.72].map(x=><mesh key={`drum-course-${x}`} position={[x,4.28,-.2]} rotation={[0,0,Math.PI/2]}><torusGeometry args={[.482,.022,6,22]}/><meshStandardMaterial color="#69776e" metalness={.5}/></mesh>)}
+  {[-2.05,-1.16,-.22].map((x,i)=><group key={`boiler-safety-${i}`}>
+   <Pipe a={[x,4.65,-.2]} b={[x,5.12,-.2]} color="#bdad7d" radius={.055}/>
+   <mesh position={[x,5.19,-.2]}><cylinderGeometry args={[.11,.14,.12,12]}/><meshStandardMaterial color="#c6b982" metalness={.48}/></mesh>
+  </group>)}
+  <Pipe a={[-3.1,4.28,-.2]} b={[-3.48,4.28,-.2]} color="#77867c" radius={.035}/>
+  <mesh position={[-3.49,4.28,-.2]}><cylinderGeometry args={[.14,.14,.08,16]}/><meshStandardMaterial color="#dae0d4"/></mesh>
+  {/* Breeching, induced-draft fan and compact stack with restrained shell-course wear. */}
+  <PipelinePath points={[[1.48,3.3,-.45],[2.15,3.3,-.45],[2.15,4.05,-.45],[2.8,4.05,-.45],[2.8,6.25,-.45]]} color="#66756d" radius={.19}/>
+  <mesh position={[2.8,4.72,-.45]}><cylinderGeometry args={[.39,.46,1.05,18]}/><meshStandardMaterial color="#717d74" map={getWeatheredSteelMap()} metalness={.48} roughness={.61}/></mesh>
+  <mesh position={[2.8,6.65,-.45]}><cylinderGeometry args={[.29,.37,3.0,20,1,true]}/><meshStandardMaterial color="#838b80" map={getWeatheredSteelMap()} metalness={.48} roughness={.57} side={THREE.DoubleSide}/></mesh>
+  {[5.35,6.8,7.95].map(y=><mesh key={`boiler-stack-band-${y}`} position={[2.8,y,-.45]}><torusGeometry args={[y>7?.31:.38,.035,6,20]}/><meshStandardMaterial color="#a49b7d" metalness={.43}/></mesh>)}
+  <mesh position={[2.8,8.2,-.45]}><cylinderGeometry args={[.43,.43,.16,20]}/><meshStandardMaterial color="#5b6961" metalness={.45}/></mesh>
+  <mesh position={[1.96,3.25,-.45]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.44,.44,.32,16]}/><meshStandardMaterial color="#526158" metalness={.5}/></mesh>
+  <mesh position={[2.15,3.25,-.45]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.32,.035,6,16]}/><meshStandardMaterial color="#c2b17d" metalness={.48}/></mesh>
+  {/* Deaerator vessel on a service frame, with spray head, vent, level column and access ladder. */}
+  {[-1.84,1.84].map(z=><group key={`deaerator-saddle-${z}`}>
+   <Box position={[2.16,2.48,z]} scale={[.22,1.75,.22]} color="#68766d"/><Box position={[2.16,1.64,z]} scale={[.72,.16,.52]} color="#9b9375"/>
+  </group>)}
+  <mesh position={[2.16,3.38,1.05]} rotation={[0,0,Math.PI/2]} castShadow><cylinderGeometry args={[.47,.47,3.25,20]}/><meshStandardMaterial color="#9ba89d" map={getWeatheredSteelMap()} metalness={.46} roughness={.58}/></mesh>
+  {[-1.43,1.43].map(x=><mesh key={`deaerator-head-${x}`} position={[2.16+x,3.38,1.05]} scale={[.25,.47,.47]}><sphereGeometry args={[1,14,10]}/><meshStandardMaterial color="#a5ada1" map={getWeatheredSteelMap()} metalness={.46}/></mesh>)}
+  <mesh position={[2.16,4.0,1.05]}><cylinderGeometry args={[.3,.38,.58,16]}/><meshStandardMaterial color="#89978d" metalness={.45}/></mesh>
+  <mesh position={[2.16,4.43,1.05]}><cylinderGeometry args={[.14,.18,.34,14]}/><meshStandardMaterial color="#78867d" metalness={.42}/></mesh>
+  <Pipe a={[2.16,4.56,1.05]} b={[2.16,5.12,1.05]} color="#9da89c" radius={.035}/>
+  <Pipe a={[3.82,3.37,1.05]} b={[3.82,4.65,1.05]} color="#71837b" radius={.035}/>
+  <mesh position={[3.82,3.37,1.1]}><cylinderGeometry args={[.115,.115,.66,12]}/><meshStandardMaterial color="#d9d7c6"/></mesh>
+  {[.39,.69,.99,1.29].map(z=><Box key={`deaerator-ladder-${z}`} position={[3.97,2.16,z]} scale={[.055,.045,.34]} color="#c1b17e"/>)}
+  {/* Twin boiler-feed pumps, individual motors, coupling guards, suction and discharge manifolds. */}
+  {[-.9,.5].map((x,i)=><group key={`boiler-feed-pump-${i}`} position={[x,.27,-1.42]}>
+   <Box position={[0,.12,0]} scale={[1.06,.18,.92]} color="#424f49"/>
+   <mesh position={[0,.57,-.2]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.24,.24,.74,18]}/><meshStandardMaterial color="#52685f" metalness={.48} roughness={.55}/></mesh>
+   {[-.46,-.3,-.14,.02].map(z=><mesh key={z} position={[0,.57,z]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.24,.022,6,16]}/><meshStandardMaterial color="#a5ab9e" metalness={.5}/></mesh>)}
+   <Box position={[0,.57,.28]} scale={[.48,.35,.28]} color="#c0a66d"/>
+   <mesh position={[0,.57,.57]} scale={[.34,.3,.3]}><sphereGeometry args={[1,14,10]}/><meshStandardMaterial color="#76857a" metalness={.43}/></mesh>
+   <Pipe a={[0,.57,.72]} b={[0,.57,1.18]} color="#87958a" radius={.08}/>
+   <Pipe a={[0,.57,-.54]} b={[0,.57,-.95]} color="#7c9698" radius={.075}/>
+  </group>)}
+  <Pipe a={[-.9,.84,-2.02]} b={[.5,.84,-2.02]} color="#7d9696" radius={.09}/>
+  <Pipe a={[-.9,1.12,-.25]} b={[.5,1.12,-.25]} color="#b28d5a" radius={.085}/>
+  <PipelinePath points={[[ -.2,1.12,-.25],[-.2,2.55,-.25],[.36,2.55,-.25],[.36,3.22,-.25]]} color="#7d9696" radius={.07}/>
+  <PipelinePath points={[[.36,3.65,-.2],[.36,4.18,-.2],[-.25,4.62,-.2],[-.25,4.76,-.2]]} color="#b88c56" radius={.075}/>
+  {/* Chemical dosing cabinet, small day tank, gauges, control panel and protected walkway. */}
+  <Box position={[-3.35,1.05,-1.35]} scale={[.62,1.65,.9]} color="#58675e"/>
+  <Box position={[-3.35,1.1,-.87]} scale={[.48,.8,.045]} color="#8d9a8e"/>
+  <mesh position={[-2.82,.8,-1.45]}><cylinderGeometry args={[.28,.31,.98,16]}/><meshStandardMaterial color="#a6aea2" map={getWeatheredSteelMap()} metalness={.35}/></mesh>
+  <Pipe a={[-2.82,1.3,-1.45]} b={[-2.82,1.64,-1.45]} color="#b09661" radius={.035}/>
+  {[-3.55,-2.95].map(x=><Box key={`boiler-stair-stringer-${x}`} position={[x,.46,1.63]} scale={[.055,.12,1.18]} color="#727f75"/>)}
+  {Array.from({length:5},(_,i)=><Box key={`boiler-stair-${i}`} position={[-3.25,.24+i*.13,1.12+i*.24]} scale={[.78,.06,.24]} color="#a2a99d"/>)}
+  {[-3.85,-2.55].map(x=><Pipe key={`boiler-rail-${x}`} a={[x,.42,2.02]} b={[x,1.15,.75]} color="#c8b779" radius={.026}/>)}
+  {/* Localized moisture/rust halos occur only at selected feet and drain edges, not over the plant uniformly. */}
+  {[-2.8,2.9].map((x,i)=><mesh key={`localized-corrosion-${i}`} position={[x,.213,1.7]} rotation={[-Math.PI/2,0,0]}><circleGeometry args={[.32,20]}/><meshBasicMaterial color="#8a6549" transparent opacity={.22} depthWrite={false}/></mesh>)}
+  {/* Contained yard drain with bolted grate and a shutoff sump; it has no modeled harbor outfall. */}
+  <Box position={[0,.11,2.32]} scale={[8.1,.06,.18]} color="#3c4640"/>
+  {Array.from({length:30},(_,i)=><Box key={`boiler-trench-grate-${i}`} position={[-3.9+i*.27,.148,2.32]} scale={[.035,.035,.17]} color="#a3a69b"/>)}
+  <Box position={[4.45,.11,1.95]} scale={[.7,.16,.7]} color="#58645d"/>
+  <mesh position={[4.45,.205,1.95]} rotation={[-Math.PI/2,0,0]}><planeGeometry args={[.48,.48]}/><meshStandardMaterial color="#313b36" wireframe/></mesh>
+  <Pipe a={[4.1,-.06,1.95]} b={[3.2,-.06,1.95]} color="#53625a" radius={.065}/><ValveWheel position={[3.35,.01,1.95]} color="#8d7550"/>
+  <EquipmentTag label={item.id} position={[.15,3.05,2.35]}/>
+  {night&&<>
+   <pointLight position={[-.6,4.7,.35]} color="#ffd79d" intensity={2.4} distance={8} decay={2}/>
+   <pointLight position={[2.2,4.85,1.35]} color="#ffe4bb" intensity={1.3} distance={5} decay={2}/>
+  </>}
+ </ClickGroup>;
+}
+function SteamUtilityNetwork(){
+ const steam='#b88c56',condensate='#6d9698',feed='#7395a2';
+ const steamTrunk:[number,number,number][]=[[-8.55,4.76,24.7],[-12.4,5.85,24.9],[-12.4,5.85,6],[-6,5.85,6],[-6,5.85,2.72],[30,5.85,2.72]];
+ const steamBranches:[number,number,number][][]=[
+  [[-12,5.85,2.72],[-12,5.85,-9],[-12,2.25,-9]],
+  [[-6,5.85,2.72],[-5,5.85,-12],[-5,2.25,-12]],
+  [[2,5.85,2.72],[2,5.85,-14],[2,2.25,-14]],
+  [[2.5,5.85,2.72],[2.5,5.85,.5],[2.5,2.25,.5]],
+ ];
+ const condensateMain:[number,number,number][]=[[-12.4,3.05,24.5],[-12.4,3.05,6],[-6,3.05,3.55],[2.5,3.05,3.55],[2.5,3.05,.5],[.5,3.05,.5],[-6,3.05,-3.8],[-12,3.05,-3.8],[-12,3.05,-9],[-12,2.25,-9]];
+ const makeup:[number,number,number][]=[[-21,6.55,14],[-16,6.55,14],[-12.4,6.55,14],[-12.4,6.55,24.9],[-9.2,6.55,24.9],[-6.14,6.55,25.95],[-6.14,4.0,25.95]];
+ return <group>
+  {/* Supported west-side riser and overhead utility-water crossover; no existing item is moved. */}
+  { [6,12,18,24].map(z=><group key={`steam-column-${z}`}>
+   <Box position={[-12.4,2.9,z]} scale={[.11,5.6,.11]} color="#65736b"/><Box position={[-12.4,.12,z]} scale={[.38,.16,.38]} color="#8e8d7d"/>
+   <Box position={[-12.4,5.78,z]} scale={[.72,.08,.38]} color="#8c968b"/>
+  </group>)}
+  <PipelinePath points={makeup} color={feed} radius={.075}/>
+  <PipelinePath points={steamTrunk} color={steam} radius={.105}/>
+  <PipelinePath points={[[-6,5.85,2.72],[-12,5.85,2.72]]} color={steam} radius={.075}/>
+  {steamBranches.map((points,i)=><PipelinePath key={`steam-consumer-${i}`} points={points} color={steam} radius={.075}/>)}
+  <PipelinePath points={condensateMain} color={condensate} radius={.085}/>
+  <PipelinePath points={[[-12.4,3.05,24.5],[-9.8,3.05,24.5],[-6.14,3.05,25.95],[-6.14,3.38,25.95]]} color={condensate} radius={.075}/>
+  <PipelinePath points={[[2,2.25,-14],[2,3.05,-14],[2,3.05,-3.8],[-6,3.05,-3.8]]} color={condensate} radius={.065}/>
+  <PipelinePath points={[[ -5,2.25,-12],[-5,3.05,-12],[-5,3.05,-3.8]]} color={condensate} radius={.065}/>
+  {[[-12.4,5.85,24.9],[-12.4,5.85,6],[-6,5.85,2.72],[10,5.85,2.72],[20,5.85,2.72]].map(([x,y,z],i)=><mesh key={`steam-header-shoe-${i}`} position={[x,y-.12,z]}><cylinderGeometry args={[.16,.16,.12,10]}/><meshStandardMaterial color="#c1ad79" metalness={.42}/></mesh>)}
+  {[-10,10,20].map(x=><group key={`steam-header-guide-${x}`}><Pipe a={[x,5.84,2.72]} b={[x+.18,5.84,2.72]} color="#d4bd82" radius={.15}/></group>)}
+ </group>;
+}
+function RoadDrainageAndEmergencyAccess(){
+ return <group>
+  {/* Raised, mountable kerb edges define the existing cross-plant emergency access without narrowing it. */}
+  {[-1,1].map(side=><group key={`fire-lane-kerb-${side}`}>
+   <Box position={[.35,.055,7+side*1.34]} scale={[42.4,.11,.14]} color="#9a9b8d"/>
+   <Box position={[.35,.12,7+side*1.34]} scale={[42.1,.025,.055]} color="#c7b882"/>
+  </group>)}
+  {/* Low-profile reflectors at the fire-station approach, kept beyond the apparatus apron. */}
+  {[-20,-18,-16,-14,-12].map(x=><group key={`fire-access-reflector-${x}`}>
+   <Box position={[x,.045,8.34]} scale={[.2,.08,.16]} color="#9f4938"/><Box position={[x,.095,8.34]} scale={[.07,.035,.06]} color="#dccb9a"/>
+  </group>)}
+  {/* Covered curb inlets and cross grates drain toward a contained catchpit, not the harbor. */}
+  {[-17,-8,1,10,19].map((x,i)=><group key={`storm-inlet-${i}`} position={[x,.03,8.48]}>
+   <Box position={[0,.02,0]} scale={[.92,.06,.3]} color="#35403a"/>
+   {Array.from({length:8},(_,j)=><Box key={j} position={[-.39+j*.112,.063,0]} scale={[.028,.035,.25]} color="#a7a99d"/>)}
+  </group>)}
+  <Box position={[20.8,.045,8.48]} scale={[.9,.15,.84]} color="#555f58"/>
+  <mesh position={[20.8,.13,8.48]} rotation={[-Math.PI/2,0,0]}><planeGeometry args={[.58,.58]}/><meshStandardMaterial color="#343d38" wireframe/></mesh>
+  <Pipe a={[19.45,-.07,8.48]} b={[20.1,-.07,8.48]} color="#58645c" radius={.075}/>
+  {/* Road-edge pavement joints and a restrained repaired seam add scale without distressed, uniform grunge. */}
+  {[-12,4,16].map((x,i)=><Box key={`road-repair-${i}`} position={[x,.008,6.98]} scale={[.7,.018,.06]} color="#515b55"/>)}
+  {[-19,21].map(x=><group key={`road-edge-post-${x}`}><Box position={[x,.56,5.42]} scale={[.12,1.08,.12]} color="#57645d"/><Box position={[x,.88,5.35]} scale={[.13,.22,.035]} color="#d8bc76"/></group>)}
+ </group>;
+}
+function CompanyMonumentSign(){
+ const night=useStore(s=>s.night),fa=typeof document!=='undefined'&&document.documentElement.lang==='fa';
+ return <group position={[-21.45,0,35.0]}>
+  <Box position={[0,.48,0]} scale={[1.04,.96,.52]} color="#515f58"/>
+  <Box position={[0,1.35,-.02]} scale={[.92,.78,.13]} color="#293a3b"/>
+  <Box position={[0,1.76,.055]} scale={[.94,.055,.17]} color="#b69a61"/>
+  <Box position={[-.3,1.36,.055]} scale={[.09,.38,.17]} color="#77928f"/>
+  <Box position={[.06,1.36,.055]} scale={[.09,.38,.17]} color="#77928f"/>
+  <Html center position={[.1,1.39,.15]} distanceFactor={7} style={{pointerEvents:'none',whiteSpace:'nowrap'}}>
+   <div style={{fontFamily:'Inter, sans-serif',fontSize:'8px',fontWeight:700,letterSpacing:'1.2px',color:'#f3ead3',textShadow:'0 1px 3px #101718',textAlign:'left'}}>
+    PETROVISTA<br/><span style={{fontSize:'5px',letterSpacing:'1px',fontWeight:500}}>{fa?'ورودی مجتمع صنعتی':'INDUSTRIAL CAMPUS'}</span>
+   </div>
+  </Html>
+  <Box position={[0,.08,0]} scale={[1.45,.16,.78]} color="#9d9b8d"/>
+  {night&&<pointLight position={[0,1.65,.45]} color="#ffe0aa" intensity={.8} distance={3.5} decay={2}/>}
+ </group>;
+}
+
 function TransferPumpStation({item}:{item:SiteItem}){
  const night=useStore(s=>s.night);
  const pumpCenters=[-1.05,-.18];
@@ -1582,6 +1752,10 @@ const processFlowRoutes:{color:string;points:[number,number,number][]}[]=[
  {color:'#d9c394',points:[[29,1.25,-9],[32.2,1.25,-9],[32.2,1.25,18]]},
  {color:'#efba68',points:[[-12,9.62,-9],[-12,10,-9],[-9,10,-9],[-9,2.35,-9],[-9,2.35,-5.7],[-6.66,1.47,-5.7],[-5.15,1.47,-5.7],[-5.15,2.08,-5.7]]},
  {color:'#83c9d5',points:[[-4.1,.72,-5.7],[-4.1,.45,-5.7],[-4.1,.45,-3.12],[-6.8,.55,-3.12],[-6.8,1.35,-1.25],[-6.8,4.4,-1.25],[-6.8,4.4,-7.6],[-12,4.4,-7.6],[-12,8.25,-7.6]]},
+ {color:'#7395a2',points:[[-21,6.55,14],[-16,6.55,14],[-12.4,6.55,14],[-12.4,6.55,24.9],[-9.2,6.55,24.9],[-6.14,6.55,25.95],[-6.14,4.0,25.95]]},
+ {color:'#b88c56',points:[[-8.55,4.76,24.7],[-12.4,5.85,24.9],[-12.4,5.85,6],[-6,5.85,6],[-6,5.85,2.72],[30,5.85,2.72],[2.5,5.85,2.72],[2.5,5.85,.5],[2.5,2.25,.5]]},
+ {color:'#b88c56',points:[[-6,5.85,2.72],[-12,5.85,2.72],[-12,5.85,-9],[-12,2.25,-9]]},
+ {color:'#6d9698',points:[[2.5,2.25,.5],[2.5,3.05,.5],[2.5,3.05,3.55],[-6,3.05,3.55],[-12.4,3.05,6],[-12.4,3.05,24.5],[-9.8,3.05,24.5],[-6.14,3.05,25.95],[-6.14,3.38,25.95]]},
 ];
 function FlowLines(){const flow=useStore(s=>s.flow);if(!flow)return null;return <group>
  {processFlowRoutes.map((route,i)=><group key={`flow-route-${i}`}>
@@ -1627,10 +1801,11 @@ export function World(){
   <Box position={[-15.5,3.25,28.24]} scale={[4.1,.32,.055]} color="#b99d64"/>
   <Box position={[-15.5,1.1,27.8]} scale={[4.15,.12,.13]} color="#d2bd78" rotation={[0,0,-.02]}/>
   {[-17.1,-16.3,-15.5,-14.7,-13.9].map(x=><Box key={`barrier-mark-${x}`} position={[x,1.1,27.8]} scale={[.35,.14,.15]} color="#c34e3f" rotation={[0,0,-.02]}/>)}
-  <CompanyCampusDetails gatehouse={items.find(x=>x.id==='SEC-01')!}/><CompanyArrivalLandscape/>
+  <CompanyCampusDetails gatehouse={items.find(x=>x.id==='SEC-01')!}/><CompanyArrivalLandscape/><CompanyMonumentSign/>
   {/* Road network */}
   {[[-1,0,4,2.3],[0,7,2.3,44],[1,13,2.5,26],[-15,0,2.2,23]].map((r,i)=><mesh key={i} rotation={[-Math.PI/2,0,0]} position={[r[0],-.035,r[1]]}><planeGeometry args={[r[3],r[2]]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',r[3]/12,r[2]/12)} color="#ffffff" roughness={.96}/></mesh>)}
   {Array.from({length:10},(_,i)=><mesh key={'dash'+i} rotation={[-Math.PI/2,0,0]} position={[-20+i*4,.005,7]}><planeGeometry args={[2,.12]}/><meshBasicMaterial color="#d8cf9d"/></mesh>)}
+  <RoadDrainageAndEmergencyAccess/>
   {/* Water + quay */}
   {/* Bounded port basin with paved shoreline and a broad loading quay */}
   <WaterSurface position={[61.25,-.16,14]} size={[47.5,48]} night={night}/>
@@ -1668,6 +1843,7 @@ export function World(){
   <FirewaterFacility item={items.find(x=>x.id==='FW-01')!}/><FirewaterRing/>
   <TransferPumpStation item={items.find(x=>x.id==='P-301A')!}/>
   <WaterTreatmentFacility item={items.find(x=>x.id==='WW-01')!}/>
+  <SteamBoilerStation item={items.find(x=>x.id==='SB-01')!}/><SteamUtilityNetwork/>
   <FireStation item={items.find(x=>x.id==='FIRE-01')!}/>
   <TruckTrafficSafety/>
   {/* Road-tanker top-loading arms and the palletized-drum forklift bay are intentionally separate operations. */}

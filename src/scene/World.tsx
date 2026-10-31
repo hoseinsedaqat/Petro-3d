@@ -155,7 +155,7 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  <mesh rotation={[-Math.PI/2,0,0]} position={[-25.8,-.03,25.85]}><planeGeometry args={[14.2,5.1]}/><meshStandardMaterial color="#555c57"/></mesh>
  {[-32.8,-30.45,-28.1,-25.75,-23.4,-21.05].map(x=><mesh key={`fallback-stall-${x}`} position={[x,.01,25.85]}><boxGeometry args={[.045,.02,4.55]}/><meshBasicMaterial color="#d8d0aa"/></mesh>)}
  {[-31.7,-29.35,-27,-24.65,-22.3,-19.95].map((x,i)=><CampusCar key={`fallback-car-${i}`} position={[x,.04,25.8]} color={['#5b716f','#c5c0ad','#87918b'][i%3]}/>)}
- {[[-31.4,17.3],[-17,17.6],[-17,21.8]].map(([x,z],i)=><CampusTree key={`fallback-tree-${i}`} position={[x,0,z]}/>)}
+ {[[-32.8,17.3],[-15.8,17.3],[-32.8,20.4],[-15.8,21.8]].map(([x,z],i)=><CampusTree key={`fallback-tree-${i}`} position={[x,0,z]}/>)}
  <Box position={[-15.5,1.65,28.55]} scale={[5,.32,.45]} color="#536359"/><Box position={[-15.5,1.1,27.8]} scale={[4.15,.12,.13]} color="#d2bd78"/>
  <CompanyCampusDetails gatehouse={items.find(x=>x.id==='SEC-01')!}/>
  <ShipFallback item={items.find(x=>x.id==='VES-08')!}/>
@@ -232,7 +232,22 @@ function CampusCar({position,color}:{position:[number,number,number];color:strin
  {[-1,1].map(side=><group key={side}>{[-1,1].map(end=><group key={end} position={[side*.78,.36,end*1.12]} rotation={[0,0,Math.PI/2]}><mesh><cylinderGeometry args={[.32,.32,.16,12]}/><meshStandardMaterial color="#303532" roughness={.9}/></mesh><mesh position={[0,side*.09,0]}><cylinderGeometry args={[.16,.16,.025,12]}/><meshStandardMaterial color="#aeb1a4" metalness={.6}/></mesh></group>)}<Box position={[side*.79,.72,-.12]} scale={[.14,.15,.3]} color={color}/></group>)}
  {[-1,1].map(side=><group key={`lamp-${side}`}><Box position={[side*.48,.59,1.81]} scale={[.28,.16,.035]} color="#ead9a0"/><Box position={[side*.5,.6,-1.82]} scale={[.26,.13,.035]} color="#a44c3f"/></group>)}
  </group>}
-function CampusTree({position}:{position:[number,number,number]}){return <group position={position}><mesh position={[0,.85,0]} castShadow><cylinderGeometry args={[.13,.2,1.7,8]}/><meshStandardMaterial color="#665443" roughness={1}/></mesh><mesh position={[0,2.05,0]} castShadow><sphereGeometry args={[1,10,9]}/><meshStandardMaterial color="#617957" roughness={1}/></mesh><mesh position={[.52,2.25,.06]} castShadow><sphereGeometry args={[.62,9,8]}/><meshStandardMaterial color="#718a61" roughness={1}/></mesh><mesh position={[-.45,1.97,-.12]} castShadow><sphereGeometry args={[.6,9,8]}/><meshStandardMaterial color="#536f52" roughness={1}/></mesh></group>}
+function CampusTree({position}:{position:[number,number,number]}){
+ return <group position={position}>
+  {/* Mulched tree pit and a tapered trunk with visible branching. */}
+  <mesh position={[0,.035,0]} receiveShadow><cylinderGeometry args={[.55,.58,.07,20]}/><meshStandardMaterial color="#665b49" roughness={1}/></mesh>
+  <mesh position={[0,.95,0]} castShadow><cylinderGeometry args={[.085,.16,1.9,10]}/><meshStandardMaterial color="#64503f" roughness={1}/></mesh>
+  {[-1,1].map(side=><group key={`tree-branch-${side}`}>
+   <mesh position={[side*.18,1.74,0]} rotation={[0,0,-side*.38]} castShadow><cylinderGeometry args={[.045,.075,.82,8]}/><meshStandardMaterial color="#66503f" roughness={1}/></mesh>
+   <mesh position={[0,1.82,side*.17]} rotation={[side*.34,0,0]} castShadow><cylinderGeometry args={[.035,.065,.68,8]}/><meshStandardMaterial color="#66503f" roughness={1}/></mesh>
+  </group>)}
+  {/* Overlapping, irregular crowns keep a natural silhouette without spherical topiary. */}
+  <mesh position={[0,2.38,0]} scale={[.69,.74,.66]} castShadow><dodecahedronGeometry args={[1,1]}/><meshStandardMaterial color="#647d58" roughness={1}/></mesh>
+  <mesh position={[-.32,2.22,.17]} scale={[.48,.43,.47]} rotation={[.12,.28,-.1]} castShadow><dodecahedronGeometry args={[1,1]}/><meshStandardMaterial color="#718964" roughness={1}/></mesh>
+  <mesh position={[.38,2.34,-.2]} scale={[.47,.48,.46]} rotation={[-.08,.4,.12]} castShadow><dodecahedronGeometry args={[1,1]}/><meshStandardMaterial color="#566f4f" roughness={1}/></mesh>
+  <mesh position={[-.08,2.95,.1]} scale={[.54,.55,.52]} rotation={[.16,-.3,.08]} castShadow><dodecahedronGeometry args={[1,1]}/><meshStandardMaterial color="#6b835c" roughness={1}/></mesh>
+ </group>;
+}
 function MarineLoadingArm({position,color}:{position:[number,number,number];color:string}){return <group position={position}>
  <Box position={[0,.24,0]} scale={[2.1,.34,2.8]} color="#6e786f"/>
  {[-.82,.82].map(x=><Box key={x} position={[x,1.65,-.72]} scale={[.14,3.05,.14]} color="#64736a"/>)}
@@ -997,7 +1012,7 @@ export function World(){
   {[-31.7,-29.35,-27,-24.65,-22.3,-19.95].map((x,i)=><CampusCar key={`campus-car-${i}`} position={[x,.04,25.8]} color={['#5b716f','#c5c0ad','#87918b'][i%3]}/>)}
   <mesh rotation={[-Math.PI/2,0,0]} position={[-15.45,-.025,25.8]}><planeGeometry args={[2.7,6.5]}/><meshStandardMaterial color="#555c57"/></mesh>
   <mesh rotation={[-Math.PI/2,0,0]} position={[-17.3,-.02,23.75]}><planeGeometry args={[3.8,1.8]}/><meshStandardMaterial color="#555c57"/></mesh>
-  {[-31.8,-16.4].map(x=><group key={`landscape-edge-${x}`}>{[17.3,21.8].map((z,i)=><CampusTree key={i} position={[x,0,z]}/>)}</group>)}
+  {[[-32.8,17.3],[-32.8,20.4],[-15.8,17.3],[-15.8,21.8]].map(([x,z],i)=><CampusTree key={`landscape-edge-${i}`} position={[x,0,z]}/>)}
   <group position={[-24,.08,16.8]}><Box position={[0,.38,0]} scale={[8.1,.72,.38]} color="#64795a"/><Box position={[0,.77,0]} scale={[8.35,.08,.5]} color="#788b63"/></group>
   {/* Steel gate frame and striped lifting barrier at the southern campus entrance */}
   {[-18,-13].map(x=><Box key={`gate-post-${x}`} position={[x,1.65,28.55]} scale={[.48,3.3,.48]} color="#536359"/>)}

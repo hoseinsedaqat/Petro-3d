@@ -8,7 +8,7 @@ import { useStore } from '../store';
 import { ProcessRefinery } from './ProcessSteelwork';
 import { SphereTank } from './SphereTank';
 import { CoolingBattery, CrudeReceiving, DesalterUnit, ElectricalSubstation, EquipmentTag, RefineryUnit, SulfurRecovery, WastewaterPlant } from './RefinerySections';
-import { getWeatheredSteelMap, getYardSurfaceMap } from './materials';
+import { getChainlinkMap, getWeatheredSteelMap, getYardSurfaceMap } from './materials';
 
 function ShorelineSeawall(){return <group>
  <Box position={[37.23,-.32,14]} scale={[.46,.72,48]} color="#626d69"/>
@@ -131,6 +131,7 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  <color attach="background" args={[night?'#09121d':'#d6e0d5']}/><fog attach="fog" args={[night?'#09121d':'#d6e0d5',80,145]}/><ambientLight intensity={night?.2:1.25}/><directionalLight position={[-25,45,20]} intensity={night?.3:2} castShadow/>
  <NightLighting night={night}/>
  <SiteTerrain night={night}/>
+ <SitePerimeterFence/><CompanyArrivalLandscape/>
  <mesh rotation={[-Math.PI/2,0,0]} position={[-10,-.05,-8]}><planeGeometry args={[40,32]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',40/9,32/9)} color={night?'#59635d':'#cdd1c8'} roughness={.96}/></mesh>
  <mesh rotation={[-Math.PI/2,0,0]} position={[16,-.05,-8]}><planeGeometry args={[24,22]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',24/9,22/9)} color={night?'#59635d':'#d1cebc'} roughness={.96}/></mesh>
  <WaterSurface position={[61.25,-.16,14]} size={[47.5,48]} night={night}/>
@@ -615,6 +616,88 @@ function CampusWalkLight({position,night}:{position:[number,number,number];night
  <mesh position={[.52,3.24,0]}><boxGeometry args={[.16,.1,.22]}/><meshStandardMaterial color={night?'#fff0cc':'#c8c8b5'} emissive={night?'#ffd18a':'#000000'} emissiveIntensity={night?1.8:0}/></mesh>
  {night&&<pointLight position={[.52,3.08,0]} color="#ffe1b0" intensity={2.1} distance={8} decay={2}/>}
  </group>}
+function PerimeterFenceRun({start,end,axis,coordinate}:{start:number;end:number;axis:'x'|'z';coordinate:number}){
+ const length=end-start, horizontal=axis==='x',center=(start+end)/2;
+ const position:[number,number,number]=horizontal?[center,0,coordinate]:[coordinate,0,center];
+ return <group position={position} rotation={[0,horizontal?0:Math.PI/2,0]}>
+  <mesh position={[0,1.02,0]} castShadow={false} receiveShadow={false}>
+   <planeGeometry args={[length,1.82]}/>
+   <meshStandardMaterial map={getChainlinkMap(length,1.82)} color="#b8c2bb" transparent opacity={.82} alphaTest={.12} depthWrite={false} side={THREE.DoubleSide} metalness={.24} roughness={.82}/>
+  </mesh>
+  <Box position={[0,1.91,0]} scale={[length,.07,.07]} color="#77857c"/>
+  <Box position={[0,1.02,0]} scale={[length,.055,.055]} color="#78867d"/>
+  <Box position={[0,.14,0]} scale={[length,.06,.06]} color="#78867d"/>
+ </group>;
+}
+function SitePerimeterFence(){
+ const northPosts=Array.from({length:22},(_,i)=>-33+i*4);
+ const southPosts=northPosts.filter((_,i)=>i<=17&&i!==4&&i!==5);
+ const westPosts=Array.from({length:15},(_,i)=>-27+i*3.85);
+ return <group>
+  {/* Existing gate opening and fence coordinates stay fixed; only the missing mesh and rails are filled in. */}
+  <PerimeterFenceRun start={-33} end={51} axis="x" coordinate={-28.65}/>
+  <PerimeterFenceRun start={-33} end={-17} axis="x" coordinate={28.65}/>
+  <PerimeterFenceRun start={-13} end={35} axis="x" coordinate={28.65}/>
+  <PerimeterFenceRun start={-27} end={26.9} axis="z" coordinate={-33.78}/>
+  {northPosts.map(x=><group key={`north-fence-post-${x}`}>
+   <Box position={[x,.98,-28.65]} scale={[.12,1.96,.12]} color="#69776e"/>
+   <mesh position={[x,1.99,-28.65]}><cylinderGeometry args={[.085,.085,.08,8]}/><meshStandardMaterial color="#9ca69c" metalness={.42}/></mesh>
+  </group>)}
+  {southPosts.map(x=><group key={`south-fence-post-${x}`}>
+   <Box position={[x,.98,28.65]} scale={[.12,1.96,.12]} color="#69776e"/>
+   <mesh position={[x,1.99,28.65]}><cylinderGeometry args={[.085,.085,.08,8]}/><meshStandardMaterial color="#9ca69c" metalness={.42}/></mesh>
+  </group>)}
+  {westPosts.map(z=><group key={`west-fence-post-${z}`}>
+   <Box position={[-33.78,.98,z]} scale={[.12,1.96,.12]} color="#69776e"/>
+   <mesh position={[-33.78,1.99,z]}><cylinderGeometry args={[.085,.085,.08,8]}/><meshStandardMaterial color="#9ca69c" metalness={.42}/></mesh>
+  </group>)}
+ </group>;
+}
+const AGAVE_LEAF_GEOMETRY=(()=>{
+ const shape=new THREE.Shape();
+ shape.moveTo(0,0);shape.quadraticCurveTo(.12,.2,.105,.4);shape.quadraticCurveTo(.075,.66,0,.84);shape.quadraticCurveTo(-.075,.66,-.105,.4);shape.quadraticCurveTo(-.12,.2,0,0);
+ const geometry=new THREE.ExtrudeGeometry(shape,{depth:.025,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.008,bevelThickness:.008,curveSegments:5});
+ geometry.translate(0,0,-.0125);return geometry;
+})();
+function EntryAgave({position,scale=1}:{position:[number,number,number];scale?:number}){
+ const leafColors=['#70856f','#7e8e72','#61796d','#879477','#718174'];
+ return <group position={position} scale={scale}>
+  <mesh position={[0,.04,0]} receiveShadow><cylinderGeometry args={[.15,.2,.08,9]}/><meshStandardMaterial color="#a79b7a" roughness={1}/></mesh>
+  {Array.from({length:11},(_,i)=>{const angle=i*Math.PI*2/11,lean=.27+(i%4)*.105;return <group key={`agave-leaf-${i}`} rotation={[0,-angle,0]}>
+   <mesh geometry={AGAVE_LEAF_GEOMETRY} position={[.025,.04,0]} rotation={[0,0,-lean]} scale={[.88,.72+(i%3)*.09,.78]} castShadow dispose={null}>
+    <meshStandardMaterial color={leafColors[i%leafColors.length]} roughness={.94} metalness={.02} side={THREE.DoubleSide}/>
+   </mesh>
+  </group>})}
+  <mesh position={[0,.17,0]}><coneGeometry args={[.06,.34,7]}/><meshStandardMaterial color="#809078" roughness={.96}/></mesh>
+ </group>;
+}
+function EntryXericShrub({position,scale=1}:{position:[number,number,number];scale?:number}){
+ const colors=['#6e8064','#77886a','#637961','#81906f'];
+ return <group position={position} scale={scale}>
+  {[[-.16,.14,0],[.13,.17,.1],[0,.2,-.14],[.05,.27,.02],[-.2,.21,-.12]].map(([x,y,z],i)=><mesh key={`xeric-crown-${i}`} position={[x,y,z]} scale={[.25,.19,.23]} castShadow>
+   <dodecahedronGeometry args={[1,1]}/><meshStandardMaterial color={colors[i%colors.length]} roughness={.96}/>
+  </mesh>)}
+  {[-.12,.1].map(x=><mesh key={`xeric-stem-${x}`} position={[x,.11,0]} rotation={[0,0,x*.65]}><cylinderGeometry args={[.025,.04,.25,6]}/><meshStandardMaterial color="#887455" roughness={1}/></mesh>)}
+ </group>;
+}
+function CompanyArrivalLandscape(){
+ const night=useStore(s=>s.night),bedX=-30.55,bedZ=32.75;
+ return <group>
+  {/* Low gravel bed beside—not across—the security booth approach or the visitor route. */}
+  <mesh rotation={[-Math.PI/2,0,0]} position={[bedX,.035,bedZ]} receiveShadow>
+   <planeGeometry args={[4.02,6.42]}/>
+   <meshStandardMaterial map={getYardSurfaceMap('soil',4.02/1.8,6.42/1.8)} color={night?'#66675b':'#c6b48f'} roughness={1}/>
+  </mesh>
+  {[-1,1].map(side=><Box key={`arrival-bed-z-curb-${side}`} position={[bedX,.13,bedZ+side*3.27]} scale={[4.22,.18,.12]} color="#9b9f91"/>)}
+  {[-1,1].map(side=><Box key={`arrival-bed-x-curb-${side}`} position={[bedX+side*2.05,.13,bedZ]} scale={[.12,.18,6.42]} color="#9b9f91"/>)}
+  {[[-31.45,.07,30.7,.63],[-29.65,.07,32.55,.58],[-31.45,.07,34.75,.55] as [number,number,number,number]].map(([x,y,z,size],i)=><EntryAgave key={`arrival-agave-${i}`} position={[x,y,z]} scale={size}/>)}
+  {[-29.75,-31.55].map((x,i)=><EntryXericShrub key={`arrival-shrub-${i}`} position={[x,.07,i===0?30.65:33.05]} scale={.82}/>)}
+  {[[ -30.3,.11,31.55],[ -31.9,.11,32.25],[ -29.35,.11,34.1],[ -30.15,.11,35.3]].map(([x,y,z],i)=><mesh key={`arrival-rock-${i}`} position={[x,y,z]} scale={[.18,.085,.14]} rotation={[.08,i*.7,.1]} castShadow>
+   <dodecahedronGeometry args={[1,0]}/><meshStandardMaterial color={i%2?'#888171':'#a3977f'} roughness={1}/>
+  </mesh>)}
+ </group>;
+}
+
 function CompanyCampusDetails({gatehouse}:{gatehouse:SiteItem}){
  const night=useStore(s=>s.night);
  return <group>
@@ -1053,8 +1136,7 @@ export function World(){
   {/* Raised, fenced industrial plot like a miniature engineering diorama */}
   <Box position={[8,.015,-29]} scale={[84,.24,.42]} color="#48534e"/><Box position={[1,.015,29]} scale={[70,.24,.42]} color="#48534e"/>
   <Box position={[-34,.015,0]} scale={[.42,.24,58]} color="#48534e"/>
-  {Array.from({length:22},(_,i)=>{const x=-33+i*4;return <group key={`fence-${i}`}><Box position={[x,.52,-28.65]} scale={[.09,.95,.09]} color="#69776e"/>{x<=35&&![4,5].includes(i)&&<Box position={[x,.52,28.65]} scale={[.09,.95,.09]} color="#69776e"/>}</group>})}
-  {Array.from({length:15},(_,i)=><Box key={`west-fence-${i}`} position={[-33.78,.52,-27+i*3.85]} scale={[.09,.95,.09]} color="#69776e"/>)}
+  <SitePerimeterFence/>
   {/* site edge and zone paving */}
   <mesh rotation={[-Math.PI/2,0,0]} position={[-10,-.08,-7]}><planeGeometry args={[42,34]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',42/9,34/9)} color={night?'#46534f':'#c2c6bd'} roughness={.96}/></mesh>
   <mesh rotation={[-Math.PI/2,0,0]} position={[16,-.075,-9]}><planeGeometry args={[24,22]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',24/9,22/9)} color={night?'#4b534d':'#d1cebc'} roughness={.96}/></mesh>
@@ -1074,7 +1156,7 @@ export function World(){
   <Box position={[-15.5,3.25,28.24]} scale={[4.1,.32,.055]} color="#b99d64"/>
   <Box position={[-15.5,1.1,27.8]} scale={[4.15,.12,.13]} color="#d2bd78" rotation={[0,0,-.02]}/>
   {[-17.1,-16.3,-15.5,-14.7,-13.9].map(x=><Box key={`barrier-mark-${x}`} position={[x,1.1,27.8]} scale={[.35,.14,.15]} color="#c34e3f" rotation={[0,0,-.02]}/>)}
-  <CompanyCampusDetails gatehouse={items.find(x=>x.id==='SEC-01')!}/>
+  <CompanyCampusDetails gatehouse={items.find(x=>x.id==='SEC-01')!}/><CompanyArrivalLandscape/>
   {/* Road network */}
   {[[-1,0,4,2.3],[0,7,2.3,44],[1,13,2.5,26],[-15,0,2.2,23]].map((r,i)=><mesh key={i} rotation={[-Math.PI/2,0,0]} position={[r[0],-.035,r[1]]}><planeGeometry args={[r[3],r[2]]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',r[3]/12,r[2]/12)} color="#ffffff" roughness={.96}/></mesh>)}
   {Array.from({length:10},(_,i)=><mesh key={'dash'+i} rotation={[-Math.PI/2,0,0]} position={[-20+i*4,.005,7]}><planeGeometry args={[2,.12]}/><meshBasicMaterial color="#d8cf9d"/></mesh>)}

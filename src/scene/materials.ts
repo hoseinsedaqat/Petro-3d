@@ -3,6 +3,8 @@ import * as THREE from 'three';
 let weatheredSteel: THREE.CanvasTexture | undefined;
 const yardSurfaceSources = new Map<string, THREE.CanvasTexture>();
 const yardSurfaceVariants = new Map<string, THREE.Texture>();
+let chainlinkSource: THREE.CanvasTexture | undefined;
+const chainlinkVariants = new Map<string, THREE.Texture>();
 
 /** Locally generated, deterministic steel grain and light weathering; no remote assets. */
 export function getWeatheredSteelMap(){
@@ -107,5 +109,45 @@ export function getYardSurfaceMap(kind: YardSurface, repeatX = 1, repeatY = 1): 
  texture.anisotropy = 4;
  texture.needsUpdate = true;
  yardSurfaceVariants.set(key, texture);
+ return texture;
+}
+
+/** Seamless transparent diamond-mesh tile for locally modelled perimeter fences. */
+export function getChainlinkMap(lengthMeters: number, heightMeters = 1.82): THREE.Texture {
+ const key = `${lengthMeters.toFixed(2)}:${heightMeters.toFixed(2)}`;
+ const cached = chainlinkVariants.get(key);
+ if (cached) return cached;
+ if (!chainlinkSource) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Canvas 2D context is required for local chain-link material');
+  context.clearRect(0, 0, 128, 128);
+  context.strokeStyle = 'rgba(225,232,227,0.86)';
+  context.lineWidth = 1.6;
+  for (let offset = -128; offset <= 128; offset += 32) {
+   context.beginPath();
+   context.moveTo(offset, 0);
+   context.lineTo(offset + 128, 128);
+   context.moveTo(offset, 128);
+   context.lineTo(offset + 128, 0);
+   context.stroke();
+  }
+  chainlinkSource = new THREE.CanvasTexture(canvas);
+  chainlinkSource.colorSpace = THREE.SRGBColorSpace;
+  chainlinkSource.wrapS = THREE.RepeatWrapping;
+  chainlinkSource.wrapT = THREE.RepeatWrapping;
+  chainlinkSource.anisotropy = 4;
+  chainlinkSource.needsUpdate = true;
+ }
+ const texture = chainlinkSource.clone();
+ texture.wrapS = THREE.RepeatWrapping;
+ texture.wrapT = THREE.RepeatWrapping;
+ // Each seamless tile represents roughly 1.8 m of fence in both directions.
+ texture.repeat.set(lengthMeters / 1.8, heightMeters / 1.8);
+ texture.anisotropy = 4;
+ texture.needsUpdate = true;
+ chainlinkVariants.set(key, texture);
  return texture;
 }

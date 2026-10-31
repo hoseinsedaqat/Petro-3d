@@ -20,6 +20,23 @@ function SiteTerrain({night}:{night:boolean}){
  const geometry=useMemo(()=>{const land=new THREE.Shape();land.moveTo(-70,-50);land.lineTo(85,-50);land.lineTo(85,-38);land.lineTo(37,-38);land.lineTo(37,10);land.lineTo(85,10);land.lineTo(85,50);land.lineTo(-70,50);land.closePath();const surface=new THREE.ShapeGeometry(land,1);surface.rotateX(-Math.PI/2);surface.computeVertexNormals();return surface},[]);
  return <mesh geometry={geometry} position={[0,-.16,0]} receiveShadow><meshStandardMaterial color={night?'#253631':'#a6b19e'} roughness={1} side={THREE.DoubleSide}/></mesh>;
 }
+function TankFarmBundAccess(){return <group>
+ {/* Staggered concrete treads and paired handrails cross the east containment berm. */}
+ {Array.from({length:4},(_,i)=><Box key={`bund-step-${i}`} position={[31.45-i*.48,.085+i*.17,-4]} scale={[.54,.17,1.18]} color={i%2?'#8a8e83':'#777f76'}/>)}
+ {[-.66,.66].map(side=><group key={`bund-handrail-${side}`}>
+  <Pipe a={[31.78,1.02,-4+side]} b={[29.1,1.72,-4+side]} color="#c0b17c" radius={.035}/>
+  <Pipe a={[31.78,.43,-4+side]} b={[29.1,1.13,-4+side]} color="#8b948b" radius={.026}/>
+  {[31.55,30.6,29.65].map((x,i)=><Box key={x} position={[x,1.1+i*.24,-4+side]} scale={[.055,.72,.055]} color="#89948a"/>)}
+ </group>)}
+ {/* Small sump, grated cover and manually isolated drain outlet; no open discharge to the harbor. */}
+ <Box position={[29.35,.035,-9]} scale={[.92,.07,.82]} color="#626c66"/>
+ {Array.from({length:8},(_,i)=><Box key={`bund-sump-grate-${i}`} position={[29.35,.08,-9.32+i*.092]} scale={[.75,.025,.028]} color="#353f3b"/>)}
+ <Pipe a={[29.82,-.12,-9]} b={[31.9,-.12,-9]} color="#53615b" radius={.075}/>
+ <ValveWheel position={[30.78,.02,-9]} color="#92784f"/>
+ <mesh position={[30.92,.68,-8.78]}><torusGeometry args={[.1,.025,6,12]}/><meshStandardMaterial color="#d3b350" metalness={.5}/></mesh>
+ <Box position={[32.15,.055,-9]} scale={[.64,.16,.68]} color="#68736d"/>
+ <mesh position={[32.15,.15,-9]} rotation={[-Math.PI/2,0,0]}><planeGeometry args={[.48,.5]}/><meshStandardMaterial color="#343e39" wireframe/></mesh>
+ </group>}
 function WaterSurface({position,size,night}:{position:[number,number,number];size:[number,number];night:boolean}){
  const material=useMemo(()=>new THREE.ShaderMaterial({
   uniforms:{uTime:{value:0},uNight:{value:0}},
@@ -66,6 +83,7 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  {Array.from({length:6},(_,i)=><group key={`tank${i}`} position={[12+(i%3)*5,0,-12+Math.floor(i/3)*8]}><mesh position={[0,1.4,0]} castShadow><cylinderGeometry args={[2,2,2.8,24]}/><meshStandardMaterial color="#aeb9ac" metalness={.35}/></mesh><mesh position={[0,2.83,0]}><cylinderGeometry args={[2,2,.12,24]}/><meshStandardMaterial color="#d3d0be"/></mesh></group>)}
  {items.filter(x=>x.kind==='sphere-tank').map(t=><SphereTank key={`fallback-${t.id}`} item={t}/>)}
  <Box position={[19.5,.34,-15.8]} scale={[22,.68,.38]} color="#777e73"/><Box position={[8.5,.34,-9]} scale={[.38,.68,13.2]} color="#777e73"/><Box position={[30.5,.34,-9]} scale={[.38,.68,13.2]} color="#777e73"/><Box position={[14,.34,-2.3]} scale={[11,.68,.38]} color="#777e73"/><Box position={[25,.34,-2.3]} scale={[11,.68,.38]} color="#777e73"/>
+ <TankFarmBundAccess/>
  <Pipe a={[7,1.35,-19.6]} b={[30,1.35,-19.6]} color="#bd6c51" radius={.15}/>{[9,15,21,27].map(x=><Pipe key={`fallback-lpg-${x}`} a={[x-1.55,1.35,-19.6]} b={[x-1.55,1.35,-21.2]} color="#bd6c51" radius={.1}/>)}
  <ProcessRefinery/><MainPipeway/><FacilityInterconnects/><ElectricalFeed/><FlowLines/>
  {items.filter(x=>x.id==='FCC-01'||x.id==='HDS-01').map(unit=><RefineryUnit key={`fallback-${unit.id}`} item={unit}/>)}
@@ -601,6 +619,7 @@ export function World(){
   {/* Secondary containment dyke and a dedicated LPG transfer header */}
   <Box position={[19.5,.34,-15.8]} scale={[22,.68,.38]} color="#777e73"/><Box position={[8.5,.34,-9]} scale={[.38,.68,13.2]} color="#777e73"/><Box position={[30.5,.34,-9]} scale={[.38,.68,13.2]} color="#777e73"/>
   <Box position={[14,.34,-2.3]} scale={[11,.68,.38]} color="#777e73"/><Box position={[25,.34,-2.3]} scale={[11,.68,.38]} color="#777e73"/>
+  <TankFarmBundAccess/>
   <Pipe a={[7,1.35,-19.6]} b={[30,1.35,-19.6]} color="#bd6c51" radius={.15}/>
   {[9,15,21,27].map(x=><group key={`lpg-branch-${x}`}><Pipe a={[x-1.55,1.35,-19.6]} b={[x-1.55,1.35,-21.2]} color="#bd6c51" radius={.11}/><Pipe a={[x-1.55,1.35,-21.2]} b={[x-1.55,2.7,-21.2]} color="#bd6c51" radius={.09}/></group>)}
   {/* Utilities */}

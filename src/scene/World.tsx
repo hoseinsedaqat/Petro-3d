@@ -151,6 +151,7 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  {items.filter(x=>x.kind==='worker').map((person,i)=><WorkerFallback key={`fallback-${person.id}`} item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>)}
  <ControlBuilding item={items.find(x=>x.id==='CCR-01')!}/><LaboratoryBuilding item={items.find(x=>x.id==='LAB-01')!}/>
  <WaterTreatmentFacility item={items.find(x=>x.id==='WW-01')!}/><SteamBoilerStation item={items.find(x=>x.id==='SB-01')!}/><SteamUtilityNetwork/>
+ <InstrumentAirNitrogenStation item={items.find(x=>x.id==='IA-01')!}/><AirNitrogenNetwork/>
  <FireStation item={items.find(x=>x.id==='FIRE-01')!}/>
  <mesh rotation={[-Math.PI/2,0,0]} position={[-24,-.07,22]}><planeGeometry args={[20,12]}/><meshStandardMaterial color="#999d91"/></mesh>
  <mesh rotation={[-Math.PI/2,0,0]} position={[-25.8,-.03,25.85]}><planeGeometry args={[14.2,5.1]}/><meshStandardMaterial color="#555c57"/></mesh>
@@ -829,6 +830,120 @@ function SteamUtilityNetwork(){
   <PipelinePath points={[[ -5,2.25,-12],[-5,3.05,-12],[-5,3.05,-3.8]]} color={condensate} radius={.065}/>
   {[[-12.4,5.85,24.9],[-12.4,5.85,6],[-6,5.85,2.72],[10,5.85,2.72],[20,5.85,2.72]].map(([x,y,z],i)=><mesh key={`steam-header-shoe-${i}`} position={[x,y-.12,z]}><cylinderGeometry args={[.16,.16,.12,10]}/><meshStandardMaterial color="#c1ad79" metalness={.42}/></mesh>)}
   {[-10,10,20].map(x=><group key={`steam-header-guide-${x}`}><Pipe a={[x,5.84,2.72]} b={[x+.18,5.84,2.72]} color="#d4bd82" radius={.15}/></group>)}
+ </group>;
+}
+function InstrumentAirNitrogenStation({item}:{item:SiteItem}){
+ const night=useStore(s=>s.night);
+ return <ClickGroup item={item} position={item.position}>
+  {/* Compact, locally modeled air/N2 utility package; no shared vessel or cross-connection between the gases. */}
+  <mesh position={[0,.1,0]} receiveShadow><boxGeometry args={[8.5,.2,4.55]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',8.5/9,4.55/9)} color="#858b82" roughness={.94}/></mesh>
+  <Box position={[0,.22,0]} scale={[8.18,.06,4.24]} color="#4b5650"/>
+  {[-3.95,3.95].flatMap(x=>[-1.94,1.94].map(z=><group key={`air-skid-frame-${x}-${z}`}>
+   <Box position={[x,2.05,z]} scale={[.13,3.72,.13]} color="#617168"/><Box position={[x,.34,z]} scale={[.38,.16,.38]} color="#9b9274"/>
+  </group>))}
+  {[2.5,3.85].map(y=><group key={`air-skid-beam-${y}`}>
+   {[-1.94,1.94].map(z=><Box key={z} position={[0,y,z]} scale={[7.9,.1,.1]} color="#79867c"/>)}
+   {[-3.95,3.95].map(x=><Box key={x} position={[x,y,0]} scale={[.1,.1,3.85]} color="#79867c"/>)}
+  </group>)}
+  {/* Two independent compressor trains with motor, screw casing, intake silencer and aftercooler. */}
+  {[-3.15,-1.75].map((x,i)=><group key={`instrument-air-compressor-${i}`} position={[x,0,-.92]}>
+   <Box position={[0,.3,0]} scale={[1.14,.18,1.45]} color="#404b46"/>
+   <mesh position={[-.26,.88,-.22]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.29,.29,.78,18]}/><meshStandardMaterial color="#536b65" metalness={.44} roughness={.55}/></mesh>
+   {[-.52,-.34,-.16,.02].map(z=><mesh key={z} position={[-.26,.88,z]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.29,.024,6,16]}/><meshStandardMaterial color="#9fa89d" metalness={.42}/></mesh>)}
+   <Box position={[.2,.77,.12]} scale={[.55,.72,.78]} color="#718077"/>
+   <mesh position={[.2,.77,.53]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.26,.04,7,18]}/><meshStandardMaterial color="#a2aaa0" metalness={.42}/></mesh>
+   <Box position={[-.12,1.8,-.8]} scale={[.48,1.35,.48]} color="#77877d"/>
+   {[1.3,1.55,1.8,2.05,2.3].map(y=><Box key={y} position={[-.12,y,-.8]} scale={[.62,.06,.62]} color="#4e5e58"/>)}
+   <mesh position={[-.12,2.55,-.8]}><cylinderGeometry args={[.28,.28,.1,12]}/><meshStandardMaterial color="#a6aa9f"/></mesh>
+   <Box position={[.25,1.37,-.52]} scale={[.055,.38,.12]} color={i?'#7f9d98':'#d0b36e'}/>
+  </group>)}
+  {/* Wet and dry air receivers, each with head, relief valve, pressure gauge and bottom drain. */}
+  {[-.58,.36].map((x,i)=><group key={`air-receiver-${i}`}>
+   <mesh position={[x,1.78,.92]} castShadow><cylinderGeometry args={[.43,.43,2.75,20,1,true]}/><meshStandardMaterial color="#9ba89d" map={getWeatheredSteelMap()} metalness={.46} roughness={.57} side={THREE.DoubleSide}/></mesh>
+   {[-.8,.8].map(dz=><mesh key={dz} position={[x,1.78,.92+dz]} scale={[.3,.43,.43]}><sphereGeometry args={[1,14,10]}/><meshStandardMaterial color="#a8b0a4" map={getWeatheredSteelMap()} metalness={.42}/></mesh>)}
+   {[.55,1.78,3.04].map(y=><mesh key={y} position={[x,y,.92]}><torusGeometry args={[.432,.022,6,20]}/><meshStandardMaterial color="#65736b" metalness={.45}/></mesh>)}
+   <Pipe a={[x,3.18,.92]} b={[x,3.5,.92]} color="#bcc0b2" radius={.035}/>
+   <mesh position={[x,3.57,.92]}><cylinderGeometry args={[.095,.12,.12,12]}/><meshStandardMaterial color="#d1bd7d" metalness={.4}/></mesh>
+   <Pipe a={[x+.42,2.15,.92]} b={[x+.68,2.15,.92]} color="#9ba59a" radius={.025}/>
+   <mesh position={[x+.71,2.22,.92]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.12,.12,.06,14]}/><meshStandardMaterial color="#d5d4c7"/></mesh>
+   <Pipe a={[x,0.42,.92]} b={[x,.18,.92]} color="#65756c" radius={.045}/>
+  </group>)}
+  {/* Parallel coalescing filters and twin-tower regenerative desiccant dryer. */}
+  {[-.05,.55].map((x,i)=><group key={`air-filter-${i}`}>
+   <mesh position={[x,1.02,-1.52]}><cylinderGeometry args={[.2,.24,1.55,14]}/><meshStandardMaterial color="#bec3b7" metalness={.34} roughness={.56}/></mesh>
+   <mesh position={[x,1.82,-1.52]}><sphereGeometry args={[.2,12,8]}/><meshStandardMaterial color="#87948a" metalness={.4}/></mesh>
+   <Pipe a={[x,.22,-1.52]} b={[x,.45,-1.52]} color="#a7ae9f" radius={.03}/>
+  </group>)}
+  {[1.25,2.03].map((x,i)=><group key={`dryer-tower-${i}`}>
+   <mesh position={[x,1.58,-.68]} castShadow><cylinderGeometry args={[.33,.36,2.35,16,1,true]}/><meshStandardMaterial color="#abb5a9" map={getWeatheredSteelMap()} metalness={.42} roughness={.57} side={THREE.DoubleSide}/></mesh>
+   {[.44,2.72].map(y=><mesh key={y} position={[x,y,-.68]}><cylinderGeometry args={[.37,.37,.12,16]}/><meshStandardMaterial color="#76847a" metalness={.38}/></mesh>)}
+   <mesh position={[x,2.83,-.68]}><sphereGeometry args={[.34,14,9,0,Math.PI*2,0,Math.PI/2]}/><meshStandardMaterial color="#b4b9ac" metalness={.35}/></mesh>
+   <Pipe a={[x,2.96,-.68]} b={[x,3.25,-.68]} color="#9ea99e" radius={.035}/>
+   <Box position={[x,1.55,-1.05]} scale={[.06,1.8,.06]} color="#66736a"/>
+  </group>)}
+  <PipelinePath points={[[1.25,3.2,-.68],[2.03,3.2,-.68],[2.8,3.2,-.68],[2.8,2.95,.3]]} color="#6d979a" radius={.065}/>
+  <PipelinePath points={[[1.25,.55,-.68],[2.03,.55,-.68],[2.8,.55,-.68],[2.8,1.8,.34]]} color="#768e96" radius={.055}/>
+  {/* PSA nitrogen generator: twin adsorption columns, switching manifold and separate N2 buffer vessel. */}
+  {[2.72,3.48].map((x,i)=><group key={`psa-tower-${i}`}>
+   <mesh position={[x,1.68,.78]} castShadow><cylinderGeometry args={[.31,.34,2.55,16,1,true]}/><meshStandardMaterial color="#8f9f96" map={getWeatheredSteelMap()} metalness={.43} roughness={.56} side={THREE.DoubleSide}/></mesh>
+   {[.4,2.95].map(y=><mesh key={y} position={[x,y,.78]}><cylinderGeometry args={[.35,.35,.12,16]}/><meshStandardMaterial color="#65776e" metalness={.4}/></mesh>)}
+   <mesh position={[x,3.03,.78]}><sphereGeometry args={[.31,14,9,0,Math.PI*2,0,Math.PI/2]}/><meshStandardMaterial color="#a9b1a5" metalness={.38}/></mesh>
+   {Array.from({length:6},(_,j)=>{const a=j*Math.PI/3;return <mesh key={j} position={[x+Math.cos(a)*.32,.76,.78+Math.sin(a)*.32]}><cylinderGeometry args={[.025,.025,.5,6]}/><meshStandardMaterial color="#b7b6a4"/></mesh>})}
+  </group>)}
+  <mesh position={[3.78,1.48,-1.14]} castShadow><cylinderGeometry args={[.32,.32,2.28,18,1,true]}/><meshStandardMaterial color="#a3ada1" map={getWeatheredSteelMap()} metalness={.42} roughness={.56} side={THREE.DoubleSide}/></mesh>
+  <mesh position={[3.78,2.63,-1.14]}><sphereGeometry args={[.32,14,9,0,Math.PI*2,0,Math.PI/2]}/><meshStandardMaterial color="#b5b8aa"/></mesh>
+  <mesh position={[3.78,.33,-1.14]}><cylinderGeometry args={[.32,.32,.12,18]}/><meshStandardMaterial color="#738078" metalness={.4}/></mesh>
+  <Pipe a={[3.78,2.68,-1.14]} b={[3.78,3.1,-1.14]} color="#c3b787" radius={.035}/>
+  <PipelinePath points={[[2.72,3.08,.78],[3.48,3.08,.78],[3.78,2.68,.45],[3.78,2.68,-1.14]]} color="#a387b0" radius={.06}/>
+  <PipelinePath points={[[-3.15,1.55,-.3],[-1.75,1.55,-.3],[-.58,2.95,.92],[1.25,2.95,-.68],[2.72,2.95,.78]]} color="#6b969c" radius={.065}/>
+  <PipelinePath points={[[3.78,2.68,-1.14],[4.1,2.68,-1.14],[4.1,3.15,-1.14]]} color="#a387b0" radius={.07}/>
+  {/* Local control cabinet, status lamps, labels and a shallow contained drain tray. */}
+  <Box position={[3.36,1.03,-1.82]} scale={[.86,1.64,.18]} color="#56665e"/>
+  <Box position={[3.36,1.05,-1.715]} scale={[.68,1.24,.04]} color="#829187"/>
+  {[-.19,0,.19].map(x=><mesh key={x} position={[3.36+x,1.5,-1.68]}><sphereGeometry args={[.045,8,8]}/><meshStandardMaterial color={x<0?'#d0b46d':'#7fa49a'} emissive={night?'#5c4930':'#000000'} emissiveIntensity={night?.45:0}/></mesh>)}
+  <Box position={[0,.11,1.92]} scale={[7.85,.06,.16]} color="#3d4842"/>
+  {Array.from({length:26},(_,i)=><Box key={`air-skid-grate-${i}`} position={[-3.75+i*.3,.15,1.92]} scale={[.035,.035,.15]} color="#a3a79a"/>)}
+  <EquipmentTag label={item.id} position={[0,3.18,2.04]}/>
+  {night&&<>
+   <pointLight position={[-1.3,3.65,.2]} color="#ffdda9" intensity={1.8} distance={7} decay={2}/>
+   <pointLight position={[3.2,3.3,-.7]} color="#ffe6bd" intensity={1.1} distance={5} decay={2}/>
+  </>}
+ </ClickGroup>;
+}
+function AirNitrogenNetwork(){
+ const air='#6b9da6',nitrogen='#a387b0';
+ const airHeader:[number,number,number][]=[[3.8,3.2,24.72],[3.8,6.65,24.72],[4.8,6.65,24.72],[4.8,6.65,13.2],[10,6.65,13.2],[10,6.65,4.75],[10,6.65,2.72],[10,13.55,2.72],[-6,13.55,2.72],[-6,6.65,2.72],[-31,6.65,2.72]];
+ const nitrogenHeader:[number,number,number][]=[[4.78,2.68,24.26],[4.78,7.2,24.26],[5.35,7.2,24.26],[5.35,7.2,13.2],[10,7.2,13.2],[10,7.2,4.75],[10,7.2,2.72],[10,15.65,2.72],[-6,15.65,2.72],[-6,7.2,2.72],[-31,7.2,2.72]];
+ return <group>
+  {/* Separate color-coded headers follow the existing rack and its high-level crossover. */}
+  <PipelinePath points={airHeader} color={air} radius={.085}/>
+  <PipelinePath points={[[10,6.65,2.72],[30,6.65,2.72]]} color={air} radius={.085}/>
+  <PipelinePath points={nitrogenHeader} color={nitrogen} radius={.085}/>
+  <PipelinePath points={[[10,7.2,2.72],[30,7.2,2.72]]} color={nitrogen} radius={.085}/>
+  {/* Trapeze bridges attach the two added tiers above existing steelwork, clear of the fin-fan deck. */}
+  {[-31,-26,-21,-16,-11,-6].map(x=><group key={`west-utility-pipe-support-${x}`}>
+   <Box position={[x,6.18,3.1]} scale={[.12,.1,3.5]} color="#849087"/>
+   <Box position={[x,6.43,3.1]} scale={[.09,.5,.09]} color="#65736b"/>
+   <Box position={[x,6.96,3.1]} scale={[.09,.1,.09]} color="#65736b"/>
+  </group>)}
+  {[10,30].map(x=><group key={`east-utility-pipe-support-${x}`}>
+   <Box position={[x,6.1,3.1]} scale={[.12,.1,3.5]} color="#849087"/>
+   <Box position={[x,6.4,3.1]} scale={[.09,.6,.09]} color="#65736b"/>
+   <Box position={[x,6.96,3.1]} scale={[.09,.1,.09]} color="#65736b"/>
+  </group>)}
+  {/* Distinct instrument-air branches reach representative process control clusters. */}
+  {[
+   [[-12,6.65,2.72],[-12,6.65,-9],[-12,2.35,-9]],
+   [[-5,6.65,2.72],[-5,6.65,-12],[-5,2.35,-12]],
+   [[-6,13.55,2.72],[2.5,13.55,2.72],[9.5,13.55,2.72],[9.5,13.55,.5],[9.5,2.35,.5],[2.5,2.35,.5]],
+   [[-6,13.55,2.72],[2,13.55,2.72],[6,13.55,2.72],[6,13.55,-14],[6,2.35,-14],[2,2.35,-14]],
+  ].map((points,i)=><PipelinePath key={`instrument-air-drop-${i}`} points={points as [number,number,number][]} color={air} radius={.055}/>)}
+  {/* Nitrogen is separately routed for illustrative tank blanketing, purge and terminal interfaces. */}
+  {[
+   [[10,7.2,2.72],[10,7.2,-9],[15,7.2,-13],[15,2.05,-13]],
+   [[20,7.2,2.72],[20,7.2,14],[20,3.55,14]],
+   [[-6,15.65,2.72],[-12,15.65,2.72],[-22,15.65,2.72],[-22,15.65,-12],[-22,2.55,-12]],
+  ].map((points,i)=><PipelinePath key={`nitrogen-drop-${i}`} points={points as [number,number,number][]} color={nitrogen} radius={.055}/>)}
  </group>;
 }
 function RoadDrainageAndEmergencyAccess(){
@@ -1756,6 +1871,8 @@ const processFlowRoutes:{color:string;points:[number,number,number][]}[]=[
  {color:'#b88c56',points:[[-8.55,4.76,24.7],[-12.4,5.85,24.9],[-12.4,5.85,6],[-6,5.85,6],[-6,5.85,2.72],[30,5.85,2.72],[2.5,5.85,2.72],[2.5,5.85,.5],[2.5,2.25,.5]]},
  {color:'#b88c56',points:[[-6,5.85,2.72],[-12,5.85,2.72],[-12,5.85,-9],[-12,2.25,-9]]},
  {color:'#6d9698',points:[[2.5,2.25,.5],[2.5,3.05,.5],[2.5,3.05,3.55],[-6,3.05,3.55],[-12.4,3.05,6],[-12.4,3.05,24.5],[-9.8,3.05,24.5],[-6.14,3.05,25.95],[-6.14,3.38,25.95]]},
+ {color:'#6b9da6',points:[[3.8,3.2,24.72],[3.8,6.65,24.72],[4.8,6.65,24.72],[4.8,6.65,13.2],[10,6.65,13.2],[10,6.65,4.75],[10,6.65,2.72],[10,13.55,2.72],[-6,13.55,2.72],[-6,6.65,2.72],[-31,6.65,2.72]]},
+ {color:'#a387b0',points:[[4.78,2.68,24.26],[4.78,7.2,24.26],[5.35,7.2,24.26],[5.35,7.2,13.2],[10,7.2,13.2],[10,7.2,4.75],[10,7.2,2.72],[10,15.65,2.72],[-6,15.65,2.72],[-6,7.2,2.72],[-31,7.2,2.72]]},
 ];
 function FlowLines(){const flow=useStore(s=>s.flow);if(!flow)return null;return <group>
  {processFlowRoutes.map((route,i)=><group key={`flow-route-${i}`}>
@@ -1844,6 +1961,7 @@ export function World(){
   <TransferPumpStation item={items.find(x=>x.id==='P-301A')!}/>
   <WaterTreatmentFacility item={items.find(x=>x.id==='WW-01')!}/>
   <SteamBoilerStation item={items.find(x=>x.id==='SB-01')!}/><SteamUtilityNetwork/>
+  <InstrumentAirNitrogenStation item={items.find(x=>x.id==='IA-01')!}/><AirNitrogenNetwork/>
   <FireStation item={items.find(x=>x.id==='FIRE-01')!}/>
   <TruckTrafficSafety/>
   {/* Road-tanker top-loading arms and the palletized-drum forklift bay are intentionally separate operations. */}

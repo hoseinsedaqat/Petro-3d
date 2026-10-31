@@ -139,7 +139,7 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  <mesh rotation={[-Math.PI/2,0,0]} position={[28.5,-.075,14]}><planeGeometry args={[11,38]}/><meshStandardMaterial color="#888c80" roughness={.92}/></mesh>
  <mesh rotation={[-Math.PI/2,0,0]} position={[34,.025,14]}><planeGeometry args={[6,38]}/><meshStandardMaterial color="#787b70" roughness={.88}/></mesh>
  {[-1,0,1].map((x,i)=><group key={`tower${i}`} position={[-13+x*5,0,-8]}><mesh position={[0,4.2,0]} castShadow><cylinderGeometry args={[.75,.95,8.4,20]}/><meshStandardMaterial color="#b9c1b6" metalness={.4} roughness={.5}/></mesh>{[1.4,3,5,7].map(y=><mesh key={y} position={[0,y,0]}><cylinderGeometry args={[1.08,1.08,.1,20]}/><meshStandardMaterial color="#d4b66f" metalness={.45}/></mesh>)}</group>)}
- <Flare item={items.find(x=>x.id==='FL-01')!}/>
+ <Flare item={items.find(x=>x.id==='FL-01')!}/><FlareKnockoutDrum item={items.find(x=>x.id==='FL-KO-01')!}/>
  {Array.from({length:6},(_,i)=><group key={`tank${i}`} position={[12+(i%3)*5,0,-12+Math.floor(i/3)*8]}><mesh position={[0,1.4,0]} castShadow><cylinderGeometry args={[2,2,2.8,24]}/><meshStandardMaterial color="#aeb9ac" metalness={.35}/></mesh><mesh position={[0,2.83,0]}><cylinderGeometry args={[2,2,.12,24]}/><meshStandardMaterial color="#d3d0be"/></mesh></group>)}
  {items.filter(x=>x.kind==='sphere-tank').map(t=><SphereTank key={`fallback-${t.id}`} item={t}/>)}
  <Box position={[19.5,.34,-15.8]} scale={[22,.68,.38]} color="#777e73"/><Box position={[8.5,.34,-9]} scale={[.38,.68,13.2]} color="#777e73"/><Box position={[30.5,.34,-9]} scale={[.38,.68,13.2]} color="#777e73"/><Box position={[14,.34,-2.3]} scale={[11,.68,.38]} color="#777e73"/><Box position={[25,.34,-2.3]} scale={[11,.68,.38]} color="#777e73"/>
@@ -207,6 +207,7 @@ function Tank({item}: {item:SiteItem}) {
 }
 function Tower({item,scale=1}: {item:SiteItem;scale?:number}) {
  return <ClickGroup item={item} position={item.position}>
+  {item.id==='V-201'&&<mesh position={[0,.08,0]} receiveShadow><boxGeometry args={[5.8,.16,5.8]}/><meshStandardMaterial color="#858b80" map={getYardSurfaceMap('concrete',5.8/9,5.8/9)} roughness={.96}/></mesh>}
   <mesh position={[0,4.5*scale,0]} castShadow><cylinderGeometry args={[.82*scale,1.18*scale,9*scale,20]}/><meshStandardMaterial color="#b6bcb0" map={getWeatheredSteelMap()} metalness={.46} roughness={.58}/></mesh>
   {[1.2,2.4,4,6.3,8].map((y)=><group key={y}><mesh position={[0,y*scale,0]}><cylinderGeometry args={[1.18*scale,1.18*scale,.1,24]}/><meshStandardMaterial color="#65756d" metalness={.7}/></mesh><mesh position={[0,y*scale+.12,0]}><cylinderGeometry args={[1.45*scale,1.45*scale,.06,24]}/><meshStandardMaterial color="#d7b66c" metalness={.5}/></mesh></group>)}
   {[2.5,5.8,8.15].map(y=><group key={`catwalk-${y}`}>
@@ -220,6 +221,10 @@ function Tower({item,scale=1}: {item:SiteItem;scale?:number}) {
   {Array.from({length:20},(_,i)=><mesh key={`tower-rung-${i}`} position={[1.5*scale,.65*scale+i*.39*scale,0]}><boxGeometry args={[.62*scale,.055,.055]}/><meshStandardMaterial color="#a6b4ad"/></mesh>)}
   {[3,5.5,8].map(y=><mesh key={`tower-cage-${y}`} position={[1.46*scale,y*scale,0]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.43*scale,.035,6,18]}/><meshStandardMaterial color="#d1bd8a"/></mesh>)}
   <TowerAppurtenances scale={scale}/>
+  {item.id==='V-201'&&<group>
+   <Pipe a={[.95,4.55,0]} b={[1.34,4.55,0]} color="#9b6b4b" radius={.12}/>
+   <mesh position={[1.27,4.55,0]} rotation={[0,0,Math.PI/2]}><torusGeometry args={[.18,.035,6,18]}/><meshStandardMaterial color="#c7b784" metalness={.5}/></mesh>
+  </group>}
  </ClickGroup>;
 }
 function TowerAppurtenances({scale}:{scale:number}){
@@ -1332,20 +1337,82 @@ function Flare({item}:{item:SiteItem}) {
     <mesh position={[x,16.55,z]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.07,.018,5,10]}/><meshStandardMaterial color="#e68a3a" emissive="#a13b18" emissiveIntensity={.35}/></mesh>
    </group>})}
    {[0,1,2].map(i=>{const a=i*Math.PI*2/3;return <Pipe key={`flare-lightning-${i}`} a={[Math.cos(a)*.39,13.1,Math.sin(a)*.39]} b={[Math.cos(a)*.39,16.9,Math.sin(a)*.39]} color="#c2b785" radius={.018}/>})}
-   {/* Conceptual knockout drum, saddles, local header, and base-inlet connection. */}
-   <mesh position={[-2.55,.82,2.18]} rotation={[0,0,Math.PI/2]} castShadow><cylinderGeometry args={[.39,.39,2.05,20]}/><meshStandardMaterial color="#89958c" map={getWeatheredSteelMap()} metalness={.5} roughness={.55}/></mesh>
-   {[-3.56,-1.54].map(x=><mesh key={`flare-drum-head-${x}`} position={[x,.82,2.18]} scale={[.34,.39,.39]} castShadow><sphereGeometry args={[1,16,10]}/><meshStandardMaterial color="#89958c" map={getWeatheredSteelMap()} metalness={.48} roughness={.56}/></mesh>)}
-   {[-3.15,-1.95].map(x=><group key={`flare-drum-saddle-${x}`}><Box position={[x,.4,2.18]} scale={[.18,.52,.72]} color="#59645e"/><Box position={[x,.23,2.18]} scale={[.72,.12,.82]} color="#69756c"/></group>)}
-   {[-3.15,-1.95].map(x=><mesh key={`flare-drum-seam-${x}`} position={[x,.82,2.18]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.39,.022,6,20]}/><meshStandardMaterial color="#aab0a3" metalness={.58}/></mesh>)}
-   <Pipe a={[-4.48,.78,2.18]} b={[-3.58,.78,2.18]} color="#9b6b4b" radius={.11}/>
-   <Pipe a={[-3.34,1.18,2.18]} b={[-3.34,1.45,2.18]} color="#859087" radius={.055}/>
-   <mesh position={[-3.34,1.53,2.18]}><cylinderGeometry args={[.105,.105,.09,12]}/><meshStandardMaterial color="#c9bb8e" metalness={.42}/></mesh>
-   <PipelinePath points={[[-1.52,.84,2.18],[-1.13,.84,1.58],[-.72,1.02,.86],[-.48,1.12,.38]]} color="#9b6b4b" radius={.105}/>
-   {[-4.05,-1.15].map(x=><group key={`flare-header-support-${x}`}><Box position={[x,.34,2.18]} scale={[.12,.56,.12]} color="#616c64"/><Box position={[x,.11,2.18]} scale={[.45,.12,.42]} color="#737d72"/></group>)}
+   {/* The main liquid-separation vessel is modeled beside the stack as FL-KO-01. */}
    <FlareFire/>
   </group>
  </ClickGroup>;
 }
+function FlareKnockoutDrum({item}:{item:SiteItem}) {
+ return <ClickGroup item={item} position={item.position}>
+  {/* Shared-edge hardstand continues the flare apron without moving FL-01. */}
+  <mesh position={[-.1,.09,.2]} receiveShadow>
+   <boxGeometry args={[7.5,.18,5.1]}/>
+   <meshStandardMaterial map={getYardSurfaceMap('concrete',7.5/9,5.1/9)} color="#c3c7bd" roughness={.96}/>
+  </mesh>
+  {/* Two steel saddles on grouted foundations support a conceptual horizontal KOD. */}
+  {[-1.78,1.78].map((x,i)=><group key={`flare-kod-saddle-${i}`}>
+   <Box position={[x,.29,0]} scale={[.86,.22,1.18]} color="#737d73"/>
+   <Box position={[x,.53,0]} scale={[.2,.48,1.02]} color="#56635c"/>
+   <Box position={[x,.16,0]} scale={[1.02,.1,1.34]} color="#899187"/>
+   {[-.48,.48].map((z,j)=><mesh key={j} position={[x+(j?-.33:.33),.12,z]}><cylinderGeometry args={[.055,.055,.18,8]}/><meshStandardMaterial color="#b5a77f" metalness={.42}/></mesh>)}
+  </group>)}
+  {/* Vessel barrel, formed heads, shell-course seams and nozzle flanges. */}
+  <mesh position={[0,1.28,0]} rotation={[0,0,Math.PI/2]} castShadow receiveShadow>
+   <cylinderGeometry args={[.72,.72,5.25,28]}/>
+   <meshStandardMaterial color="#9ca69b" map={getWeatheredSteelMap()} metalness={.52} roughness={.56}/>
+  </mesh>
+  {[-2.61,2.61].map((x,i)=><mesh key={`flare-kod-head-${i}`} position={[x,1.28,0]} scale={[.34,.72,.72]} castShadow>
+   <sphereGeometry args={[1,20,14]}/><meshStandardMaterial color="#9ca69b" map={getWeatheredSteelMap()} metalness={.48} roughness={.57}/>
+  </mesh>)}
+  {[-1.82,0,1.82].map((x,i)=><mesh key={`flare-kod-seam-${i}`} position={[x,1.28,0]} rotation={[0,Math.PI/2,0]}>
+   <torusGeometry args={[.72,.022,6,28]}/><meshStandardMaterial color="#c0c3b6" metalness={.58} roughness={.5}/>
+  </mesh>)}
+  {/* Relief-gas inlet at east end and vapor outlet riser toward the flare. */}
+  <Pipe a={[2.7,1.28,0]} b={[3.28,1.28,0]} color="#9b6b4b" radius={.14}/>
+  <mesh position={[2.77,1.28,0]} rotation={[0,0,Math.PI/2]}><torusGeometry args={[.2,.04,7,20]}/><meshStandardMaterial color="#c7b784" metalness={.48}/></mesh>
+  <Pipe a={[-1.82,1.82,0]} b={[-1.82,2.34,0]} color="#9b6b4b" radius={.13}/>
+  <mesh position={[-1.82,2.04,0]}><cylinderGeometry args={[.19,.19,.1,16]}/><meshStandardMaterial color="#c6b67f" metalness={.52}/></mesh>
+  <mesh position={[-1.82,2.34,0]}><cylinderGeometry args={[.22,.16,.1,16]}/><meshStandardMaterial color="#7e8b80" metalness={.52}/></mesh>
+  {/* Top manway and a compact guarded inspection walkway with ladder access. */}
+  <mesh position={[1.3,2.02,0]}><cylinderGeometry args={[.27,.3,.28,16]}/><meshStandardMaterial color="#7b887e" metalness={.56}/></mesh>
+  <mesh position={[1.3,2.18,0]}><cylinderGeometry args={[.35,.35,.08,16]}/><meshStandardMaterial color="#c5b47c" metalness={.5}/></mesh>
+  <Box position={[.15,2.06,.82]} scale={[4.25,.08,.48]} color="#39443e"/>
+  {[-1.95,2.1].map(x=><group key={`flare-kod-walk-rail-${x}`}>
+   <Box position={[x,2.37,.78]} scale={[.08,.62,.08]} color="#d1bc82"/>
+   <Box position={[x,2.68,.78]} scale={[.08,.08,.08]} color="#d1bc82"/>
+  </group>)}
+  {[-1.35,-.45,.45,1.35].map(x=><Box key={`flare-kod-rail-post-${x}`} position={[x,2.37,.78]} scale={[.06,.62,.06]} color="#d1bc82"/>)}
+  <Pipe a={[2.18,.24,.82]} b={[2.18,2.02,.82]} color="#c8b77f" radius={.035}/>
+  <Pipe a={[2.65,.24,.82]} b={[2.65,2.02,.82]} color="#c8b77f" radius={.035}/>
+  {Array.from({length:8},(_,i)=><Box key={`flare-kod-ladder-rung-${i}`} position={[2.415,.42+i*.21,.82]} scale={[.52,.045,.055]} color="#c8b77f"/>)}
+  {/* Bottom liquid boot, local level indication, isolation and contained drain. */}
+  <mesh position={[0,.63,-.08]} castShadow><cylinderGeometry args={[.28,.3,.72,16]}/><meshStandardMaterial color="#839087" map={getWeatheredSteelMap()} metalness={.46} roughness={.58}/></mesh>
+  <mesh position={[0,.27,-.08]}><cylinderGeometry args={[.36,.36,.08,16]}/><meshStandardMaterial color="#c7b67f" metalness={.48}/></mesh>
+  <Pipe a={[0,.27,-.08]} b={[0,.15,-.08]} color="#9b6b4b" radius={.09}/>
+  <PipelinePath points={[[0,.15,-.08],[.8,.15,.68],[2.2,.15,1.46],[3.05,.15,1.7]]} color="#9b6b4b" radius={.075}/>
+  <ValveWheel position={[0,.42,-.08]} color="#7e7663"/>
+  <Pipe a={[1.95,.77,.79]} b={[1.95,1.83,.79]} color="#b6c1b2" radius={.035}/>
+  <Pipe a={[1.95,.77,.79]} b={[1.95,.77,1.02]} color="#b6c1b2" radius={.035}/>
+  <Pipe a={[1.95,1.83,.79]} b={[1.95,1.83,1.02]} color="#b6c1b2" radius={.035}/>
+  <mesh position={[1.95,1.3,1.035]}><boxGeometry args={[.12,.78,.09]}/><meshStandardMaterial color="#62796f" transparent opacity={.8}/></mesh>
+  <mesh position={[1.95,1.03,1.09]}><sphereGeometry args={[.085,8,8]}/><meshStandardMaterial color="#d6b45f" emissive="#433112" emissiveIntensity={.25}/></mesh>
+  <Box position={[3.05,.18,1.7]} scale={[.95,.12,.72]} color="#52615b"/>
+  {/* Low corner guards and an access step keep the pad edge visually legible. */}
+  {[[-3.42,-2.12],[3.22,-2.12],[-3.42,2.46],[3.22,2.46]].map(([x,z],i)=><group key={`flare-kod-bollard-${i}`} position={[x,.42,z]}><mesh><cylinderGeometry args={[.11,.14,.84,10]}/><meshStandardMaterial color="#59665f"/></mesh><mesh position={[0,.3,0]}><cylinderGeometry args={[.145,.145,.14,10]}/><meshStandardMaterial color="#d0b66c"/></mesh></group>)}
+ </ClickGroup>;
+}
+function FlareSystemConnections(){
+ const vduToKod:[number,number,number][]=[[-7,3.55,-17],[-9.4,3.55,-17],[-10.7,2.25,-16.25],[-12.75,1.45,-15.4]];
+ const kodToFlare:[number,number,number][]=[[-17.82,2.34,-15.4],[-19.72,2.34,-15.4],[-21.65,1.92,-13.65],[-22.48,1.27,-11.62]];
+ return <group>
+  <PipelinePath points={vduToKod} color="#9b6b4b" radius={.13}/>
+  <PipelinePath points={kodToFlare} color="#9b6b4b" radius={.13}/>
+  <ValveWheel position={[-11.65,1.78,-15.8]} color="#7e7663"/>
+  <ValveWheel position={[-20.1,2.34,-15.4]} color="#7e7663"/>
+  {[-19.4,-20.8].map(x=><group key={`flare-header-stand-${x}`}><Box position={[x,1.11,-15.4]} scale={[.14,2.22,.14]} color="#657169"/><Box position={[x,.17,-15.4]} scale={[.55,.12,.48]} color="#818b80"/><Box position={[x,2.22,-15.4]} scale={[.56,.12,.42]} color="#838c80"/></group>)}
+ </group>;
+}
+
 const truckRoute:[number,number][]=[[10,14],[23,14],[23,23],[6,23],[6,14]];
 const flatbedRoute:[number,number][]=[[17,23],[6,23],[6,20.5],[23,20.5],[23,23]];
 function routePoint(progress:number,route:readonly [number,number][]=truckRoute){const distance=(progress%1)*route.length,index=Math.floor(distance),part=distance-index,a=route[index],b=route[(index+1)%route.length];return {x:a[0]+(b[0]-a[0])*part,z:a[1]+(b[1]-a[1])*part,dx:b[0]-a[0],dz:b[1]-a[1]}}
@@ -1870,6 +1937,8 @@ const processFlowRoutes:{color:string;points:[number,number,number][]}[]=[
  {color:'#7395a2',points:[[-21,6.55,14],[-16,6.55,14],[-12.4,6.55,14],[-12.4,6.55,24.9],[-9.2,6.55,24.9],[-6.14,6.55,25.95],[-6.14,4.0,25.95]]},
  {color:'#b88c56',points:[[-8.55,4.76,24.7],[-12.4,5.85,24.9],[-12.4,5.85,6],[-6,5.85,6],[-6,5.85,2.72],[30,5.85,2.72],[2.5,5.85,2.72],[2.5,5.85,.5],[2.5,2.25,.5]]},
  {color:'#b88c56',points:[[-6,5.85,2.72],[-12,5.85,2.72],[-12,5.85,-9],[-12,2.25,-9]]},
+ {color:'#d29a69',points:[[-7,3.55,-17],[-9.4,3.55,-17],[-10.7,2.25,-16.25],[-12.75,1.45,-15.4]]},
+ {color:'#ffbd68',points:[[-17.82,2.34,-15.4],[-19.72,2.34,-15.4],[-21.65,1.92,-13.65],[-22.48,1.27,-11.62]]},
  {color:'#6d9698',points:[[2.5,2.25,.5],[2.5,3.05,.5],[2.5,3.05,3.55],[-6,3.05,3.55],[-12.4,3.05,6],[-12.4,3.05,24.5],[-9.8,3.05,24.5],[-6.14,3.05,25.95],[-6.14,3.38,25.95]]},
  {color:'#6b9da6',points:[[3.8,3.2,24.72],[3.8,6.65,24.72],[4.8,6.65,24.72],[4.8,6.65,13.2],[10,6.65,13.2],[10,6.65,4.75],[10,6.65,2.72],[10,13.55,2.72],[-6,13.55,2.72],[-6,6.65,2.72],[-31,6.65,2.72]]},
  {color:'#a387b0',points:[[4.78,2.68,24.26],[4.78,7.2,24.26],[5.35,7.2,24.26],[5.35,7.2,13.2],[10,7.2,13.2],[10,7.2,4.75],[10,7.2,2.72],[10,15.65,2.72],[-6,15.65,2.72],[-6,7.2,2.72],[-31,7.2,2.72]]},
@@ -1936,7 +2005,7 @@ export function World(){
   {/* Administration */}
   <ControlBuilding item={items.find(x=>x.id==='CCR-01')!}/><LaboratoryBuilding item={items.find(x=>x.id==='LAB-01')!}/>
    {/* Process vessels, pipe racks, furnace and flare */}
-  <Tower item={items[0]} scale={1.06}/><Tower item={items[1]} scale={.78}/><Furnace item={items[2]}/><Flare item={items[3]}/><ProcessRefinery/><MainPipeway/><FacilityInterconnects/><CDUOverheadPiping/><ElectricalFeed/>
+  <Tower item={items[0]} scale={1.06}/><Tower item={items[1]} scale={.78}/><Furnace item={items[2]}/><Flare item={items[3]}/><FlareKnockoutDrum item={items.find(x=>x.id==='FL-KO-01')!}/><FlareSystemConnections/><ProcessRefinery/><MainPipeway/><FacilityInterconnects/><CDUOverheadPiping/><ElectricalFeed/>
   <OverheadCondenser item={items.find(x=>x.id==='E-101')!}/><RefluxAccumulator item={items.find(x=>x.id==='V-102')!}/><RefluxPumpSet item={items.find(x=>x.id==='P-102A')!}/>
   {filtered.filter(x=>x.id==='FCC-01'||x.id==='HDS-01').map(unit=><RefineryUnit key={unit.id} item={unit}/>)}
   {filtered.filter(x=>x.id==='DS-101').map(unit=><DesalterUnit key={unit.id} item={unit}/>)}

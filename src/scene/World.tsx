@@ -217,8 +217,150 @@ function Tower({item,scale=1}: {item:SiteItem;scale?:number}) {
   <mesh position={[1.18*scale,4.55*scale,0]}><boxGeometry args={[.075,8.1*scale,.075]}/><meshStandardMaterial color="#a6b4ad"/></mesh><mesh position={[1.82*scale,4.55*scale,0]}><boxGeometry args={[.075,8.1*scale,.075]}/><meshStandardMaterial color="#a6b4ad"/></mesh>
   {Array.from({length:20},(_,i)=><mesh key={`tower-rung-${i}`} position={[1.5*scale,.65*scale+i*.39*scale,0]}><boxGeometry args={[.62*scale,.055,.055]}/><meshStandardMaterial color="#a6b4ad"/></mesh>)}
   {[3,5.5,8].map(y=><mesh key={`tower-cage-${y}`} position={[1.46*scale,y*scale,0]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.43*scale,.035,6,18]}/><meshStandardMaterial color="#d1bd8a"/></mesh>)}
+  <TowerAppurtenances scale={scale}/>
  </ClickGroup>;
 }
+function TowerAppurtenances({scale}:{scale:number}){
+ const weldYs=[.9,2.8,4.7,6.6,8.4];
+ return <group scale={scale}>
+  {/* Base ring, anchor points and shell-course welds enrich the existing column without changing its footprint. */}
+  <mesh position={[0,.16,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[1.08,1.27,32]}/><meshStandardMaterial color="#68766e" metalness={.62}/></mesh>
+  {Array.from({length:12},(_,i)=>{const a=i*Math.PI/6;return <mesh key={`tower-anchor-${i}`} position={[Math.cos(a)*1.22,.12,Math.sin(a)*1.22]}><cylinderGeometry args={[.045,.045,.18,7]}/><meshStandardMaterial color="#c6b886" metalness={.52}/></mesh>})}
+  {weldYs.map(y=>{const r=1.18-(y/9)*.36;return <mesh key={`tower-shell-course-${y}`} position={[0,y,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[r,.022,5,28]}/><meshStandardMaterial color="#c5c6b8" metalness={.5} roughness={.55}/></mesh>})}
+  {/* Curved head, vent nozzle and a small pressure-relief assembly. */}
+  <mesh position={[0,8.98,0]} scale={[1,.48,1]} castShadow><sphereGeometry args={[.82,24,12,0,Math.PI*2,0,Math.PI/2]}/><meshStandardMaterial color="#aeb7aa" map={getWeatheredSteelMap()} metalness={.46} roughness={.58}/></mesh>
+  <mesh position={[0,9.38,0]}><cylinderGeometry args={[.14,.18,.35,12]}/><meshStandardMaterial color="#758278" metalness={.55}/></mesh>
+  <mesh position={[0,9.58,0]}><cylinderGeometry args={[.22,.22,.08,12]}/><meshStandardMaterial color="#cbb779" metalness={.5}/></mesh>
+  <Pipe a={[.3,9.18,0]} b={[.3,9.62,0]} color="#9da79b" radius={.055}/>
+  <mesh position={[.3,9.72,0]}><cylinderGeometry args={[.12,.12,.18,10]}/><meshStandardMaterial color="#c2ae77" metalness={.48}/></mesh>
+  {/* Reflux-return nozzle is placed on the column face below the top access deck. */}
+  <Pipe a={[0,8.25,.82]} b={[0,8.25,1.4]} color="#78959a" radius={.105}/>
+  <mesh position={[0,8.25,1.42]}><torusGeometry args={[.15,.026,5,14]}/><meshStandardMaterial color="#d2c08b" metalness={.5}/></mesh>
+  {/* Three flanged manways align with the existing circular access decks. */}
+  {[2.5,5.8,8.15].map((y,i)=>{
+   const x=i===1?-.38:.38,r=1.18-(y/9)*.36,z=Math.sqrt(r*r-x*x)+.035;
+   return <group key={`tower-manway-${y}`}>
+    <mesh position={[x,y,z]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.3,.3,.11,16]}/><meshStandardMaterial color="#66756d" metalness={.58}/></mesh>
+    <mesh position={[x,y,z+.07]}><torusGeometry args={[.31,.038,6,20]}/><meshStandardMaterial color="#cfbd86" metalness={.5}/></mesh>
+    {Array.from({length:10},(_,n)=>{const a=n*Math.PI/5;return <mesh key={`manway-bolt-${n}`} position={[x+Math.cos(a)*.34,y+Math.sin(a)*.34,z+.075]}><sphereGeometry args={[.035,6,6]}/><meshStandardMaterial color="#dfd0a2" metalness={.58}/></mesh>})}
+    <Box position={[x-.29,y+.08,z+.09]} scale={[.08,.32,.07]} color="#8d998c"/>
+    <Box position={[x-.37,y+.24,z+.11]} scale={[.28,.06,.08]} color="#aab2a5"/>
+   </group>;
+  })}
+  {/* Alternating side-draw nozzles, short flanged spools and platform-accessible handwheels. */}
+  {[1.7,4.45,6.9].map((y,i)=>{
+   const x=i===1?-.52:.52,r=1.18-(y/9)*.36,z=Math.sqrt(r*r-x*x);
+   return <group key={`tower-side-draw-${y}`}>
+    <Pipe a={[x,y,z-.02]} b={[x,y,z+.52]} color={i===1?'#9b7751':'#7e9b99'} radius={.105}/>
+    <mesh position={[x,y,z+.52]}><torusGeometry args={[.15,.026,5,14]}/><meshStandardMaterial color="#d0bd85" metalness={.48}/></mesh>
+    <ValveWheel position={[x,y-.32,z+.58]} color="#7c877e"/>
+    <Box position={[x,y-.32,z+.28]} scale={[.08,.1,.46]} color="#748278"/>
+   </group>;
+  })}
+  {/* External level-glass chamber with isolation valves and short shell connections. */}
+  <Pipe a={[-.93,3.48,.48]} b={[-1.28,3.48,.48]} color="#9da79b" radius={.055}/>
+  <Pipe a={[-1.28,3.48,.48]} b={[-1.28,5.2,.48]} color="#b5c5bc" radius={.065}/>
+  <Pipe a={[-1.28,5.2,.48]} b={[-.88,5.2,.48]} color="#9da79b" radius={.055}/>
+  <ValveWheel position={[-1.28,3.32,.48]} color="#7d8980"/><ValveWheel position={[-1.28,4.7,.48]} color="#7d8980"/>
+  {Array.from({length:5},(_,i)=><Box key={`level-glass-mark-${i}`} position={[-1.33,3.72+i*.28,.55]} scale={[.1,.035,.035]} color="#d6d3c0"/>)}
+  {/* Pressure/temperature gauges are mounted on short standpipes beside the upper access deck. */}
+  {[[.94,5.35],[.76,7.82]].map(([x,y],i)=>{
+   const r=1.18-(y/9)*.36,z=Math.sqrt(r*r-x*x)+.15;
+   return <group key={`tower-instrument-${i}`}>
+    <Pipe a={[x,y-.2,z-.18]} b={[x,y,z-.04]} color="#a5aea3" radius={.045}/>
+    <mesh position={[x,y,z]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.16,.16,.09,14]}/><meshStandardMaterial color="#303b38" metalness={.35}/></mesh>
+    <mesh position={[x,y,z+.055]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.12,.12,.025,14]}/><meshStandardMaterial color="#d9d6c8"/></mesh>
+    <mesh position={[x+.025,y,z+.075]} rotation={[0,0,-.5]}><boxGeometry args={[.012,.12,.018]}/><meshStandardMaterial color="#9b5545"/></mesh>
+   </group>;
+  })}
+ </group>;
+}
+function OverheadCondenser({item}:{item:SiteItem}){
+ return <ClickGroup item={item} position={item.position}>
+  <mesh position={[0,.105,0]} receiveShadow><boxGeometry args={[5.2,.21,2.5]}/><meshStandardMaterial color="#727d74" roughness={.94}/></mesh>
+  {[-1.25,1.25].map(x=><group key={`e101-saddle-${x}`}>
+   <Box position={[x,.66,0]} scale={[.46,.9,1.25]} color="#69766e"/>
+   <Box position={[x,.34,0]} scale={[.9,.16,1.4]} color="#a19168"/>
+  </group>)}
+  <mesh position={[0,1.47,0]} rotation={[0,0,Math.PI/2]} castShadow receiveShadow><cylinderGeometry args={[.62,.62,3.8,24]}/><meshStandardMaterial color="#aab4aa" map={getWeatheredSteelMap()} metalness={.42} roughness={.61}/></mesh>
+  {[-1,1].map(side=><group key={`e101-channel-head-${side}`}>
+   <mesh position={[side*1.92,1.47,0]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.58,.58,.16,20]}/><meshStandardMaterial color="#77847b" metalness={.45}/></mesh>
+   <mesh position={[side*2.02,1.47,0]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.48,.055,7,22]}/><meshStandardMaterial color="#d2bd84" metalness={.52}/></mesh>
+   {Array.from({length:12},(_,i)=>{const a=i*Math.PI/6;return <mesh key={`e101-bolt-${i}`} position={[side*2.05,1.47+Math.cos(a)*.49,Math.sin(a)*.49]}><sphereGeometry args={[.045,7,6]}/><meshStandardMaterial color="#d4c697" metalness={.6}/></mesh>})}
+  </group>)}
+  {[[-1.25,1.9],[1.05,1.9]].map(([x,y],i)=><group key={`e101-nozzle-${i}`}>
+   <Pipe a={[x,y,0]} b={[x,y+.42,0]} color="#8a988d" radius={.11}/>
+   <mesh position={[x,y+.45,0]}><torusGeometry args={[.15,.028,5,14]}/><meshStandardMaterial color="#c5b684" metalness={.48}/></mesh>
+  </group>)}
+  <Pipe a={[0,2.0,0]} b={[0,2.35,0]} color="#acb4a6" radius={.13}/>
+  <mesh position={[0,2.4,0]}><torusGeometry args={[.18,.03,5,16]}/><meshStandardMaterial color="#d1bd85" metalness={.5}/></mesh>
+  <Pipe a={[2.02,1.47,0]} b={[2.34,1.47,0]} color="#9b8055" radius={.11}/>
+  <mesh position={[2.34,1.47,0]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.16,.028,5,14]}/><meshStandardMaterial color="#cfbd86" metalness={.5}/></mesh>
+  <Box position={[0,.2,1.1]} scale={[3.8,.08,.1]} color="#8b9589"/>
+  <EquipmentTag label={item.id} position={[0,2.5,1.25]}/>
+ </ClickGroup>;
+}
+function RefluxAccumulator({item}:{item:SiteItem}){
+ return <ClickGroup item={item} position={item.position}>
+  <mesh position={[0,.09,0]} receiveShadow><boxGeometry args={[4.35,.18,2.4]}/><meshStandardMaterial color="#737e74" roughness={.93}/></mesh>
+  {[-1.05,1.05].map(x=><group key={`v102-saddle-${x}`}>
+   <Box position={[x,.51,0]} scale={[.38,.72,1.12]} color="#637168"/>
+   <Box position={[x,.28,0]} scale={[.82,.16,1.32]} color="#a18e63"/>
+  </group>)}
+  <mesh position={[0,1.27,0]} rotation={[0,0,Math.PI/2]} castShadow receiveShadow><cylinderGeometry args={[.64,.64,3.25,24]}/><meshStandardMaterial color="#aab4a9" map={getWeatheredSteelMap()} metalness={.44} roughness={.62}/></mesh>
+  {[-1,1].map(side=><group key={`v102-head-${side}`}>
+   <mesh position={[side*1.65,1.27,0]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.61,.61,.12,20]}/><meshStandardMaterial color="#77847b" metalness={.42}/></mesh>
+   <mesh position={[side*1.71,1.27,0]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.56,.04,6,20]}/><meshStandardMaterial color="#d1bd86" metalness={.5}/></mesh>
+   {Array.from({length:10},(_,i)=>{const a=i*Math.PI/5;return <mesh key={`v102-flange-bolt-${i}`} position={[side*1.74,1.27+Math.cos(a)*.53,Math.sin(a)*.53]}><sphereGeometry args={[.036,6,6]}/><meshStandardMaterial color="#d7c89b" metalness={.56}/></mesh>})}
+  </group>)}
+  {/* Overhead vapor inlet, vent and liquid draw nozzles. */}
+  <Pipe a={[-1.05,1.78,0]} b={[-1.05,2.1,0]} color="#9ca79b" radius={.13}/>
+  <Pipe a={[.55,1.78,0]} b={[.55,2.26,0]} color="#87968a" radius={.09}/>
+  <Pipe a={[0,1.82,0]} b={[0,2.3,0]} color="#8c978c" radius={.075}/>
+  <Pipe a={[0,.66,0]} b={[0,.47,0]} color="#96774f" radius={.13}/>
+  <mesh position={[0,.48,0]}><torusGeometry args={[.17,.028,5,14]}/><meshStandardMaterial color="#cfbb84" metalness={.5}/></mesh>
+  {/* External level chamber and two isolation valves. */}
+  <Pipe a={[.9,.86,.38]} b={[1.28,.86,.38]} color="#a2ada2" radius={.05}/>
+  <Pipe a={[1.28,.86,.38]} b={[1.28,1.75,.38]} color="#b6c7bd" radius={.06}/>
+  <Pipe a={[1.28,1.75,.38]} b={[.9,1.75,.38]} color="#a2ada2" radius={.05}/>
+  <ValveWheel position={[1.28,.69,.38]} color="#78877e"/><ValveWheel position={[1.28,1.5,.38]} color="#78877e"/>
+  <Box position={[1.38,1.3,.4]} scale={[.035,.46,.035]} color="#d5d3c2"/>
+  <EquipmentTag label={item.id} position={[0,2.45,.95]}/>
+ </ClickGroup>;
+}
+function RefluxPumpSet({item}:{item:SiteItem}){
+ return <ClickGroup item={item} position={item.position}>
+  <mesh position={[0,.1,0]} receiveShadow><boxGeometry args={[5.2,.2,2.75]}/><meshStandardMaterial color="#6e7970" roughness={.94}/></mesh>
+  {[-1.2,1.2].map((x,i)=><group key={`p102-set-${i}`}>
+   <Box position={[x,.29,0]} scale={[2.05,.18,1.55]} color="#505e56"/>
+   <Box position={[x-.43,.71,-.25]} scale={[.92,.55,.88]} color="#6b786f"/>
+   <mesh position={[x-.38,.76,-.24]} rotation={[Math.PI/2,0,0]} castShadow><cylinderGeometry args={[.27,.27,.82,16]}/><meshStandardMaterial color="#859187" map={getWeatheredSteelMap()} metalness={.48} roughness={.57}/></mesh>
+   <mesh position={[x-.82,.76,-.24]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.22,.22,.12,12]}/><meshStandardMaterial color="#c2b17e" metalness={.5}/></mesh>
+   <Box position={[x+.28,.73,.36]} scale={[.68,.62,.64]} color={i?'#60736a':'#53665d'}/>
+   <mesh position={[x+.48,1.08,.36]}><cylinderGeometry args={[.12,.12,.35,12]}/><meshStandardMaterial color="#b4b9ad" metalness={.44}/></mesh>
+   <Pipe a={[x+.48,1.25,.36]} b={[x+.48,1.65,.36]} color={i?'#78979a':'#a47851'} radius={.09}/>
+   <Box position={[x-.02,.76,.02]} scale={[.18,.32,.62]} color="#303a36"/>
+   <mesh position={[x-.02,.76,.35]}><torusGeometry args={[.17,.035,6,14]}/><meshStandardMaterial color="#bdac7b" metalness={.5}/></mesh>
+   <ValveWheel position={[x+.48,1.42,.36]} color="#7e897e"/>
+  </group>)}
+  {/* Common suction header and two short pump branches. */}
+  <PipelinePath points={[[-1.2,.55,-.92],[0,.55,-.92],[1.2,.55,-.92]]} color="#96774f" radius={.11}/>
+  <PipelinePath points={[[-1.2,.55,-.92],[-1.2,.55,.36],[-.72,.68,.36]]} color="#96774f" radius={.075}/>
+  <PipelinePath points={[[1.2,.55,-.92],[1.2,.55,.36],[1.68,.68,.36]]} color="#96774f" radius={.075}/>
+  {/* Discharge branches join a raised reflux return header. */}
+  <PipelinePath points={[[-.72,1.65,.36],[-.72,1.35,.95],[0,1.35,.95],[.72,1.35,.95],[1.68,1.65,.36]]} color="#78959a" radius={.085}/>
+  <Box position={[0,1.95,-1.17]} scale={[2.8,.08,.08]} color="#c6b782"/>
+  <EquipmentTag label={item.id} position={[0,2.45,1.12]}/>
+ </ClickGroup>;
+}
+function CDUOverheadPiping(){return <group>
+ {/* Illustrative CDU overhead -> shell-and-tube condenser -> accumulator, plus a separate reflux-pump return. */}
+ <PipelinePath points={[[-12,9.62,-9],[-12,10,-9],[-9,10,-9],[-9,2.35,-9],[-9,2.35,-5.7]]} color="#a98553" radius={.14}/>
+ <PipelinePath points={[[-6.66,1.47,-5.7],[-5.15,1.47,-5.7],[-5.15,2.08,-5.7]]} color="#9c8055" radius={.11}/>
+ <PipelinePath points={[[-4.1,.72,-5.7],[-4.1,.45,-5.7],[-4.1,.45,-3.12],[-6.8,.45,-3.12],[-6.8,.55,-3.12]]} color="#96774f" radius={.12}/>
+ <PipelinePath points={[[-6.8,1.35,-1.25],[-6.8,4.4,-1.25],[-6.8,4.4,-7.6],[-12,4.4,-7.6],[-12,8.25,-7.6]]} color="#78959a" radius={.11}/>
+ <ValveWheel position={[-9,2.35,-7.1]} color="#8f7854"/><ValveWheel position={[-6.8,4.4,-4.5]} color="#6f8c8f"/>
+ </group>}
 function FurnaceBurner({x}:{x:number}){
  const flame=useRef<THREE.Group>(null),phase=useRef(x*.7),night=useStore(s=>s.night);
  useFrame((_,delta)=>{phase.current+=delta;if(flame.current){const t=phase.current;flame.current.scale.set(.92+Math.sin(t*11)*.05,.9+Math.sin(t*14+x)*.12,.9+Math.cos(t*9)*.05);flame.current.rotation.z=Math.sin(t*2.5)*.035;}});
@@ -1308,6 +1450,8 @@ const processFlowRoutes:{color:string;points:[number,number,number][]}[]=[
  {color:'#e9a765',points:[[2.5,1.8,.5],[2.5,2.1,.5],[8.9,2.1,.5],[8.9,4.4,.5],[8.9,4.4,2.72],[10,4.4,2.72],[10,4.4,-9],[10,1.25,-9],[29,1.25,-9]]},
  {color:'#84c9dc',points:[[10,1.25,-9],[9.1,1.25,-9],[9.1,4.15,-9],[9.1,4.15,9],[10,4.15,9],[10,3,9],[10,3,15],[20,3,15]]},
  {color:'#d9c394',points:[[29,1.25,-9],[32.2,1.25,-9],[32.2,1.25,18]]},
+ {color:'#efba68',points:[[-12,9.62,-9],[-12,10,-9],[-9,10,-9],[-9,2.35,-9],[-9,2.35,-5.7],[-6.66,1.47,-5.7],[-5.15,1.47,-5.7],[-5.15,2.08,-5.7]]},
+ {color:'#83c9d5',points:[[-4.1,.72,-5.7],[-4.1,.45,-5.7],[-4.1,.45,-3.12],[-6.8,.55,-3.12],[-6.8,1.35,-1.25],[-6.8,4.4,-1.25],[-6.8,4.4,-7.6],[-12,4.4,-7.6],[-12,8.25,-7.6]]},
 ];
 function FlowLines(){const flow=useStore(s=>s.flow);if(!flow)return null;return <group>
  {processFlowRoutes.map((route,i)=><group key={`flow-route-${i}`}>
@@ -1370,7 +1514,8 @@ export function World(){
   {/* Administration */}
   <ControlBuilding item={items.find(x=>x.id==='CCR-01')!}/><LaboratoryBuilding item={items.find(x=>x.id==='LAB-01')!}/>
    {/* Process vessels, pipe racks, furnace and flare */}
-  <Tower item={items[0]} scale={1.06}/><Tower item={items[1]} scale={.78}/><Furnace item={items[2]}/><Flare item={items[3]}/><ProcessRefinery/><MainPipeway/><FacilityInterconnects/><ElectricalFeed/>
+  <Tower item={items[0]} scale={1.06}/><Tower item={items[1]} scale={.78}/><Furnace item={items[2]}/><Flare item={items[3]}/><ProcessRefinery/><MainPipeway/><FacilityInterconnects/><CDUOverheadPiping/><ElectricalFeed/>
+  <OverheadCondenser item={items.find(x=>x.id==='E-101')!}/><RefluxAccumulator item={items.find(x=>x.id==='V-102')!}/><RefluxPumpSet item={items.find(x=>x.id==='P-102A')!}/>
   {filtered.filter(x=>x.id==='FCC-01'||x.id==='HDS-01').map(unit=><RefineryUnit key={unit.id} item={unit}/>)}
   {filtered.filter(x=>x.id==='DS-101').map(unit=><DesalterUnit key={unit.id} item={unit}/>)}
   {filtered.filter(x=>x.id==='CRUDE-01').map(unit=><CrudeReceiving key={unit.id} item={unit}/>)}

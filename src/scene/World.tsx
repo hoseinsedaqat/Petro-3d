@@ -436,17 +436,17 @@ function CableTrayRun({x1,x2,y,z,width,signal=false}:{x1:number;x2:number;y:numb
 function ElectricalFeed(){
  const offsets=[-.13,0,.13],colors=['#30363a','#4b5357','#646b68'];
  return <group>
-  {/* Three buried feeder conduits terminate at the main switchyard through an accessible cable trench. */}
-  <Box position={[30.6,.07,4.0]} scale={[1.45,.14,.8]} color="#777f78"/>
-  <Box position={[31.2,.07,-2.44]} scale={[.86,.14,12.9]} color="#777f78"/>
-  <Box position={[35.1,.07,-9]} scale={[7.8,.14,.86]} color="#777f78"/>
+  {/* Buried feeder route leaves the rack, runs inland along the north utility corridor, then enters the relocated switchyard. */}
+  <Box position={[30.6,.07,4]} scale={[1.45,.14,.8]} color="#777f78"/>
+  <Box position={[31.2,.07,-8]} scale={[.86,.14,24.8]} color="#777f78"/>
+  <Box position={[36.1,.07,-20]} scale={[9.8,.14,.86]} color="#777f78"/>
   {offsets.map((offset,i)=><group key={`electrical-feeder-${i}`}>
-   <Pipe a={[30,6.1,4.0+offset]} b={[30,.24,4.0+offset]} color={colors[i]} radius={.055}/>
-   <Pipe a={[30,.24,4.0+offset]} b={[31.2,.24,4.0+offset]} color={colors[i]} radius={.055}/>
-   <Pipe a={[31.2+offset,.24,4.0]} b={[31.2+offset,.24,-9]} color={colors[i]} radius={.055}/>
-   <Pipe a={[31.2,.24,-9+offset]} b={[39,.24,-9+offset]} color={colors[i]} radius={.055}/>
+   <Pipe a={[30,6.1,4+offset]} b={[30,.24,4+offset]} color={colors[i]} radius={.055}/>
+   <Pipe a={[30,.24,4+offset]} b={[31.2,.24,4+offset]} color={colors[i]} radius={.055}/>
+   <Pipe a={[31.2+offset,.24,4]} b={[31.2+offset,.24,-20]} color={colors[i]} radius={.055}/>
+   <Pipe a={[31.2,.24,-20+offset]} b={[41,.24,-20+offset]} color={colors[i]} radius={.055}/>
   </group>)}
-  {[[31.2,4.0],[31.2,0],[31.2,-4.5],[31.2,-9],[35,-9],[38.5,-9]].map(([x,z],i)=><group key={`electrical-handhole-${i}`}><Box position={[x,.17,z]} scale={[.82,.28,.82]} color="#646e69"/><Box position={[x,.325,z]} scale={[.7,.055,.7]} color="#a69e81"/><Box position={[x,.36,z]} scale={[.18,.025,.08]} color="#3c4542"/></group>)}
+  {[[31.2,4],[31.2,-2],[31.2,-8],[31.2,-14],[31.2,-20],[34.5,-20]].map(([x,z],i)=><group key={`electrical-handhole-${i}`}><Box position={[x,.17,z]} scale={[.82,.28,.82]} color="#646e69"/><Box position={[x,.325,z]} scale={[.7,.055,.7]} color="#a69e81"/><Box position={[x,.36,z]} scale={[.18,.025,.08]} color="#3c4542"/></group>)}
  </group>
 }
 function MainPipeway(){

@@ -191,9 +191,32 @@ export function SulfurRecovery({item}:{item:SiteItem}){
   <EquipmentTag label={item.id} position={[0,1.35,3.85]}/>
  </Selectable>;
 }
+function SwitchyardFence(){
+ const xPosts=[-7.5,-5,-2.5,2.5,5,7.5];
+ return <group>
+  {/* Guarded switchyard perimeter, close-spaced steel mesh bars and a service vehicle gate. */}
+  {xPosts.map(x=><group key={`yard-endpost-${x}`}><Beam position={[x,1.2,-6]} size={[.12,2.4,.12]} color="#52635a"/><Beam position={[x,1.2,6]} size={[.12,2.4,.12]} color="#52635a"/></group>)}
+  {[-4,-2,0,2,4].map(z=><group key={`yard-sidepost-${z}`}><Beam position={[-7.5,1.2,z]} size={[.12,2.4,.12]} color="#52635a"/><Beam position={[7.5,1.2,z]} size={[.12,2.4,.12]} color="#52635a"/></group>)}
+  {[-6,6].map(z=><group key={`yard-rails-${z}`}>
+   {z===-6?<><Beam position={[0,.18,z]} size={[15,.09,.09]} color="#69776e"/><Beam position={[0,1.18,z]} size={[15,.07,.07]} color="#69776e"/><Beam position={[0,2.32,z]} size={[15,.09,.09]} color="#69776e"/></>:<>{[-5,5].map(x=><group key={x}><Beam position={[x,.18,z]} size={[5,.09,.09]} color="#69776e"/><Beam position={[x,1.18,z]} size={[5,.07,.07]} color="#69776e"/><Beam position={[x,2.32,z]} size={[5,.09,.09]} color="#69776e"/></group>)}</>}
+  </group>)}
+  {[-7.5,7.5].map(x=><group key={`yard-side-rails-${x}`}><Beam position={[x,.18,0]} size={[.09,.09,12]} color="#69776e"/><Beam position={[x,1.18,0]} size={[.07,.07,12]} color="#69776e"/><Beam position={[x,2.32,0]} size={[.09,.09,12]} color="#69776e"/></group>)}
+  {Array.from({length:31},(_,i)=>{const x=-7.5+i*.5;return <group key={`yard-mesh-back-${i}`}><Beam position={[x,1.2,-6]} size={[.026,1.95,.026]} color="#87948a"/>{Math.abs(x)>2.5&&<Beam position={[x,1.2,6]} size={[.026,1.95,.026]} color="#87948a"/>}</group>})}
+  {Array.from({length:23},(_,i)=>{const z=-5.5+i*.5;return <group key={`yard-mesh-side-${i}`}><Beam position={[-7.5,1.2,z]} size={[.026,1.95,.026]} color="#87948a"/><Beam position={[7.5,1.2,z]} size={[.026,1.95,.026]} color="#87948a"/></group>})}
+  {/* Double-leaf entrance, set into the southern fence line. */}
+  {[-1.25,1.25].map((center,i)=><group key={`yard-gate-leaf-${i}`}>
+   <Beam position={[center,1.1,6]} size={[2.5,.09,.09]} color="#b1a477"/><Beam position={[center,2.15,6]} size={[2.5,.09,.09]} color="#b1a477"/>
+   {Array.from({length:6},(_,n)=><Beam key={n} position={[center-1+n*.4,1.62,6]} size={[.045,1.05,.045]} color="#8b968d"/>)}
+   <Run a={[center-1,1.18,6]} b={[center+1,2.08,6]} color="#69776e" r={.035}/>
+  </group>)}
+  <Beam position={[0,1.65,6.08]} size={[1.3,.42,.08]} color="#d4b74f"/>
+  {[-.34,0,.34].map(x=><Beam key={`yard-warning-stripe-${x}`} position={[x,1.65,6.13]} size={[.055,.3,.035]} color="#303b36" rotation={[0,0,-.42]}/>)}
+ </group>;
+}
 export function ElectricalSubstation({item}:{item:SiteItem}){
  return <Selectable item={item}>
   <mesh position={[0,.06,0]} receiveShadow><boxGeometry args={[12,.12,9]}/><meshStandardMaterial color="#7e8278" roughness={.9}/></mesh>
+  <SwitchyardFence/>
   {/* Two oil-filled power transformers, cooling banks and porcelain bushings */}
   {[-2.5,1.25].map((x,i)=><group key={`tx-${i}`} position={[x,0,-.8]}>
     <Beam position={[0,1.15,0]} size={[2.85,1.9,2.25]} color="#6e7c72"/>

@@ -1061,12 +1061,15 @@ function Flare({item}:{item:SiteItem}) {
  </ClickGroup>;
 }
 const truckRoute:[number,number][]=[[10,14],[23,14],[23,23],[6,23],[6,14]];
-function routePoint(progress:number){const distance=(progress%1)*truckRoute.length,index=Math.floor(distance),part=distance-index,a=truckRoute[index],b=truckRoute[(index+1)%truckRoute.length];return {x:a[0]+(b[0]-a[0])*part,z:a[1]+(b[1]-a[1])*part,dx:b[0]-a[0],dz:b[1]-a[1]}}
+const flatbedRoute:[number,number][]=[[17,23],[6,23],[6,20.5],[23,20.5],[23,23]];
+function routePoint(progress:number,route:readonly [number,number][]=truckRoute){const distance=(progress%1)*route.length,index=Math.floor(distance),part=distance-index,a=route[index],b=route[(index+1)%route.length];return {x:a[0]+(b[0]-a[0])*part,z:a[1]+(b[1]-a[1])*part,dx:b[0]-a[0],dz:b[1]-a[1]}}
 function TruckTrafficSafety(){const night=useStore(s=>s.night);return <group>
  <mesh rotation={[-Math.PI/2,0,0]} position={[16.5,-.026,14]}><planeGeometry args={[13.2,4.5]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',13.2/12,4.5/12)} color="#ffffff" roughness={.96}/></mesh>
  <mesh rotation={[-Math.PI/2,0,0]} position={[23,-.026,18.5]}><planeGeometry args={[4.5,9]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',4.5/12,9/12)} color="#ffffff" roughness={.96}/></mesh>
  <mesh rotation={[-Math.PI/2,0,0]} position={[14.5,-.026,23]}><planeGeometry args={[17,4.5]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',17/12,4.5/12)} color="#ffffff" roughness={.96}/></mesh>
+ <mesh rotation={[-Math.PI/2,0,0]} position={[14.5,-.026,20.5]}><planeGeometry args={[17,3.5]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',17/12,3.5/12)} color="#ffffff" roughness={.96}/></mesh>
  <mesh rotation={[-Math.PI/2,0,0]} position={[6,-.026,18.5]}><planeGeometry args={[4.5,9]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',4.5/12,9/12)} color="#ffffff" roughness={.96}/></mesh>
+ {Array.from({length:4},(_,i)=><Box key={`outer-loop-dash-${i}`} position={[9+i*4.1,.006,20.5]} scale={[1.7,.02,.1]} color="#d8cf9d"/>)}
  {/* Continuous marked pedestrian route, physically guarded from the one-way truck loop. */}
  <mesh rotation={[-Math.PI/2,0,0]} position={[15,-.008,9.8]}><planeGeometry args={[20,1.8]}/><meshStandardMaterial color="#747d73" roughness={.9}/></mesh>
  {[8.95,10.65].map(z=><Box key={`walk-edge-${z}`} position={[15,.018,z]} scale={[20,.035,.07]} color="#dfd4a6"/>)}
@@ -1074,15 +1077,78 @@ function TruckTrafficSafety(){const night=useStore(s=>s.night);return <group>
  {Array.from({length:10},(_,i)=>{const x=6.5+i*1.9;return <Box key={`walk-post-${i}`} position={[x,.47,11.65]} scale={[.12,.94,.32]} color="#68746f"/>})}
  {[4.2,25.8].map(x=><group key={`walk-lamp-${x}`}><Box position={[x,1.7,9.8]} scale={[.12,3.4,.12]} color="#596862"/><Box position={[x,3.42,9.8]} scale={[.7,.12,.18]} color="#b6a06d"/><mesh position={[x,3.34,9.8]}><sphereGeometry args={[.11,8,8]}/><meshStandardMaterial color={night?'#fff1c8':'#a8ad9c'} emissive={night?'#ffca76':'#000000'} emissiveIntensity={night?1.8:0}/></mesh>{night&&<pointLight position={[x,3.1,9.8]} color="#ffe0ac" intensity={3.2} distance={10} decay={2}/>}</group>)}
  {[11.5,12.5,13.5].map(z=><Box key={`bay-guide-${z}`} position={[16.5,.007,z]} scale={[13,.02,.07]} color={z===12.5?'#d6bb71':'#d3d0b9'}/>)}
+ {[10,15,20].map(x=><group key={`truck-stop-mark-${x}`}><Box position={[x,.012,14]} scale={[.14,.025,3.25]} color="#e5dfcb"/><Box position={[x,.018,11.98]} scale={[1.15,.035,.15]} color="#d6b875"/></group>)}
+ </group>}
+function TruckBayNumber({position,number}:{position:[number,number,number];number:number}){
+ const digits=String(number).padStart(2,'0'),patterns:Record<string,number[]>={'0':[0,1,2,3,4,5],'1':[1,2],'2':[0,1,6,4,3],'3':[0,1,6,2,3]};
+ const bars:[[number,number,number,number],... [number,number,number,number][]]=[[0,.13,.18,.035],[.09,.065,.035,.105],[.09,-.065,.035,.105],[0,-.13,.18,.035],[-.09,-.065,.035,.105],[-.09,.065,.035,.105],[0,0,.18,.035]];
+ return <group position={position}>
+  <Box position={[0,0,0]} scale={[.82,.48,.08]} color="#38443f"/>
+  {digits.split('').flatMap((digit,i)=>(patterns[digit]??[]).map(segment=>{const [x,y,w,h]=bars[segment];return <Box key={`${i}-${segment}`} position={[(i?1:-1)*.19+x,y,.052]} scale={[w,h,.025]} color="#e2c16d"/>}))}
+ </group>
+}
+function TruckLoadingRack(){return <group>
+ {/* Three open top-loading bays: braced portals, raised access platforms and guarded ladders, not closed car-park canopies. */}
+ {[10,15,20].map((x,bay)=><group key={`loading-bay-${x}`}>
+  {[-1.62,1.62].flatMap(dx=>[-2.15,2.15].map(dz=><group key={`${dx}-${dz}`}>
+   <Box position={[x+dx,2.48,15+dz]} scale={[.16,4.72,.16]} color="#66766d"/>
+   <Box position={[x+dx,.18,15+dz]} scale={[.5,.12,.48]} color="#89928a"/>
+   {[-.14,.14].map(bolt=><mesh key={bolt} position={[x+dx+bolt,.255,15+dz]}><cylinderGeometry args={[.035,.035,.035,8]}/><meshStandardMaterial color="#c0b484" metalness={.55}/></mesh>)}
+  </group>))}
+  {[-2.15,2.15].map(dz=><group key={`portal-${dz}`}>
+   <Box position={[x,4.68,15+dz]} scale={[3.55,.18,.2]} color="#819087"/>
+   <Pipe a={[x-1.48,.55,15+dz]} b={[x+1.48,4.47,15+dz]} color="#748278" radius={.055}/>
+   <Pipe a={[x+1.48,.55,15+dz]} b={[x-1.48,4.47,15+dz]} color="#748278" radius={.055}/>
+  </group>)}
+  {[-1.62,1.62].map(dx=><Box key={`crossbeam-${dx}`} position={[x+dx,4.68,15]} scale={[.18,.18,4.4]} color="#87948a"/>)}
+  {/* Open grated side platform with a kick plate, double rails, access gate and crossover onto the tanker crown. */}
+  <Box position={[x,2.82,16.55]} scale={[3.48,.14,1.34]} color="#68766d"/>
+  {Array.from({length:15},(_,i)=><Box key={`grating-${i}`} position={[x-1.58+i*.226,2.902,16.55]} scale={[.035,.025,1.24]} color="#b6b19b"/>)}
+  <Box position={[x,2.98,17.2]} scale={[3.48,.18,.09]} color="#bd9c57"/>
+  {[15.92,17.18].map(z=><group key={`platform-rail-${z}`}>
+   {bay===0&&z===17.18?<><Pipe a={[x-1.25,3.05,z]} b={[x+1.72,3.05,z]} color="#c2b47e" radius={.035}/><Pipe a={[x-1.25,3.92,z]} b={[x+1.72,3.92,z]} color="#c2b47e" radius={.04}/></>:<><Pipe a={[x-1.72,3.05,z]} b={[x+1.72,3.05,z]} color="#c2b47e" radius={.035}/><Pipe a={[x-1.72,3.92,z]} b={[x+1.72,3.92,z]} color="#c2b47e" radius={.04}/></>}
+   {(bay===0&&z===17.18?[-.82,.82,1.65]:[-1.65,-.82,.82,1.65]).map(dx=><Box key={dx} position={[x+dx,3.48,z]} scale={[.055,.88,.055]} color="#9ba18f"/>)}
+  </group>)}
+  {[-1.72,1.72].filter(dx=>!(bay===0&&dx<0)).map(dx=><group key={`end-rail-${dx}`}>
+   <Pipe a={[x+dx,3.05,15.94]} b={[x+dx,3.05,17.18]} color="#c2b47e" radius={.035}/>
+   <Pipe a={[x+dx,3.92,15.94]} b={[x+dx,3.92,17.18]} color="#c2b47e" radius={.04}/>
+   <Box position={[x+dx,3.48,16.56]} scale={[.055,.88,1.15]} color="#9ba18f"/>
+  </group>)}
+  <Box position={[x-.82,2.57,15.1]} scale={[.9,.09,1.38]} color="#a49c7e"/>
+  <Box position={[x-.82,2.65,15.1]} scale={[.78,.04,1.24]} color="#c6b67f"/>
+  <TruckBayNumber position={[x,4.22,17.33]} number={bay+1}/>
+  {/* Product loading arm: swivel elbow, suspended hose and a final nozzle. Bay 01 aligns with the parked road tanker. */}
+  <PipelinePath points={[[x,4.15,15],[x,3.78,15],[x-.36,3.78,15],[x-.72,3.58,14.76],[x-.82,3.58,14.4],[x-.82,2.15,14]]} color={bay===0?'#bc8050':'#9e8d68'} radius={.085}/>
+  <mesh position={[x,3.78,15]}><sphereGeometry args={[.15,12,10]}/><meshStandardMaterial color="#c9b985" metalness={.55}/></mesh>
+  <mesh position={[x-.72,3.58,14.76]}><sphereGeometry args={[.14,12,10]}/><meshStandardMaterial color="#b9a978" metalness={.55}/></mesh>
+  <mesh position={[x-.82,2.14,14]}><torusGeometry args={[.12,.025,6,14]}/><meshStandardMaterial color="#d7c69a" metalness={.5}/></mesh>
+  <Box position={[x+1.48,1.25,12.78]} scale={[.34,.48,.12]} color="#a44a3d"/>
+  <mesh position={[x+1.48,1.34,12.69]}><cylinderGeometry args={[.075,.075,.08,10]}/><meshStandardMaterial color="#e6c36f" emissive="#6c281c" emissiveIntensity={.55}/></mesh>
+ </group>)}
+ {/* The pipeway-owned shared header feeds the arms; local flanges and branch meters keep each bay legible. */}
+ {[10,15,20].map(x=><group key={`bay-meter-${x}`}>
+  <mesh position={[x,4.15,15]}><torusGeometry args={[.18,.035,6,14]}/><meshStandardMaterial color="#d2be86" metalness={.48}/></mesh>
+  <Box position={[x+1.37,1.75,12.78]} scale={[.22,.36,.14]} color="#64756c"/>
+  <Box position={[x+1.37,1.78,12.68]} scale={[.13,.16,.035]} color="#a5b5a1"/>
+ </group>)}
+ {/* A ladder cage reaches the outer catwalk from the service side, clear of the truck body and marked traffic loop. */}
+ <Box position={[8.18,1.47,17.2]} scale={[.08,2.8,.08]} color="#c3b47f"/><Box position={[8.68,1.47,17.2]} scale={[.08,2.8,.08]} color="#c3b47f"/>
+ {Array.from({length:12},(_,i)=>{const y=.22+i*.23;return <Box key={`loading-ladder-rung-${i}`} position={[8.43,y,17.2]} scale={[.57,.045,.065]} color="#d0c08a"/>})}
+ {[1.9,2.4,2.9].map(y=><mesh key={`loading-ladder-hoop-${y}`} position={[8.43,y,17.2]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.44,.018,5,16]}/><meshStandardMaterial color="#b5a575"/></mesh>)}
+ {/* Flush slotted trench drain at the edge of the loading apron; no bollards intrude into the marked truck path. */}
+ <Box position={[15,.035,18.35]} scale={[14,.07,.36]} color="#555f5a"/>
+ {Array.from({length:15},(_,i)=><Box key={`loading-drain-${i}`} position={[8.5+i*.93,.08,18.35]} scale={[.055,.025,.3]} color="#303a36"/>)}
  </group>}
 function Truck({item,index}:{item:SiteItem;index:number}) {
- const ref=useRef<THREE.Group>(null);const wheelRefs=useRef<THREE.Mesh[]>([]);const progress=useRef(index*.47);const previousReset=useRef(useStore.getState().resetKey);const playing=useStore(s=>s.playing);const speed=useStore(s=>s.speed);const night=useStore(s=>s.night);const resetKey=useStore(s=>s.resetKey);const select=useStore(s=>s.select);const selected=useStore(s=>s.selected);
- useFrame((_,delta)=>{if(!ref.current)return;if(resetKey!==previousReset.current){progress.current=index*.47;previousReset.current=resetKey;}if(!playing)return;
-  const candidate=(progress.current+delta*.024*speed)%1,next=routePoint(candidate);const blocked=items.some(person=>person.kind==='worker'&&Math.hypot(person.position[0]-next.x,person.position[2]-next.z)<3.8);
-  if(!blocked)progress.current=candidate;const pose=routePoint(progress.current);ref.current.position.set(pose.x,.22,pose.z);ref.current.rotation.y=Math.atan2(-pose.dx,-pose.dz);wheelRefs.current.forEach(w=>w&&(w.rotation.x-=delta*speed*4));
+ const tanker=item.id==='TR-014',route=tanker?truckRoute:flatbedRoute;
+ const ref=useRef<THREE.Group>(null);const wheelRefs=useRef<THREE.Mesh[]>([]);const progress=useRef(0);const previousReset=useRef(useStore.getState().resetKey);const playing=useStore(s=>s.playing);const speed=useStore(s=>s.speed);const night=useStore(s=>s.night);const resetKey=useStore(s=>s.resetKey);const select=useStore(s=>s.select);const selected=useStore(s=>s.selected);
+ useFrame((_,delta)=>{if(!ref.current||tanker)return;if(resetKey!==previousReset.current){progress.current=0;previousReset.current=resetKey;}if(!playing)return;
+  const candidate=(progress.current+delta*.024*speed)%1,next=routePoint(candidate,route);const blocked=items.some(person=>person.kind==='worker'&&Math.hypot(person.position[0]-next.x,person.position[2]-next.z)<3.8);
+  if(!blocked)progress.current=candidate;const pose=routePoint(progress.current,route);ref.current.position.set(pose.x,.22,pose.z);ref.current.rotation.y=Math.atan2(-pose.dx,-pose.dz);wheelRefs.current.forEach(w=>w&&(w.rotation.x-=delta*speed*4));
  });
- const tanker=index===0,initialPose=routePoint(index*.47);
+ const initialPose=routePoint(0,route);
  return <group ref={ref} position={[initialPose.x,.22,initialPose.z]} rotation={[0,Math.atan2(-initialPose.dx,-initialPose.dz),0]} onClick={e=>{e.stopPropagation();select(item)}} onPointerOver={()=>{document.body.style.cursor='pointer'}} onPointerOut={()=>{document.body.style.cursor='auto'}}>
+  <group position={[0,-.275,0]}>
   <mesh position={[0,1.05,.1]}><boxGeometry args={[2.6,2.2,5.9]}/><meshBasicMaterial transparent opacity={0} depthWrite={false}/></mesh>
   {selected?.id===item.id&&<mesh position={[0,.035,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[2.45,2.65,32]}/><meshBasicMaterial color="#e4b66e"/></mesh>}
   {/* Box-section chassis, cross-members, fuel tank and a sprung cab */}
@@ -1149,6 +1215,7 @@ function Truck({item,index}:{item:SiteItem;index:number}) {
   </group>}
   {/* Rear lamps and conspicuity tape */}
   {[-.68,.68].map(x=><group key={`rear-light-${x}`}><Box position={[x,.94,2.98]} scale={[.22,.3,.06]} color="#c95542"/><Box position={[x,.55,2.99]} scale={[.24,.18,.065]} color="#e3bf65"/></group>)}
+  </group>
  </group>;
 }
 function sideValue(index:number){return index===0?-.75:.75}
@@ -1431,9 +1498,8 @@ function FacilityInterconnects(){return <group>
  {/* Dedicated product manifold between HDS, tank farm and separate road/marine export branches. */}
  <PipelinePath points={[[2.5,2.1,.5],[8.9,2.1,.5],[8.9,4.4,.5],[8.9,4.4,2.72],[10,4.4,2.72],[10,4.4,-9],[10,1.25,-9],[29,1.25,-9]]} color="#ae8651" radius={.115}/>
  {Array.from({length:8},(_,i)=>{const x=12+(i%4)*5,z=i<4?-10.85:-7.15;return <group key={`tank-branch-${i}`}><PipelinePath points={[[x,1.25,-9],[x,1.25,z],[x,1.65,z]]} color="#ae8651" radius={.075}/><ValveWheel position={[x,1.1,-9]} color="#777e7a"/></group>})}
- {/* Independent road-tanker loading header and three metered drop legs; not tied to marine loading arms. */}
- <PipelinePath points={[[10,1.25,-9],[9.1,1.25,-9],[9.1,4.15,-9],[9.1,4.15,9],[10,4.15,9],[10,3,9],[10,3,15],[20,3,15]]} color="#8d7053" radius={.105}/>
- {[10,15,20].map(x=><group key={`road-drop-${x}`}><PipelinePath points={[[x,3,15],[x,3,14],[x,2.55,14]]} color="#b59a68" radius={.075}/><ValveWheel position={[x,2.1,14]} color="#767d7e"/><mesh position={[x,2.55,14]}><torusGeometry args={[.18,.045,6,12]}/><meshStandardMaterial color="#d0c2a1" metalness={.35}/></mesh></group>)}
+ {/* Independent road-tanker loading header carried above the three truck bays; separate from marine export. */}
+ <PipelinePath points={[[10,1.25,-9],[9.1,1.25,-9],[9.1,4.15,-9],[9.1,4.15,9],[10,4.15,9],[10,4.15,15],[20,4.15,15]]} color="#8d7053" radius={.105}/>
  {/* Separate marine export lines run along the quay to both articulated loading arms. */}
  <PipelinePath points={[[29,1.25,-9],[32.2,1.25,-9],[32.2,1.25,18]]} color="#a87848" radius={.13}/>
  <PipelinePath points={[[29,1.95,-9],[32.65,1.95,-9],[32.65,1.95,18]]} color="#94a1a2" radius={.085}/>
@@ -1448,7 +1514,10 @@ const processFlowRoutes:{color:string;points:[number,number,number][]}[]=[
  {color:'#78d7cf',points:[[-12,1.8,-9],[-12,3.45,-8],[-12,3.45,2.03],[-12,4.4,2.03],[-6,4.4,2.03],[-6,13.25,2.03],[2,13.25,2.03],[2,13.25,-13],[2,2,-14]]},
  {color:'#f2bf67',points:[[-6,13.25,2.03],[2,13.25,2.03],[2.5,13.25,2.03],[2.5,13.25,.5],[2.5,4.4,.5],[2.5,1.8,.5]]},
  {color:'#e9a765',points:[[2.5,1.8,.5],[2.5,2.1,.5],[8.9,2.1,.5],[8.9,4.4,.5],[8.9,4.4,2.72],[10,4.4,2.72],[10,4.4,-9],[10,1.25,-9],[29,1.25,-9]]},
- {color:'#84c9dc',points:[[10,1.25,-9],[9.1,1.25,-9],[9.1,4.15,-9],[9.1,4.15,9],[10,4.15,9],[10,3,9],[10,3,15],[20,3,15]]},
+ {color:'#84c9dc',points:[[10,1.25,-9],[9.1,1.25,-9],[9.1,4.15,-9],[9.1,4.15,9],[10,4.15,9],[10,4.15,15],[20,4.15,15]]},
+ {color:'#efba68',points:[[10,4.15,15],[10,3.78,15],[9.64,3.78,15],[9.28,3.58,14.76],[9.18,3.58,14.4],[9.18,2.15,14]]},
+ {color:'#efba68',points:[[15,4.15,15],[15,3.78,15],[14.64,3.78,15],[14.28,3.58,14.76],[14.18,3.58,14.4],[14.18,2.15,14]]},
+ {color:'#efba68',points:[[20,4.15,15],[20,3.78,15],[19.64,3.78,15],[19.28,3.58,14.76],[19.18,3.58,14.4],[19.18,2.15,14]]},
  {color:'#d9c394',points:[[29,1.25,-9],[32.2,1.25,-9],[32.2,1.25,18]]},
  {color:'#efba68',points:[[-12,9.62,-9],[-12,10,-9],[-9,10,-9],[-9,2.35,-9],[-9,2.35,-5.7],[-6.66,1.47,-5.7],[-5.15,1.47,-5.7],[-5.15,2.08,-5.7]]},
  {color:'#83c9d5',points:[[-4.1,.72,-5.7],[-4.1,.45,-5.7],[-4.1,.45,-3.12],[-6.8,.55,-3.12],[-6.8,1.35,-1.25],[-6.8,4.4,-1.25],[-6.8,4.4,-7.6],[-12,4.4,-7.6],[-12,8.25,-7.6]]},
@@ -1540,8 +1609,8 @@ export function World(){
   <WaterTreatmentFacility item={items.find(x=>x.id==='WW-01')!}/>
   <FireStation item={items.find(x=>x.id==='FIRE-01')!}/>
   <TruckTrafficSafety/>
-  {/* truck terminal gates and canopies */}
-  {[10,15,20].map(x=><group key={x} position={[x,0,15]}><Box position={[0,3.3,0]} scale={[4,.25,5.4]} color="#b7aa84"/><Box position={[0,1.6,-2.2]} scale={[.16,3.2,.16]} color="#68776d"/><Box position={[0,1.6,2.2]} scale={[.16,3.2,.16]} color="#68776d"/></group>)}
+  {/* Three-bay road-tanker loading rack with independent metered arms, access platforms and spill-apron detail. */}
+  <TruckLoadingRack/>
   {items.filter(x=>x.kind==='truck').map((t,i)=><Truck key={t.id} item={t} index={i}/>)}
   {/* ship, loading arm connecting to jetty */}
   <AssetBoundary fallback={(_error)=> <ShipFallback item={items.find(x=>x.id==='VES-08')!}/>}><Suspense fallback={<ShipFallback item={items.find(x=>x.id==='VES-08')!}/>}><Ship item={items.find(x=>x.id==='VES-08')!}/></Suspense></AssetBoundary>

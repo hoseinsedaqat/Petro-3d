@@ -219,12 +219,118 @@ function Tower({item,scale=1}: {item:SiteItem;scale?:number}) {
   {[3,5.5,8].map(y=><mesh key={`tower-cage-${y}`} position={[1.46*scale,y*scale,0]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.43*scale,.035,6,18]}/><meshStandardMaterial color="#d1bd8a"/></mesh>)}
  </ClickGroup>;
 }
+function FurnaceBurner({x}:{x:number}){
+ const flame=useRef<THREE.Group>(null),phase=useRef(x*.7),night=useStore(s=>s.night);
+ useFrame((_,delta)=>{phase.current+=delta;if(flame.current){const t=phase.current;flame.current.scale.set(.92+Math.sin(t*11)*.05,.9+Math.sin(t*14+x)*.12,.9+Math.cos(t*9)*.05);flame.current.rotation.z=Math.sin(t*2.5)*.035;}});
+ return <group position={[x,1.02,1.99]}>
+  {/* Small burner throat set into the firebox wall; flame remains behind the protective rim. */}
+  <Box position={[-.24,0,0]} scale={[.055,.64,.14]} color="#46534c"/><Box position={[.24,0,0]} scale={[.055,.64,.14]} color="#46534c"/>
+  <Box position={[0,-.29,0]} scale={[.52,.055,.14]} color="#46534c"/><Box position={[0,.29,0]} scale={[.52,.055,.14]} color="#46534c"/>
+  <mesh position={[0,0,-.025]}><cylinderGeometry args={[.12,.16,.16,12]}/><meshStandardMaterial color="#303632" metalness={.45} roughness={.58}/></mesh>
+  <group ref={flame} position={[0,.02,.045]}>
+   <mesh position={[0,.25,0]}><coneGeometry args={[.15,.5,8]}/><meshBasicMaterial color="#f27726" transparent opacity={.88} depthWrite={false} toneMapped={false}/></mesh>
+   <mesh position={[0,.18,.012]} scale={[.52,.75,.62]}><coneGeometry args={[.12,.42,7]}/><meshBasicMaterial color="#ffd16a" transparent opacity={.92} depthWrite={false} toneMapped={false}/></mesh>
+  </group>
+  {night&&<pointLight position={[0,.32,.24]} color="#ff8b32" intensity={1.5} distance={3.5} decay={2}/>}
+ </group>;
+}
 function Furnace({item}: {item:SiteItem}) {
+ const night=useStore(s=>s.night);
+ const stackX=1.02,stackZ=-.15,stackBottom=7.28,stackHeight=7.05;
  return <ClickGroup item={item} position={item.position}>
-  <Box position={[0,1.4,0]} scale={[3.3,2.8,2.7]} color="#77776d"/><Box position={[0,2.95,0]} scale={[3.5,.22,2.9]} color="#c69d5d"/>
-  <Box position={[0,4.2,0]} scale={[1.15,2.5,1.1]} color="#58645d"/><mesh position={[0,2,.02]}><planeGeometry args={[1.3,1.45]}/><meshBasicMaterial color="#ff9a38" transparent opacity={.72}/></mesh>
-  <mesh position={[1.4,3.2,0]}><cylinderGeometry args={[.23,.32,4,12]}/><meshStandardMaterial color="#5d655e" metalness={.6}/></mesh>
-  {[0,1,2,3].map(i=><mesh key={i} position={[-1.25+i*.8,3,.0]}><boxGeometry args={[.08,2.1,.08]}/><meshStandardMaterial color="#d0c9b5"/></mesh>)}
+  {/* Keep this taller heater inside its existing equipment envelope; only the stack gains height. */}
+  <group scale={[.62,1,.62]}>
+  {/* Low plinth, steel bents, and a refractory-lined box-type radiant/firebox section. */}
+  <mesh position={[0,.105,0]} receiveShadow><boxGeometry args={[5.55,.21,4.65]}/><meshStandardMaterial color="#747c73" roughness={.94}/></mesh>
+  {[-2.25,2.25].flatMap(x=>[-1.95,1.95].map(z=><group key={`heater-foot-${x}-${z}`}>
+   <Box position={[x,.32,z]} scale={[.48,.22,.48]} color="#85877c"/>
+   <Box position={[x,2.63,z]} scale={[.14,4.5,.14]} color="#67756c"/>
+   <Box position={[x,.49,z]} scale={[.46,.1,.46]} color="#b2a078"/>
+  </group>))}
+  {[-1,1].map(side=><group key={`heater-side-brace-${side}`}>
+   <Pipe a={[side*2.25,.55,-1.94]} b={[side*2.25,4.68,1.94]} color="#69776e" radius={.055}/>
+   <Pipe a={[side*2.25,4.68,-1.94]} b={[side*2.25,.55,1.94]} color="#69776e" radius={.055}/>
+   <Box position={[side*2.25,1.05,0]} scale={[.1,.1,3.85]} color="#77847a"/>
+   <Box position={[side*2.25,4.42,0]} scale={[.1,.1,3.85]} color="#77847a"/>
+  </group>)}
+  {/* Back, side, roof and floor casing panels. */}
+  <mesh position={[0,2.52,-1.86]} castShadow receiveShadow><boxGeometry args={[4.35,3.76,.15]}/><meshStandardMaterial color="#89897e" map={getWeatheredSteelMap()} metalness={.35} roughness={.72}/></mesh>
+  {[-2.1,2.1].map(x=><mesh key={`heater-side-wall-${x}`} position={[x,2.52,0]} castShadow receiveShadow><boxGeometry args={[.15,3.76,3.65]}/><meshStandardMaterial color="#85877d" map={getWeatheredSteelMap()} metalness={.32} roughness={.72}/></mesh>)}
+  <Box position={[0,.64,0]} scale={[4.3,.18,3.7]} color="#4d554e"/>
+  <Box position={[0,4.43,0]} scale={[4.38,.16,3.82]} color="#767d73"/>
+  {/* Front casing has three burner openings, not a broad exposed toy flame panel. */}
+  <Box position={[0,.72,1.94]} scale={[4.28,.22,.16]} color="#777e74"/>
+  <Box position={[0,2.94,1.94]} scale={[4.28,2.92,.16]} color="#85867c"/>
+  {[[-1.83,.72],[-.625,.83],[.625,.83],[1.83,.72]].map(([x,width],i)=><Box key={`heater-burner-front-panel-${i}`} position={[x,1.03,1.94]} scale={[width,.62,.16]} color="#85867c"/>)}
+  {[-1.25,0,1.25].map(x=><FurnaceBurner key={`heater-burner-${x}`} x={x}/>)}
+  {/* Radiant tubes and return bends visible within the lined firebox. */}
+  {[-1,1].map(side=><group key={`radiant-coil-${side}`}>
+   {[-1.08,-.54,0,.54,1.08].map((z,i)=><Pipe key={`radiant-tube-${i}`} a={[side*1.87,.92,z]} b={[side*1.87,4.06,z]} color="#c0c5ba" radius={.045}/>)}
+   {[-1.08,-.54,0,.54].map((z,i)=>{const y=i%2===0?4.06:.92;return <Pipe key={`radiant-return-${i}`} a={[side*1.87,y,z]} b={[side*1.87,y,z+.54]} color="#aab3a8" radius={.045}/>})}
+  </group>)}
+  {/* External insulated header boxes and small access covers. */}
+  {[-1,1].map(side=><group key={`heater-header-box-${side}`}>
+   <Box position={[side*2.31,2.45,0]} scale={[.34,1.8,1.52]} color="#6a756d"/>
+   <Box position={[side*2.49,2.5,0]} scale={[.035,1.4,1.17]} color="#8a9082"/>
+   {[-.48,0,.48].map(z=><mesh key={`header-bolt-${z}`} position={[side*2.515,2.52,z]}><sphereGeometry args={[.04,7,6]}/><meshStandardMaterial color="#c4b684" metalness={.55}/></mesh>)}
+   <Pipe a={[side*2.31,1.6,-.68]} b={[side*2.66,1.6,-.68]} color="#987951" radius={.075}/>
+   <Pipe a={[side*2.31,3.32,.68]} b={[side*2.66,3.32,.68]} color="#987951" radius={.075}/>
+  </group>)}
+  {/* Fuel manifold with three short branches and hand-isolation wheels. */}
+  <Pipe a={[-1.76,.47,2.33]} b={[1.76,.47,2.33]} color="#936a4b" radius={.075}/>
+  {[-1.25,0,1.25].map(x=><group key={`fuel-branch-${x}`}>
+   <Pipe a={[x,.47,2.33]} b={[x,.75,2.12]} color="#a36c49" radius={.055}/>
+   <mesh position={[x,.51,2.3]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.115,.024,6,14]}/><meshStandardMaterial color="#c2ac76" metalness={.48}/></mesh>
+   <Box position={[x,.36,2.3]} scale={[.06,.22,.06]} color="#c2ac76"/>
+  </group>)}
+  {/* Stacked convection/shield tube bank in an open maintenance frame above the firebox. */}
+  <Box position={[0,4.72,0]} scale={[3.5,.18,3.12]} color="#59665e"/>
+  {[-1.58,1.58].map(x=><Box key={`conv-column-x-${x}`} position={[x,5.78,0]} scale={[.13,2.05,2.85]} color="#69786e"/>)}
+  {[-1.35,1.35].map(z=><Box key={`conv-column-z-${z}`} position={[0,5.78,z]} scale={[3.22,2.05,.13]} color="#69786e"/>)}
+  <Box position={[0,5.78,-1.32]} scale={[3.0,1.8,.1]} color="#727c72"/>
+  {Array.from({length:7},(_,i)=>{
+   const y=4.98+i*.28;
+   return <group key={`convection-row-${i}`}>
+    <Pipe a={[-1.48,y,1.28]} b={[1.48,y,1.28]} color={i<2?'#aeb7ab':'#9fa99f'} radius={i<2?.07:.075}/>
+    {i>=2&&Array.from({length:8},(_,fin)=>{const x=-1.26+fin*.36;return <mesh key={`finned-tube-${fin}`} position={[x,y,1.28]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.13,.018,5,12]}/><meshStandardMaterial color="#b7b7a4" metalness={.46} roughness={.58}/></mesh>})}
+    {[-1,1].map(side=><Box key={`tube-sheet-${side}`} position={[side*1.48,y,1.28]} scale={[.1,.2,.32]} color="#a39c81"/>)}
+   </group>;
+  })}
+  {[-1.28,-.64,0,.64,1.28].map((x,i)=><Box key={`convection-louver-${i}`} position={[x,5.78,1.39]} scale={[.05,1.9,.05]} color="#859187"/>)}
+  <Box position={[0,6.82,0]} scale={[3.52,.15,3.12]} color="#69766d"/>
+  {/* Top inspection deck and its waist-high guardrail. */}
+  {Array.from({length:17},(_,i)=><Box key={`heater-top-grate-${i}`} position={[-1.5+i*.187,6.91,0]} scale={[.035,.035,2.86]} color="#353f3a"/>)}
+  {[-1.82,1.82].map(x=><group key={`heater-top-rail-x-${x}`}><Box position={[x,7.37,0]} scale={[.055,.9,3.05]} color="#caba8a"/>{[-1.4,-.7,0,.7,1.4].map(z=><Box key={z} position={[x,7.36,z]} scale={[.055,.82,.055]} color="#caba8a"/>)}</group>)}
+  {[-1.53,1.53].map(z=><group key={`heater-top-rail-z-${z}`}><Box position={[0,7.37,z]} scale={[3.65,.9,.055]} color="#caba8a"/>{[-1.4,-.7,0,.7,1.4].map(x=><Box key={x} position={[x,7.36,z]} scale={[.055,.82,.055]} color="#caba8a"/>)}</group>)}
+  {/* Fixed access ladder up the firebox and convection-frame service side. */}
+  <Pipe a={[2.22,.55,-1.48]} b={[2.22,6.74,-1.48]} color="#c3b787" radius={.025}/>
+  <Pipe a={[2.22,.55,-1.08]} b={[2.22,6.74,-1.08]} color="#c3b787" radius={.025}/>
+  {Array.from({length:19},(_,i)=><Box key={`heater-service-rung-${i}`} position={[2.22,.72+i*.32,-1.28]} scale={[.05,.035,.4]} color="#c3b787"/>)}
+  {[3.0,4.2,5.4,6.5].map(y=><mesh key={`heater-service-hoop-${y}`} position={[2.22,y,-1.28]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.31,.018,5,16]}/><meshStandardMaterial color="#a9996e" metalness={.42}/></mesh>)}
+  {/* Breeching feeds an unscaled round stack; the stack itself stays circular within the compact bay. */}
+  <group position={[stackX,0,stackZ]} scale={[1/.62,1,1/.62]}>
+   <mesh position={[0,stackBottom+stackHeight/2,0]} castShadow>
+    <cylinderGeometry args={[.36,.45,stackHeight,20,1,true]}/>
+    <meshStandardMaterial color="#7f8981" map={getWeatheredSteelMap()} metalness={.46} roughness={.62} side={THREE.DoubleSide}/>
+   </mesh>
+   <mesh position={[0,stackBottom+.18,0]}><cylinderGeometry args={[.58,.62,.36,20]}/><meshStandardMaterial color="#65746b" metalness={.42}/></mesh>
+   {[8.15,10.45,12.9,14.12].map(y=><mesh key={`heater-stack-seam-${y}`} position={[0,y,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.4-(y-stackBottom)*.012,.025,6,24]}/><meshStandardMaterial color="#adb0a3" metalness={.6}/></mesh>)}
+   <mesh position={[0,stackBottom+stackHeight,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.36,.045,7,24]}/><meshStandardMaterial color="#b8b7a8" metalness={.6}/></mesh>
+   <mesh position={[0,13.72,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[.44,.9,28]}/><meshStandardMaterial color="#333d38" metalness={.38} roughness={.82} side={THREE.DoubleSide}/></mesh>
+   {[13.88,14.26].map(y=><mesh key={`heater-stack-rail-${y}`} position={[0,y,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.87,.026,6,28]}/><meshStandardMaterial color="#cfbd89" metalness={.42}/></mesh>)}
+   {Array.from({length:12},(_,i)=>{const a=i*Math.PI/6;return <mesh key={`heater-stack-post-${i}`} position={[Math.cos(a)*.87,14.06,Math.sin(a)*.87]}><cylinderGeometry args={[.02,.02,.42,6]}/><meshStandardMaterial color="#c6b682"/></mesh>})}
+   <Pipe a={[.38,9.25,0]} b={[.7,9.25,0]} color="#a6a796" radius={.055}/>
+   <mesh position={[.73,9.25,0]}><cylinderGeometry args={[.09,.09,.12,10]}/><meshStandardMaterial color="#d0bd86" metalness={.55}/></mesh>
+   <Pipe a={[.52,8.3,-.3]} b={[.52,8.3,.3]} color="#b6a578" radius={.035}/>
+   {/* Stack ladder starts at the heater top deck, then continues to the sampling platform. */}
+   <Pipe a={[.48,7.35,-.22]} b={[.48,14.1,-.22]} color="#c3b787" radius={.025}/>
+   <Pipe a={[.48,7.35,.22]} b={[.48,14.1,.22]} color="#c3b787" radius={.025}/>
+   {Array.from({length:21},(_,i)=><Box key={`heater-ladder-rung-${i}`} position={[.48,7.45+i*.32,0]} scale={[.05,.035,.44]} color="#c3b787"/>)}
+   {[8.0,8.8,9.6,10.4,11.2,12.0,12.8,13.6].map(y=><mesh key={`heater-ladder-hoop-${y}`} position={[.48,y,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.38,.018,5,18]}/><meshStandardMaterial color="#a9996e" metalness={.42}/></mesh>)}
+  </group>
+  {night&&<pointLight position={[0,1.2,2.3]} color="#ff9c4a" intensity={2.2} distance={9} decay={2}/>}
+  </group>
+  <EquipmentTag label={item.id} position={[-.75,4.1,1.22]}/>
  </ClickGroup>;
 }
 function CampusCar({position,color}:{position:[number,number,number];color:string}){return <group position={position}>

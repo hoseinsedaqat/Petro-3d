@@ -1,0 +1,62 @@
+export type SiteItem = { id:string; fa:string; en:string; kind:string; zone:string; position:[number,number,number]; status:string; descriptionFa:string; descriptionEn:string; fill?:number; capacity?:string; roleFa?:string; roleEn?:string; departmentFa?:string; departmentEn?:string; taskFa?:string; taskEn?:string };
+
+export const zones = [
+  {id:'overview',fa:'نمای کلی',en:'Site overview',position:[0,0,0] as [number,number,number]},
+  {id:'refinery',fa:'واحدهای فرآیندی',en:'Process units',position:[-13,0,-8] as [number,number,number]},
+  {id:'storage',fa:'مخازن ذخیره‌سازی',en:'Tank farm',position:[17,0,-9] as [number,number,number]},
+  {id:'utilities',fa:'یوتیلیتی و آب',en:'Utilities',position:[-18,0,13] as [number,number,number]},
+  {id:'truck',fa:'بارگیری جاده‌ای',en:'Truck terminal',position:[13,0,15] as [number,number,number]},
+  {id:'marine',fa:'پایانه دریایی',en:'Marine terminal',position:[31,0,8] as [number,number,number]},
+  {id:'control',fa:'کنترل و مدیریت',en:'Control & admin',position:[-24,0,21] as [number,number,number]},
+];
+
+export const items: SiteItem[] = [
+  {id:'CDU-01',fa:'برج تقطیر اتمسفریک',en:'Atmospheric distillation',kind:'process',zone:'refinery',position:[-12,0,-9],status:'در حال کار',descriptionFa:'نفت خام را بر اساس محدوده دمای جوش به برش‌های مختلف تقسیم می‌کند.',descriptionEn:'Separates crude oil into fractions according to their boiling ranges.'},
+  {id:'V-201',fa:'واحد تقطیر در خلأ',en:'Vacuum distillation unit',kind:'process',zone:'refinery',position:[-5,0,-12],status:'در حال کار',descriptionFa:'باقیمانده برج اتمسفریک را در فشار کمتر فرآوری می‌کند.',descriptionEn:'Processes atmospheric residue at reduced pressure.'},
+  {id:'F-102',fa:'کوره فرآیندی',en:'Process furnace',kind:'furnace',zone:'refinery',position:[-17,0,-2],status:'پایدار',descriptionFa:'خوراک فرآیندی را پیش از ورود به برج گرم می‌کند.',descriptionEn:'Heats process feed before it enters the distillation column.'},
+  {id:'FL-01',fa:'مشعل پالایشگاه',en:'Refinery flare',kind:'flare',zone:'refinery',position:[-22,0,-12],status:'پایش عادی',descriptionFa:'سامانه ایمنی برای سوزاندن کنترل‌شده گازهای مازاد.',descriptionEn:'Safety system for controlled combustion of excess gas.'},
+  {id:'CRUDE-01',fa:'دریافت و پمپاژ نفت خام',en:'Crude receiving & charge pumps',kind:'process',zone:'refinery',position:[-31,0,-7],status:'آماده‌به‌کار · نمایشی',descriptionFa:'هدر دریافت خوراک، صافی‌های دوبل و پمپ‌های شارژ؛ نرخ جریان نمایشی است.',descriptionEn:'Crude inlet header, duplex strainers and charge pumps. Flow rate is demo data.'},
+  {id:'SRU-01',fa:'بازیافت گوگرد کلاوس',en:'Claus sulfur recovery unit',kind:'process',zone:'refinery',position:[-29,0,-16],status:'پایش عادی · نمایشی',descriptionFa:'کوره واکنش، راکتورهای کلاوس، کندانسور گوگرد و دودکش سوزاننده؛ وضعیت‌ها شبیه‌سازی شده‌اند.',descriptionEn:'Reaction furnace, Claus converters, sulfur condenser and incinerator stack. Simulated status.'},
+
+  {id:'DS-101',fa:'واحد نمک‌زدایی نفت خام',en:'Crude electrostatic desalter',kind:'process',zone:'refinery',position:[-23,0,-3],status:'در حال کار · نمایشی',descriptionFa:'مخازن نمک‌زدایی الکترواستاتیک، تزریق آب شست‌وشو و پمپ‌های خوراک؛ داده‌ها شبیه‌سازی شده‌اند.',descriptionEn:'Electrostatic desalter vessels, wash-water injection and charge pumps. Values are simulated.'},
+  {id:'FCC-01',fa:'واحد کراکینگ کاتالیستی سیال',en:'Fluid catalytic cracking unit',kind:'process',zone:'refinery',position:[2,0,-14],status:'در حال کار · نمایشی',descriptionFa:'راکتور، احیاگر کاتالیست، سیکلون‌ها و برج تفکیک؛ داده‌ها و وضعیت فرایند کاملاً شبیه‌سازی شده‌اند.',descriptionEn:'Reactor, catalyst regenerator, cyclones and fractionator. Process state and values are simulated.'},
+  {id:'HDS-01',fa:'واحد هیدروگوگردزدایی',en:'Hydrodesulfurization unit',kind:'process',zone:'refinery',position:[2.5,0,.5],status:'در حال کار · نمایشی',descriptionFa:'راکتورهای بستر ثابت، مبدل‌های پوسته‌ولوله و کوره خوراک؛ اطلاعات عملیاتی شبیه‌سازی شده‌اند.',descriptionEn:'Fixed-bed reactors, shell-and-tube exchangers and charge heater. Operational values are simulated.'},
+  {id:'WWT-01',fa:'تصفیه‌خانه پساب صنعتی',en:'Industrial wastewater treatment',kind:'utility',zone:'utilities',position:[-5,0,18],status:'پایش عادی · نمایشی',descriptionFa:'حوضچه‌های متعادل‌سازی و ته‌نشینی، فیلتراسیون و پمپاژ پساب؛ داده‌ها نمایشی هستند.',descriptionEn:'Equalization and settling basins, filtration and effluent pumps. Data is simulated demo data.'},
+  {id:'SUB-01',fa:'پست برق و توزیع نیرو',en:'Electrical substation & switchyard',kind:'utility',zone:'utilities',position:[39,0,-9],status:'آماده‌به‌کار · نمایشی',descriptionFa:'ترانسفورماتورها، رادیاتورها، باس‌بار و تجهیزات کلیدزنی فشارقوی؛ وضعیت‌ها نمایشی هستند.',descriptionEn:'Power transformers, radiators, busbars and high-voltage switchgear. Status is simulated.'},
+  ...[0,1,2,3,4,5,6,7].map((i)=>({id:`TK-${String(101+i).padStart(3,'0')}`,fa:`مخزن ذخیره ${i+1}`,en:`Storage tank ${i+1}`,kind:'tank',zone:'storage',position:[12+(i%4)*5,0,-13+Math.floor(i/4)*8] as [number,number,number],status:i===2?'نیازمند بازبینی':'در سرویس',descriptionFa:'مخزن ذخیره‌سازی فرآورده؛ تمام مقادیر این پنل داده نمایشی هستند.',descriptionEn:'Product storage tank. All values shown here are simulated demo data.',fill:[68,82,41,56,74,35,91,62][i],capacity:['45,000','38,000','52,000','30,000','42,000','36,000','48,000','40,000'][i]})),
+  {id:'CW-01',fa:'ایستگاه خنک‌کاری و برج‌های هوایی',en:'Cooling station & air-cooler bank',kind:'cooling',zone:'utilities',position:[-19,0,13],status:'در حال کار · نمایشی',descriptionFa:'بانک فن‌های محوری، هدرهای آب خنک‌کن و سازه دسترسی چندسطحی؛ عملکرد شبیه‌سازی شده است.',descriptionEn:'Axial-fan cells, cooling-water headers and multi-level access steelwork. Operation is simulated.'},
+  {id:'P-301A',fa:'ایستگاه پمپاژ',en:'Transfer pump station',kind:'pump',zone:'utilities',position:[-11,0,14],status:'در حال کار',descriptionFa:'انتقال فرآورده بین مخازن و واحدهای عملیاتی.',descriptionEn:'Transfers product between storage and operating units.'},
+  {id:'TR-014',fa:'کامیون تانکر ۱۴',en:'Road tanker 014',kind:'truck',zone:'truck',position:[10,0,14],status:'بارگیری',descriptionFa:'در حال بارگیری نمایشی فرآورده در سکوی شماره ۲.',descriptionEn:'Demo product loading in bay 02.'},
+  {id:'TR-027',fa:'کامیون کفی بشکه‌بر ۲۷',en:'Oil-drum flatbed 027',kind:'truck',zone:'truck',position:[17,0,23],status:'در مسیر · نمایشی',descriptionFa:'کامیون کفی با شش بشکه روی پالت و تسمه‌های مهار بار؛ محموله و حرکت نمایشی هستند.',descriptionEn:'Flatbed truck carrying six palletized oil drums with load-securing straps; cargo and motion are simulated.'},
+  {id:'BERTH-01',fa:'اسکله صادراتی',en:'Export berth',kind:'marine',zone:'marine',position:[31,0,8],status:'کشتی در اسکله',descriptionFa:'بارگیری دریایی مستقل از پایانه کامیون‌ها، از طریق بازوهای بارگیری و خطوط لوله.',descriptionEn:'Separate marine export process via loading arms and dedicated pipelines.'},
+  {id:'VES-08',fa:'نفت‌کش آذر',en:'MT Azar',kind:'ship',zone:'marine',position:[39,0,14],status:'بارگیری نمایشی',descriptionFa:'شناور نمایشی در اسکله صادراتی؛ داده‌های عملیاتی شبیه‌سازی شده‌اند.',descriptionEn:'Demo vessel at export berth; operational values are simulated.'},
+  {id:'CCR-01',fa:'اتاق کنترل مرکزی',en:'Central control room',kind:'building',zone:'control',position:[-28,0,20],status:'آماده‌به‌کار',descriptionFa:'پایش و هماهنگی نمایشی عملیات مجتمع.',descriptionEn:'Demo monitoring and coordination for the complex.'},
+  {id:'LAB-01',fa:'آزمایشگاه کنترل کیفیت',en:'Quality control laboratory',kind:'building',zone:'control',position:[-20,0,20],status:'فعال',descriptionFa:'نمونه‌برداری و کنترل کیفیت فرآورده‌ها.',descriptionEn:'Product sampling and quality control.'},
+  ...[
+    {id:'OP-014',fa:'اپراتور فرایند ۱۴',en:'Process operator 014',zone:'refinery',position:[-15,0,-5] as [number,number,number],departmentFa:'بهره‌برداری',departmentEn:'Operations',roleFa:'اپراتور واحد',roleEn:'Unit operator',taskFa:'بازرسی میدانی تجهیزات',taskEn:'Field equipment inspection'},
+    {id:'EN-006',fa:'مهندس فرایند ۰۶',en:'Process engineer 006',zone:'refinery',position:[-8,0,2] as [number,number,number],departmentFa:'مهندسی فرایند',departmentEn:'Process engineering',roleFa:'مهندس فرایند',roleEn:'Process engineer',taskFa:'پایش واحد تقطیر',taskEn:'Distillation unit monitoring'},
+    {id:'MT-021',fa:'تکنسین تعمیرات ۲۱',en:'Maintenance technician 021',zone:'utilities',position:[4,0,-4] as [number,number,number],departmentFa:'تعمیرات',departmentEn:'Maintenance',roleFa:'تکنسین مکانیک',roleEn:'Mechanical technician',taskFa:'بازبینی پمپ انتقال',taskEn:'Transfer pump inspection'},
+    {id:'UT-003',fa:'اپراتور یوتیلیتی ۰۳',en:'Utility operator 003',zone:'utilities',position:[-18,0,12] as [number,number,number],departmentFa:'یوتیلیتی',departmentEn:'Utilities',roleFa:'اپراتور تأسیسات',roleEn:'Utility operator',taskFa:'کنترل مدار آب خنک‌کن',taskEn:'Cooling water circuit check'},
+    {id:'LD-014',fa:'اپراتور بارگیری ۱۴',en:'Loading operator 014',zone:'truck',position:[6,0,9.8] as [number,number,number],departmentFa:'لجستیک',departmentEn:'Logistics',roleFa:'اپراتور پایانه',roleEn:'Terminal operator',taskFa:'نظارت بر بارگیری نمایشی',taskEn:'Supervising demo loading'},
+    {id:'DR-027',fa:'راننده ۲۷',en:'Driver 027',zone:'truck',position:[0,0,24] as [number,number,number],departmentFa:'حمل‌ونقل',departmentEn:'Transport',roleFa:'راننده تانکر',roleEn:'Tanker driver',taskFa:'آماده‌سازی برای خروج',taskEn:'Preparing for departure'},
+    {id:'MR-008',fa:'کارشناس پایانه دریایی ۰۸',en:'Marine terminal specialist 008',zone:'marine',position:[25,0,6] as [number,number,number],departmentFa:'پایانه دریایی',departmentEn:'Marine terminal',roleFa:'کارشناس اسکله',roleEn:'Berth specialist',taskFa:'بازبینی اتصال بازوی بارگیری',taskEn:'Checking loading arm connection'},
+    {id:'CR-002',fa:'کارشناس اتاق کنترل ۰۲',en:'Control room specialist 002',zone:'control',position:[-28,0,23.1] as [number,number,number],departmentFa:'کنترل مرکزی',departmentEn:'Central control',roleFa:'اپراتور اتاق کنترل',roleEn:'Control room operator',taskFa:'پایش وضعیت نمایشی مجتمع',taskEn:'Monitoring demo site status'},
+  ].map(worker=>({...worker,kind:'worker',status:'فعال — نمایشی',descriptionFa:`${worker.roleFa} · ${worker.taskFa}. فرد و فعالیت کاملاً نمایشی هستند.`,descriptionEn:`${worker.roleEn} · ${worker.taskEn}. This person and activity are simulated demo data.`})),
+  ...[
+    {id:'LPG-201',position:[9,0,-23] as [number,number,number],fill:72,capacity:'18,000'},
+    {id:'LPG-202',position:[15,0,-23] as [number,number,number],fill:58,capacity:'18,000'},
+    {id:'LPG-203',position:[21,0,-23] as [number,number,number],fill:83,capacity:'20,000'},
+    {id:'LPG-204',position:[27,0,-23] as [number,number,number],fill:46,capacity:'20,000'},
+  ].map((tank,i)=>({...tank,fa:`مخزن کروی گاز مایع ${i+1}`,en:`LPG sphere tank ${i+1}`,kind:'sphere-tank',zone:'storage',status:tank.fill>80?'نیازمند بازبینی':'در سرویس',descriptionFa:'مخزن کروی تحت فشار برای ذخیره‌سازی نمایشی گاز مایع؛ همه‌ی داده‌ها شبیه‌سازی شده‌اند.',descriptionEn:'Pressurized sphere for demo LPG storage. All operational values are simulated.'})),
+];
+
+export const processStages = [
+ {fa:'دریافت نفت خام',en:'Crude receiving',position:[-31,0,-7]},
+ {fa:'نمک‌زدایی الکترواستاتیک',en:'Electrostatic desalting',position:[-23,0,-3]},
+ {fa:'تقطیر اتمسفریک',en:'Atmospheric distillation',position:[-12,0,-9]},
+ {fa:'تقطیر در خلأ',en:'Vacuum distillation',position:[-5,0,-12]},
+ {fa:'کراکینگ و تبدیل',en:'Cracking & conversion',position:[2,0,-14]},
+ {fa:'هیدروگوگردزدایی',en:'Hydrotreating',position:[2.5,0,.5]},
+ {fa:'ذخیره‌سازی',en:'Product storage',position:[16,0,-8]},
+ {fa:'صادرات',en:'Export',position:[29,0,4]},
+];

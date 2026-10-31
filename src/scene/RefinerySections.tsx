@@ -121,9 +121,97 @@ export function RefineryUnit({item}:{item:SiteItem}){
   <Beam position={[4.85,4.4,3.48]} size={[.1,7.8,.1]} color={safety}/><Beam position={[5.35,4.4,3.48]} size={[.1,7.8,.1]} color={safety}/>
   {Array.from({length:18},(_,i)=><Beam key={`rung-${i}`} position={[5.1,.8+i*.42,3.48]} size={[.52,.045,.055]} color={safety}/>)}
   {[-4.8,4.8].map(x=><Beam key={x} position={[x,3.8,3.25]} size={[.11,7.1,.11]} rotation={[0,0,x<0?-.42:.42]} color="#819087"/>)}
+  {item.id==='HDS-01'&&<group>
+   <Run a={[4.75,5.3,.2]} b={[5.6,5.3,.2]} color="#9eb5b2" r={.12}/>
+   <mesh position={[5.5,5.3,.2]} rotation={[0,0,Math.PI/2]}><torusGeometry args={[.2,.04,6,18]}/><meshStandardMaterial color="#d0bd88" metalness={.54}/></mesh>
+  </group>}
   <EquipmentTag label={item.id} position={[0,1.55,4.62]}/>
  </Selectable>;
 }
+export function HydrogenPlant({item}:{item:SiteItem}){
+ const night=useStore(s=>s.night);
+ const adsorberZ=[-2.05,-.68,.68,2.05];
+ return <Selectable item={item}>
+  <mesh position={[0,.08,0]} receiveShadow><boxGeometry args={[16,.16,11.6]}/><meshStandardMaterial color="#81877e" roughness={.91}/></mesh>
+  <mesh position={[0,.18,0]}><boxGeometry args={[15.72,.08,11.32]}/><meshStandardMaterial color="#4d5952" roughness={.82}/></mesh>
+  {/* Feed desulfurization: two guard vessels with a shared isolation manifold. */}
+  <Vessel x={-6.05} z={-1.15} r={.47} h={2.9} color="#a7b1a6"/>
+  <Vessel x={-6.05} z={1.05} r={.47} h={2.9} color="#b5bdb1"/>
+  <Run a={[-6.05,3.55,-1.15]} b={[-4.95,3.55,-1.15]} color="#c28b50" r={.07}/>
+  <Run a={[-6.05,3.55,1.05]} b={[-4.95,3.55,1.05]} color="#c28b50" r={.07}/>
+  <Run a={[-4.95,3.55,-1.15]} b={[-4.95,3.55,1.05]} color="#c28b50" r={.075}/>
+  <Run a={[-7.55,.85,-1.15]} b={[-6.52,.85,-1.15]} color="#c28b50" r={.085}/>
+  {/* Fired steam-methane reformer: radiant box, convection cassette, burner doors and stack. */}
+  {[-4.92,-1.25].flatMap(x=>[-3.15,.58].map(z=><group key={`smr-frame-${x}-${z}`}>
+   <Beam position={[x,4.1,z]} size={[.16,8.1,.16]} color="#65736b"/>
+   <Beam position={[x,.34,z]} size={[.38,.18,.38]} color="#9a8967"/>
+  </group>))}
+  {[.7,4.95,7.2].map(y=><group key={`smr-level-${y}`}>
+   <Beam position={[-3.08,y,-1.28]} size={[3.75,.14,.15]} color="#78867c"/>
+   <Beam position={[-3.08,y,.48]} size={[3.75,.14,.15]} color="#78867c"/>
+   {[-4.88,-1.28].map(x=><Beam key={x} position={[x,y,-.4]} size={[.14,.14,1.78]} color="#78867c"/>)}
+  </group>)}
+  <Beam position={[-3.08,3.03,-1.25]} size={[3.15,4.55,3.05]} color="#555e59"/>
+  <Beam position={[-3.08,3.02,.31]} size={[2.85,4.24,.08]} color="#737b72"/>
+  <Beam position={[-3.08,5.63,-1.28]} size={[3.45,1.25,3.4]} color="#78847a"/>
+  <Beam position={[-3.08,6.35,-1.28]} size={[3.62,.18,3.56]} color="#a28f68"/>
+  {/* Louvered refractory front and four low-level burner registers. */}
+  {[-4.13,-3.43,-2.73,-2.03].map((x,i)=><group key={`smr-burner-${i}`}>
+   <mesh position={[x,1.45,.39]}><cylinderGeometry args={[.2,.2,.12,12]}/><meshStandardMaterial color="#303934" metalness={.38}/></mesh>
+   <mesh position={[x,1.45,.47]}><circleGeometry args={[.12,12]}/><meshBasicMaterial color={night?'#f18943':'#a34d2e'} toneMapped={false}/></mesh>
+   <Beam position={[x,.99,.46]} size={[.48,.07,.12]} color="#c6b681"/>
+  </group>)}
+  {Array.from({length:7},(_,i)=><Beam key={`smr-louver-${i}`} position={[-3.08,2.05+i*.43,.365]} size={[2.72,.045,.035]} color="#a49d88"/>)}
+  <mesh position={[-3.08,9.45,-1.25]} castShadow><cylinderGeometry args={[.36,.48,5.25,20]}/><meshStandardMaterial color="#66736b" metalness={.48} roughness={.62}/></mesh>
+  {[7.1,8.85,10.6,11.96].map((y,i)=><mesh key={`smr-stack-band-${y}`} position={[-3.08,y,-1.25]}><torusGeometry args={[i===3?.36:.405,.04,6,22]}/><meshStandardMaterial color={i===3?'#b95843':'#a4a392'} metalness={.4}/></mesh>)}
+  <mesh position={[-3.08,12.12,-1.25]}><cylinderGeometry args={[.46,.46,.12,20]}/><meshStandardMaterial color="#768279" metalness={.42}/></mesh>
+  <Run a={[-1.5,6.5,-2.8]} b={[-1.5,7.8,-2.8]} color="#b9a272" r={.11}/>
+  {/* Waste-heat recovery steam drum and two catalytic shift converters. */}
+  <HorizontalVessel x={-.42} z={-3.65} y={2.55} length={2.65} r={.58}/>
+  <Run a={[-1.72,3.2,-3.65]} b={[-1.72,4.35,-3.65]} color="#b88c56" r={.09}/>
+  <Vessel x={.85} z={1.52} r={.72} h={5.25} color="#abb6aa"/>
+  <Vessel x={2.7} z={1.52} r={.62} h={4.45} color="#9ca99e"/>
+  <Run a={[-1.25,4.2,.65]} b={[.12,4.2,1.52]} color="#b76550" r={.12}/>
+  <Run a={[1.58,4.55,1.52]} b={[2.08,4.2,1.52]} color="#b76550" r={.1}/>
+  {/* Four PSA adsorber beds, shared feed/product headers, and upper valve actuators. */}
+  {adsorberZ.map((z,i)=><group key={`h2-psa-${i}`}>
+   <Vessel x={5.0} z={z} r={.48} h={4.35} color={i%2?'#a9b5aa':'#b9c1b5'}/>
+   <Run a={[5,4.9,z]} b={[5,5.32,z]} color="#c7b782" r={.07}/>
+   <mesh position={[5,5.42,z]}><cylinderGeometry args={[.18,.15,.18,12]}/><meshStandardMaterial color="#7a877d" metalness={.5}/></mesh>
+   {i<adsorberZ.length-1&&<Run a={[5,5.18,z]} b={[5,5.18,adsorberZ[i+1]]} color="#9fa99c" r={.055}/>}
+  </group>)}
+  {/* Compact hydrogen compressor train on a separate skid, with driver, coupling guard and cooler. */}
+  <Beam position={[2.75,.34,-3.5]} size={[3.9,.28,1.75]} color="#526159"/>
+  <Beam position={[1.72,.87,-3.5]} size={[1.15,.95,1.18]} color="#61766b"/>
+  <mesh position={[1.72,.91,-2.82]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.37,.37,1.12,18]}/><meshStandardMaterial color="#75857a" metalness={.58}/></mesh>
+  <Beam position={[3.25,.8,-3.5]} size={[1.15,.82,1.02]} color="#79877e"/>
+  <mesh position={[2.55,.92,-3.5]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.24,.07,8,16]}/><meshStandardMaterial color="#c7a96a" metalness={.58}/></mesh>
+  <HorizontalVessel x={5.15} z={-3.55} y={1.22} length={2.3} r={.38}/>
+  {/* Internal process paths: treated feed to reformer, shifted gas to PSA, then compressed H2. */}
+  <Run a={[-6.05,.85,-1.15]} b={[-4.95,.85,-1.15]} color="#c18a4d" r={.075}/>
+  <Run a={[-4.95,.85,-1.15]} b={[-4.4,1.55,-1.15]} color="#c18a4d" r={.075}/>
+  <Run a={[-1.45,4.3,-1.1]} b={[.15,4.3,1.1]} color="#b45d48" r={.12}/>
+  <Run a={[1.58,3.9,1.52]} b={[3.95,3.9,1.52]} color="#b45d48" r={.1}/>
+  <Run a={[3.95,3.9,1.52]} b={[4.55,3.2,.7]} color="#9aa89d" r={.1}/>
+  <Run a={[4.55,3.2,.7]} b={[4.55,2.4,-3.1]} color="#8ca19b" r={.09}/>
+  <Run a={[4.55,2.4,-3.1]} b={[3.4,1.35,-2.7]} color="#8ca19b" r={.09}/>
+  <Run a={[3.4,1.35,-2.7]} b={[6.65,1.35,-2.7]} color="#8ca19b" r={.09}/>
+  <Run a={[6.65,1.35,-2.7]} b={[6.65,4.25,.4]} color="#9fb6b3" r={.1}/>
+  <Run a={[6.65,4.25,.4]} b={[7.2,4.25,.8]} color="#9fb6b3" r={.1}/>
+  {/* Elevated service walkway, ladder access, local control cabinet and equipment tag. */}
+  <Beam position={[.65,3.15,3.95]} size={[7.2,.13,.88]} color="#343e39"/>
+  {[-2.7,.65,4.0].map(x=><Beam key={`h2-walk-rail-${x}`} position={[x,3.65,4.28]} size={[.07,1,.07]} color="#d1bd82"/>)}
+  <Beam position={[.65,4.14,4.28]} size={[6.8,.07,.07]} color="#d1bd82"/>
+  <Run a={[-2.55,.34,4.1]} b={[-2.55,3.1,4.1]} color="#cbb87f" r={.028}/>
+  <Run a={[-2.95,.34,4.1]} b={[-2.95,3.1,4.1]} color="#cbb87f" r={.028}/>
+  {Array.from({length:11},(_,i)=><Beam key={`h2-ladder-rung-${i}`} position={[-2.75,.5+i*.235,4.1]} size={[.44,.045,.055]} color="#cbb87f"/>)}
+  <Beam position={[6.48,1.32,-4.5]} size={[.8,1.5,.9]} color="#64756b"/>
+  <Beam position={[6.48,2.12,-4.5]} size={[.86,.08,.94]} color="#b6ad8b"/>
+  <Beam position={[6.8,2.2,-4.02]} size={[.12,.1,.08]} color={night?'#e6c269':'#7d8b73'}/>
+  <EquipmentTag label={item.id} position={[-6.4,2.55,4.55]}/>
+ </Selectable>;
+}
+
 export function DesalterUnit({item}:{item:SiteItem}){
  return <Selectable item={item}>
   <mesh position={[0,.07,0]} receiveShadow><boxGeometry args={[11,.14,9.5]}/><meshStandardMaterial color="#85897f" roughness={.9}/></mesh>

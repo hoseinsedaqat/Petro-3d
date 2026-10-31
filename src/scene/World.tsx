@@ -7,7 +7,7 @@ import { items, type SiteItem } from '../data/site';
 import { useStore } from '../store';
 import { ProcessRefinery } from './ProcessSteelwork';
 import { SphereTank } from './SphereTank';
-import { CoolingBattery, CrudeReceiving, DesalterUnit, ElectricalSubstation, EquipmentTag, RefineryUnit, SulfurRecovery, WastewaterPlant } from './RefinerySections';
+import { CoolingBattery, CrudeReceiving, DesalterUnit, ElectricalSubstation, EquipmentTag, HydrogenPlant, RefineryUnit, SulfurRecovery, WastewaterPlant } from './RefinerySections';
 import { getChainlinkMap, getWeatheredSteelMap, getYardSurfaceMap } from './materials';
 
 function ShorelineSeawall(){return <group>
@@ -145,8 +145,9 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  <Box position={[19.5,.34,-15.8]} scale={[22,.68,.38]} color="#777e73"/><Box position={[8.5,.34,-9]} scale={[.38,.68,13.2]} color="#777e73"/><Box position={[30.5,.34,-9]} scale={[.38,.68,13.2]} color="#777e73"/><Box position={[14,.34,-2.3]} scale={[11,.68,.38]} color="#777e73"/><Box position={[25,.34,-2.3]} scale={[11,.68,.38]} color="#777e73"/>
  <TankFarmBundAccess/>
  <Pipe a={[7,1.35,-19.6]} b={[30,1.35,-19.6]} color="#bd6c51" radius={.15}/>{[9,15,21,27].map(x=><Pipe key={`fallback-lpg-${x}`} a={[x-1.55,1.35,-19.6]} b={[x-1.55,1.35,-21.2]} color="#bd6c51" radius={.1}/>)}
- <ProcessRefinery/><MainPipeway/><AirCoolerBank item={items.find(x=>x.id==='ACHE-01')!}/><FacilityInterconnects/><ElectricalFeed/><FlowLines/>
+ <ProcessRefinery/><MainPipeway/><AirCoolerBank item={items.find(x=>x.id==='ACHE-01')!}/><FacilityInterconnects/><ElectricalFeed/><HydrogenSupplyNetwork/><FlowLines/>
  {items.filter(x=>x.id==='FCC-01'||x.id==='HDS-01').map(unit=><RefineryUnit key={`fallback-${unit.id}`} item={unit}/>)}
+ <HydrogenPlant item={items.find(x=>x.id==='H2-01')!}/>
  <CrudeReceiving item={items.find(x=>x.id==='CRUDE-01')!}/><SulfurRecovery item={items.find(x=>x.id==='SRU-01')!}/><DesalterUnit item={items.find(x=>x.id==='DS-101')!}/><CoolingBattery item={items.find(x=>x.id==='CW-01')!}/><WastewaterPlant item={items.find(x=>x.id==='WWT-01')!}/><ElectricalSubstation item={items.find(x=>x.id==='SUB-01')!}/><FirewaterFacility item={items.find(x=>x.id==='FW-01')!}/><FirewaterRing/><TransferPumpStation item={items.find(x=>x.id==='P-301A')!}/>
  {items.filter(x=>x.kind==='worker').map((person,i)=><WorkerFallback key={`fallback-${person.id}`} item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>)}
  <ControlBuilding item={items.find(x=>x.id==='CCR-01')!}/><LaboratoryBuilding item={items.find(x=>x.id==='LAB-01')!}/>
@@ -813,7 +814,7 @@ function SteamUtilityNetwork(){
  const steamTrunk:[number,number,number][]=[[-8.55,4.76,24.7],[-12.4,5.85,24.9],[-12.4,5.85,6],[-6,5.85,6],[-6,5.85,2.72],[30,5.85,2.72]];
  const steamBranches:[number,number,number][][]=[
   [[-12,5.85,2.72],[-12,5.85,-9],[-12,2.25,-9]],
-  [[-6,5.85,2.72],[-5,5.85,-12],[-5,2.25,-12]],
+  [[-6,5.85,2.72],[-6,5.85,-15.5],[-6,2.25,-15.5],[-6.8,2.25,-17]],
   [[2,5.85,2.72],[2,5.85,-14],[2,2.25,-14]],
   [[2.5,5.85,2.72],[2.5,5.85,.5],[2.5,2.25,.5]],
  ];
@@ -832,9 +833,24 @@ function SteamUtilityNetwork(){
   <PipelinePath points={condensateMain} color={condensate} radius={.085}/>
   <PipelinePath points={[[-12.4,3.05,24.5],[-9.8,3.05,24.5],[-6.14,3.05,25.95],[-6.14,3.38,25.95]]} color={condensate} radius={.075}/>
   <PipelinePath points={[[2,2.25,-14],[2,3.05,-14],[2,3.05,-3.8],[-6,3.05,-3.8]]} color={condensate} radius={.065}/>
-  <PipelinePath points={[[ -5,2.25,-12],[-5,3.05,-12],[-5,3.05,-3.8]]} color={condensate} radius={.065}/>
+  <PipelinePath points={[[-6.8,2.25,-17],[-5.4,2.25,-17],[-5.4,3.05,-17],[-5.4,3.05,-3.8]]} color={condensate} radius={.065}/>
   {[[-12.4,5.85,24.9],[-12.4,5.85,6],[-6,5.85,2.72],[10,5.85,2.72],[20,5.85,2.72]].map(([x,y,z],i)=><mesh key={`steam-header-shoe-${i}`} position={[x,y-.12,z]}><cylinderGeometry args={[.16,.16,.12,10]}/><meshStandardMaterial color="#c1ad79" metalness={.42}/></mesh>)}
   {[-10,10,20].map(x=><group key={`steam-header-guide-${x}`}><Pipe a={[x,5.84,2.72]} b={[x+.18,5.84,2.72]} color="#d4bd82" radius={.15}/></group>)}
+ </group>;
+}
+function HydrogenSupplyNetwork(){
+ const route:[number,number,number][]=[[3.2,4.25,-28.2],[3.2,6.75,-28.2],[10,6.75,-29],[10,6.75,-16],[10,6.75,-8],[9.5,6.75,-8],[9.5,6.75,.7],[9.5,5.3,.7],[8.1,5.3,.7]];
+ return <group>
+  {/* Elevated, illustrative H2 export header from the SMR/PSA skid to the HDS battery limit. */}
+  <PipelinePath points={route} color="#85a9a8" radius={.11}/>
+  {[-29,-16,-8,.7].map((z,i)=><group key={`h2-header-bent-${i}`}>
+   <Box position={[9.38,3.28,z]} scale={[.13,6.55,.13]} color="#65736b"/>
+   <Box position={[10.62,3.28,z]} scale={[.13,6.55,.13]} color="#65736b"/>
+   <Box position={[10,6.55,z]} scale={[1.42,.12,.18]} color="#859187"/>
+   <Box position={[10,6.39,z]} scale={[.58,.12,.48]} color="#a18e65"/>
+  </group>)}
+  <ValveWheel position={[9.5,5.86,.7]} color="#6d9292"/>
+  <ValveWheel position={[9.5,6.75,-8]} color="#6d9292"/>
  </group>;
 }
 function InstrumentAirNitrogenStation({item}:{item:SiteItem}){
@@ -1939,6 +1955,7 @@ const processFlowRoutes:{color:string;points:[number,number,number][]}[]=[
  {color:'#b88c56',points:[[-6,5.85,2.72],[-12,5.85,2.72],[-12,5.85,-9],[-12,2.25,-9]]},
  {color:'#d29a69',points:[[-7,3.55,-17],[-9.4,3.55,-17],[-10.7,2.25,-16.25],[-12.75,1.45,-15.4]]},
  {color:'#ffbd68',points:[[-17.82,2.34,-15.4],[-19.72,2.34,-15.4],[-21.65,1.92,-13.65],[-22.48,1.27,-11.62]]},
+ {color:'#9fd2ce',points:[[3.2,4.25,-28.2],[3.2,6.75,-28.2],[10,6.75,-29],[10,6.75,-16],[10,6.75,-8],[9.5,6.75,-8],[9.5,6.75,.7],[9.5,5.3,.7],[8.1,5.3,.7]]},
  {color:'#6d9698',points:[[2.5,2.25,.5],[2.5,3.05,.5],[2.5,3.05,3.55],[-6,3.05,3.55],[-12.4,3.05,6],[-12.4,3.05,24.5],[-9.8,3.05,24.5],[-6.14,3.05,25.95],[-6.14,3.38,25.95]]},
  {color:'#6b9da6',points:[[3.8,3.2,24.72],[3.8,6.65,24.72],[4.8,6.65,24.72],[4.8,6.65,13.2],[10,6.65,13.2],[10,6.65,4.75],[10,6.65,2.72],[10,13.55,2.72],[-6,13.55,2.72],[-6,6.65,2.72],[-31,6.65,2.72]]},
  {color:'#a387b0',points:[[4.78,2.68,24.26],[4.78,7.2,24.26],[5.35,7.2,24.26],[5.35,7.2,13.2],[10,7.2,13.2],[10,7.2,4.75],[10,7.2,2.72],[10,15.65,2.72],[-6,15.65,2.72],[-6,7.2,2.72],[-31,7.2,2.72]]},
@@ -2005,9 +2022,10 @@ export function World(){
   {/* Administration */}
   <ControlBuilding item={items.find(x=>x.id==='CCR-01')!}/><LaboratoryBuilding item={items.find(x=>x.id==='LAB-01')!}/>
    {/* Process vessels, pipe racks, furnace and flare */}
-  <Tower item={items[0]} scale={1.06}/><Tower item={items[1]} scale={.78}/><Furnace item={items[2]}/><Flare item={items[3]}/><FlareKnockoutDrum item={items.find(x=>x.id==='FL-KO-01')!}/><FlareSystemConnections/><ProcessRefinery/><MainPipeway/><FacilityInterconnects/><CDUOverheadPiping/><ElectricalFeed/>
+  <Tower item={items[0]} scale={1.06}/><Tower item={items[1]} scale={.78}/><Furnace item={items[2]}/><Flare item={items[3]}/><FlareKnockoutDrum item={items.find(x=>x.id==='FL-KO-01')!}/><FlareSystemConnections/><ProcessRefinery/><MainPipeway/><FacilityInterconnects/><CDUOverheadPiping/><ElectricalFeed/><HydrogenSupplyNetwork/>
   <OverheadCondenser item={items.find(x=>x.id==='E-101')!}/><RefluxAccumulator item={items.find(x=>x.id==='V-102')!}/><RefluxPumpSet item={items.find(x=>x.id==='P-102A')!}/>
   {filtered.filter(x=>x.id==='FCC-01'||x.id==='HDS-01').map(unit=><RefineryUnit key={unit.id} item={unit}/>)}
+  {filtered.filter(x=>x.id==='H2-01').map(unit=><HydrogenPlant key={unit.id} item={unit}/>)}
   {filtered.filter(x=>x.id==='DS-101').map(unit=><DesalterUnit key={unit.id} item={unit}/>)}
   {filtered.filter(x=>x.id==='CRUDE-01').map(unit=><CrudeReceiving key={unit.id} item={unit}/>)}
   {filtered.filter(x=>x.id==='SRU-01').map(unit=><SulfurRecovery key={unit.id} item={unit}/>)}

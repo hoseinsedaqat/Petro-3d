@@ -145,7 +145,7 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  <Box position={[19.5,.34,-15.8]} scale={[22,.68,.38]} color="#777e73"/><Box position={[8.5,.34,-9]} scale={[.38,.68,13.2]} color="#777e73"/><Box position={[30.5,.34,-9]} scale={[.38,.68,13.2]} color="#777e73"/><Box position={[14,.34,-2.3]} scale={[11,.68,.38]} color="#777e73"/><Box position={[25,.34,-2.3]} scale={[11,.68,.38]} color="#777e73"/>
  <TankFarmBundAccess/>
  <Pipe a={[7,1.35,-19.6]} b={[30,1.35,-19.6]} color="#bd6c51" radius={.15}/>{[9,15,21,27].map(x=><Pipe key={`fallback-lpg-${x}`} a={[x-1.55,1.35,-19.6]} b={[x-1.55,1.35,-21.2]} color="#bd6c51" radius={.1}/>)}
- <ProcessRefinery/><MainPipeway/><FacilityInterconnects/><ElectricalFeed/><FlowLines/>
+ <ProcessRefinery/><MainPipeway/><AirCoolerBank item={items.find(x=>x.id==='ACHE-01')!}/><FacilityInterconnects/><ElectricalFeed/><FlowLines/>
  {items.filter(x=>x.id==='FCC-01'||x.id==='HDS-01').map(unit=><RefineryUnit key={`fallback-${unit.id}`} item={unit}/>)}
  <CrudeReceiving item={items.find(x=>x.id==='CRUDE-01')!}/><SulfurRecovery item={items.find(x=>x.id==='SRU-01')!}/><DesalterUnit item={items.find(x=>x.id==='DS-101')!}/><CoolingBattery item={items.find(x=>x.id==='CW-01')!}/><WastewaterPlant item={items.find(x=>x.id==='WWT-01')!}/><ElectricalSubstation item={items.find(x=>x.id==='SUB-01')!}/><FirewaterFacility item={items.find(x=>x.id==='FW-01')!}/><FirewaterRing/><TransferPumpStation item={items.find(x=>x.id==='P-301A')!}/>
  {items.filter(x=>x.kind==='worker').map((person,i)=><WorkerFallback key={`fallback-${person.id}`} item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>)}
@@ -1140,6 +1140,95 @@ function ElectricalFeed(){
   </group>)}
   {[[31.2,4],[31.2,-2],[31.2,-8],[31.2,-14],[31.2,-20],[34.5,-20]].map(([x,z],i)=><group key={`electrical-handhole-${i}`}><Box position={[x,.17,z]} scale={[.82,.28,.82]} color="#646e69"/><Box position={[x,.325,z]} scale={[.7,.055,.7]} color="#a69e81"/><Box position={[x,.36,z]} scale={[.18,.025,.08]} color="#3c4542"/></group>)}
  </group>
+}
+function AirCoolerFan({x}:{x:number}){
+ const rotor=useRef<THREE.Group>(null),playing=useStore(s=>s.playing);
+ useFrame((_,delta)=>{if(rotor.current&&playing)rotor.current.rotation.y+=delta*2.7;});
+ return <group position={[x,8.58,0]}>
+  <mesh position={[0,-.03,0]}><cylinderGeometry args={[.96,.96,.12,24,1,true]}/><meshStandardMaterial color="#485851" metalness={.45} roughness={.55} side={THREE.DoubleSide}/></mesh>
+  <mesh position={[0,.035,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.94,.045,6,24]}/><meshStandardMaterial color="#c0b58c" metalness={.48}/></mesh>
+  <group ref={rotor} position={[0,.07,0]}>
+   {Array.from({length:6},(_,i)=>{const a=i*Math.PI/3;return <mesh key={`fan-blade-${i}`} position={[Math.cos(a)*.4,0,Math.sin(a)*.4]} rotation={[0,-a,0]}><boxGeometry args={[.82,.055,.17]}/><meshStandardMaterial color="#bcc4b7" metalness={.36} roughness={.55}/></mesh>})}
+   <mesh position={[0,.035,0]}><cylinderGeometry args={[.18,.2,.16,12]}/><meshStandardMaterial color="#d0b975" metalness={.52}/></mesh>
+  </group>
+  {/* Compact motor and fan-shaft detail below the forced-draft fan. */}
+  <mesh position={[0,-.36,0]}><cylinderGeometry args={[.16,.18,.42,12]}/><meshStandardMaterial color="#68766d" metalness={.55} roughness={.52}/></mesh>
+  <mesh position={[0,-.62,0]}><cylinderGeometry args={[.23,.23,.12,12]}/><meshStandardMaterial color="#48554e" metalness={.45}/></mesh>
+ </group>;
+}
+function AirCoolerBank({item}:{item:SiteItem}){
+ const fanXs=[-2.25,0,2.25],tubeXs=[-2.85,-1.71,-.57,.57,1.71,2.85],tubeYs=[9.76,9.98,10.2,10.42];
+ return <ClickGroup item={item} position={item.position}>
+  {/* The cooler's portal legs continue the existing pipe-rack bents; the new structure begins above the highest pipe and cable tiers. */}
+  {[-5,0,5].flatMap(x=>[-1.65,1.65].map(z=><group key={`ache-support-${x}-${z}`}>
+   <Box position={[x,5.58,z]} scale={[.5,.15,.5]} color="#a69770"/>
+   <Box position={[x,6.77,z]} scale={[.16,2.38,.16]} color="#66766d"/>
+  </group>))}
+  {[-1,1].map(side=><group key={`ache-long-brace-${side}`}>
+   <Pipe a={[-5,5.68,side*1.65]} b={[0,7.84,side*1.65]} color="#74847a" radius={.045}/>
+   <Pipe a={[-5,7.84,side*1.65]} b={[0,5.68,side*1.65]} color="#74847a" radius={.045}/>
+   <Pipe a={[0,5.68,side*1.65]} b={[5,7.84,side*1.65]} color="#74847a" radius={.045}/>
+   <Pipe a={[0,7.84,side*1.65]} b={[5,5.68,side*1.65]} color="#74847a" radius={.045}/>
+  </group>)}
+  {[-1.65,1.65].map(z=><group key={`ache-long-girder-${z}`}>
+   <Box position={[0,7.91,z]} scale={[10.4,.2,.2]} color="#718077"/>
+   <Box position={[0,5.67,z]} scale={[10.1,.16,.2]} color="#718077"/>
+  </group>)}
+  {[-5,0,5].map(x=><Box key={`ache-crossbeam-${x}`} position={[x,7.91,0]} scale={[.2,.18,3.45]} color="#819087"/>)}
+  {/* Open lower maintenance walkways leave the air inlets and the pipe rack visible below. */}
+  {[-1,1].map(side=><Box key={`ache-lower-sidewalk-${side}`} position={[side*4.05,8.03,0]} scale={[.66,.12,5.15]} color="#59665e"/>)}
+  {[-1,1].map(side=><Box key={`ache-lower-endwalk-${side}`} position={[0,8.03,side*2.55]} scale={[7.95,.12,.58]} color="#59665e"/>)}
+  {[-1,1].map(side=><group key={`ache-lower-long-rail-${side}`}>
+   <Box position={[side*4.32,8.53,0]} scale={[.06,.92,5.35]} color="#c7b783"/>
+   {[-2.2,-1.1,0,1.1,2.2].map(z=><Box key={z} position={[side*4.32,8.51,z]} scale={[.06,.86,.06]} color="#c7b783"/>)}
+  </group>)}
+  {[-1,1].map(side=><group key={`ache-lower-end-rail-${side}`}>
+   <Box position={[0,8.53,side*2.84]} scale={[8.6,.92,.06]} color="#c7b783"/>
+   {[-3.6,-2.4,-1.2,0,1.2,2.4,3.6].map(x=><Box key={x} position={[x,8.51,side*2.84]} scale={[.06,.86,.06]} color="#c7b783"/>)}
+  </group>)}
+  {/* Three forced-draft cells: axial fans below tapered plenums, then a shared finned-tube bundle. */}
+  {fanXs.map(x=><group key={`ache-cell-${x}`}>
+   <AirCoolerFan x={x}/>
+   <mesh position={[x,9.1,0]} castShadow><cylinderGeometry args={[.79,1.02,1.04,20,1,true]}/><meshStandardMaterial color="#78847a" metalness={.34} roughness={.64} side={THREE.DoubleSide}/></mesh>
+   <mesh position={[x,9.64,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.79,.035,6,20]}/><meshStandardMaterial color="#aab09f" metalness={.48}/></mesh>
+  </group>)}
+  <mesh position={[0,10.04,0]} castShadow receiveShadow><boxGeometry args={[7.75,.8,4.18]}/><meshStandardMaterial color="#737f76" map={getWeatheredSteelMap()} metalness={.38} roughness={.65}/></mesh>
+  {/* Parallel finned tubes are visible through the open service-side study; removable header covers and bolts give the bundle a believable scale. */}
+  {tubeXs.flatMap(x=>tubeYs.map(y=><group key={`ache-tube-${x}-${y}`}>
+   <Pipe a={[x,y,-2.03]} b={[x,y,2.03]} color="#bec2b4" radius={.036}/>
+   {[-1.5,-.75,0,.75,1.5].map(z=><mesh key={`ache-fin-${z}`} position={[x,y,z]}><torusGeometry args={[.125,.014,5,10]}/><meshStandardMaterial color="#b8bcae" metalness={.35} roughness={.62}/></mesh>)}
+  </group>))}
+  {[-1,1].map(side=><group key={`ache-header-${side}`}>
+   <Box position={[0,10.04,side*2.28]} scale={[7.9,.82,.48]} color="#69776e"/>
+   <Box position={[0,10.04,side*2.54]} scale={[7.72,.68,.08]} color="#838d81"/>
+   {Array.from({length:12},(_,i)=>{const x=-3.42+i*.62;return <mesh key={`ache-header-bolt-${i}`} position={[x,10.04,side*2.59]}><sphereGeometry args={[.045,7,6]}/><meshStandardMaterial color="#d0bf8a" metalness={.55}/></mesh>})}
+   <mesh position={[side===-1?-3.35:3.35,10.04,side*2.68]}><cylinderGeometry args={[.15,.17,.28,12]}/><meshStandardMaterial color="#89958a" metalness={.5}/></mesh>
+  </group>)}
+  {/* Raised perimeter service deck around the tube headers. */}
+  {[-1,1].map(side=><Box key={`ache-upper-sidewalk-${side}`} position={[side*4.08,10.58,0]} scale={[.62,.12,5.25]} color="#56645d"/>)}
+  {[-1,1].map(side=><Box key={`ache-upper-endwalk-${side}`} position={[0,10.58,side*2.83]} scale={[8.35,.12,.54]} color="#56645d"/>)}
+  {[-1,1].map(side=><group key={`ache-upper-rail-x-${side}`}>
+   <Box position={[side*4.36,11.07,0]} scale={[.06,.9,5.52]} color="#c8b782"/>
+   {[-2.2,-1.1,0,1.1,2.2].map(z=><Box key={z} position={[side*4.36,11.05,z]} scale={[.06,.84,.06]} color="#c8b782"/>)}
+  </group>)}
+  {[-1,1].map(side=><group key={`ache-upper-rail-z-${side}`}>
+   <Box position={[0,11.07,side*3.1]} scale={[8.7,.9,.06]} color="#c8b782"/>
+   {[-3.6,-2.4,-1.2,0,1.2,2.4,3.6].map(x=><Box key={x} position={[x,11.05,side*3.1]} scale={[.06,.84,.06]} color="#c8b782"/>)}
+  </group>)}
+  {/* Ground-to-deck ladder is outside the cable-tray lane; a short second ladder reaches the header service deck. */}
+  <Pipe a={[-4.55,.35,-1.95]} b={[-4.55,7.88,-1.95]} color="#c7b783" radius={.026}/>
+  <Pipe a={[-4.55,.35,-1.55]} b={[-4.55,7.88,-1.55]} color="#c7b783" radius={.026}/>
+  {Array.from({length:25},(_,i)=><Box key={`ache-ladder-rung-${i}`} position={[-4.55,.48+i*.3,-1.75]} scale={[.055,.038,.4]} color="#c7b783"/>)}
+  {[2.8,3.8,4.8,5.8,6.8].map(y=><mesh key={`ache-ladder-cage-${y}`} position={[-4.55,y,-1.75]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.32,.018,5,16]}/><meshStandardMaterial color="#b19e70" metalness={.42}/></mesh>)}
+  <Pipe a={[4.08,8.08,2.48]} b={[4.08,10.46,2.48]} color="#c7b783" radius={.022}/>
+  <Pipe a={[3.68,8.08,2.48]} b={[3.68,10.46,2.48]} color="#c7b783" radius={.022}/>
+  {Array.from({length:8},(_,i)=><Box key={`ache-upper-ladder-rung-${i}`} position={[3.88,8.22+i*.29,2.48]} scale={[.4,.035,.05]} color="#c7b783"/>)}
+  {/* Header tie-ins descend to the top process-rack header; the values and arrangement are demonstrative only. */}
+  <PipelinePath points={[[-3.35,10.04,-2.68],[-3.35,5.82,-2.68],[-3.35,5.82,-1.07],[-3.35,5.35,-1.07]]} color="#9f8054" radius={.105}/>
+  <PipelinePath points={[[3.35,10.04,2.68],[3.35,5.82,2.68],[3.35,5.82,-1.07],[3.35,5.35,-1.07]]} color="#668d96" radius={.09}/>
+  <ValveWheel position={[-3.35,5.82,-1.07]} color="#9a7b51"/><ValveWheel position={[3.35,5.82,-1.07]} color="#6e8a8d"/>
+  <EquipmentTag label={item.id} position={[-4.1,8.42,3.34]}/>
+ </ClickGroup>;
 }
 function MainPipeway(){
  const sections=useMemo(()=>[[-31,-26,-21,-16,-11,-6],[10,15,20,25,30]],[]);

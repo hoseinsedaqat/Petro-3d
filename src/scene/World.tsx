@@ -8,7 +8,7 @@ import { useStore } from '../store';
 import { ProcessRefinery } from './ProcessSteelwork';
 import { SphereTank } from './SphereTank';
 import { CoolingBattery, CrudeReceiving, DesalterUnit, ElectricalSubstation, EquipmentTag, RefineryUnit, SulfurRecovery, WastewaterPlant } from './RefinerySections';
-import { getWeatheredSteelMap } from './materials';
+import { getWeatheredSteelMap, getYardSurfaceMap } from './materials';
 
 function ShorelineSeawall(){return <group>
  <Box position={[37.23,-.32,14]} scale={[.46,.72,48]} color="#626d69"/>
@@ -18,7 +18,7 @@ function ShorelineSeawall(){return <group>
  </group>}
 function SiteTerrain({night}:{night:boolean}){
  const geometry=useMemo(()=>{const land=new THREE.Shape();land.moveTo(-70,-50);land.lineTo(85,-50);land.lineTo(85,-38);land.lineTo(37,-38);land.lineTo(37,10);land.lineTo(85,10);land.lineTo(85,50);land.lineTo(-70,50);land.closePath();const surface=new THREE.ShapeGeometry(land,1);surface.rotateX(-Math.PI/2);surface.computeVertexNormals();return surface},[]);
- return <mesh geometry={geometry} position={[0,-.16,0]} receiveShadow><meshStandardMaterial color={night?'#253631':'#a6b19e'} roughness={1} side={THREE.DoubleSide}/></mesh>;
+ return <mesh geometry={geometry} position={[0,-.16,0]} receiveShadow><meshStandardMaterial map={getYardSurfaceMap('soil',1/18,1/18)} color={night?'#59635d':'#ffffff'} roughness={1} side={THREE.DoubleSide}/></mesh>;
 }
 function TankFarmBundAccess(){return <group>
  {/* Staggered concrete treads and paired handrails cross the east containment berm. */}
@@ -131,8 +131,8 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  <color attach="background" args={[night?'#09121d':'#d6e0d5']}/><fog attach="fog" args={[night?'#09121d':'#d6e0d5',80,145]}/><ambientLight intensity={night?.2:1.25}/><directionalLight position={[-25,45,20]} intensity={night?.3:2} castShadow/>
  <NightLighting night={night}/>
  <SiteTerrain night={night}/>
- <mesh rotation={[-Math.PI/2,0,0]} position={[-10,-.05,-8]}><planeGeometry args={[40,32]}/><meshStandardMaterial color="#a9aca0"/></mesh>
- <mesh rotation={[-Math.PI/2,0,0]} position={[16,-.05,-8]}><planeGeometry args={[24,22]}/><meshStandardMaterial color="#b7b6a4"/></mesh>
+ <mesh rotation={[-Math.PI/2,0,0]} position={[-10,-.05,-8]}><planeGeometry args={[40,32]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',40/9,32/9)} color={night?'#59635d':'#cdd1c8'} roughness={.96}/></mesh>
+ <mesh rotation={[-Math.PI/2,0,0]} position={[16,-.05,-8]}><planeGeometry args={[24,22]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',24/9,22/9)} color={night?'#59635d':'#d1cebc'} roughness={.96}/></mesh>
  <WaterSurface position={[61.25,-.16,14]} size={[47.5,48]} night={night}/>
  <ShorelineSeawall/>
  <mesh rotation={[-Math.PI/2,0,0]} position={[28.5,-.075,14]}><planeGeometry args={[11,38]}/><meshStandardMaterial color="#888c80" roughness={.92}/></mesh>
@@ -619,7 +619,7 @@ function CompanyCampusDetails({gatehouse}:{gatehouse:SiteItem}){
  const night=useStore(s=>s.night);
  return <group>
   {/* Paved, kerbed gate approach and a clear vehicle stopping line. */}
-  <mesh rotation={[-Math.PI/2,0,0]} position={[-15.5,-.045,32.8]}><planeGeometry args={[10.2,11.8]}/><meshStandardMaterial color={night?'#252e2b':'#4c5550'} roughness={.94}/></mesh>
+  <mesh rotation={[-Math.PI/2,0,0]} position={[-15.5,-.045,32.8]}><planeGeometry args={[10.2,11.8]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',10.2/12,11.8/12)} color={night?'#777f79':'#ffffff'} roughness={.96}/></mesh>
   <Box position={[-20.58,.08,28.95]} scale={[.18,.16,3.8]} color="#a3a292"/><Box position={[-20.58,.08,36.65]} scale={[.18,.16,3.8]} color="#a3a292"/>
   <Box position={[-10.42,.08,32.8]} scale={[.18,.16,11.5]} color="#a3a292"/>
   <Box position={[-21.02,-.005,32.8]} scale={[.88,.06,3.75]} color="#aaa99a"/>
@@ -643,45 +643,99 @@ function CompanyCampusDetails({gatehouse}:{gatehouse:SiteItem}){
   <SecurityGatehouse item={gatehouse}/>
  </group>
 }
+const FLARE_STACK_HEIGHT=16;
 function FlareFire(){
- const outer=useRef<THREE.Group>(null),core=useRef<THREE.Group>(null),embers=useRef<(THREE.Mesh|null)[]>([]);const phase=useRef(0);const night=useStore(s=>s.night);
- const outerProfile=useMemo(()=>[[0,0],[.11,.08],[.25,.2],[.38,.38],[.35,.57],[.28,.78],[.25,1.02],[.16,1.32],[.1,1.58],[.035,1.82],[0,1.9]].map(([r,y])=>new THREE.Vector2(r,y)),[]);
- const coreProfile=useMemo(()=>[[0,0],[.09,.08],[.18,.2],[.2,.34],[.14,.52],[.11,.72],[.06,.9],[.025,1.08],[0,1.16]].map(([r,y])=>new THREE.Vector2(r,y)),[]);
- useFrame((_,delta)=>{phase.current+=delta;const t=phase.current;if(outer.current){outer.current.scale.set(.9+Math.sin(t*9)*.07,.88+Math.sin(t*13)*.1,.91+Math.cos(t*7)*.06);outer.current.rotation.z=Math.sin(t*2.2)*.045;outer.current.position.x=Math.sin(t*1.3)*.055}if(core.current){core.current.scale.set(.94+Math.sin(t*12+.8)*.09,.94+Math.sin(t*15)*.1,.92+Math.cos(t*10)*.07)}embers.current.forEach((ember,i)=>{if(!ember)return;const rise=(t*.42+i*.31)%1;ember.position.set(Math.sin(t*2.3+i*2.1)*(.1+rise*.18),12.26+rise*1.7,Math.cos(t*1.9+i)*(.08+rise*.12));ember.scale.setScalar(.035*(1-rise))})});
+ const outer=useRef<THREE.Group>(null),core=useRef<THREE.Group>(null),embers=useRef<(THREE.Mesh|null)[]>([]);
+ const phase=useRef(0),night=useStore(s=>s.night);
+ const outerProfile=useMemo(()=>[[0,0],[.12,.08],[.29,.22],[.4,.44],[.34,.68],[.39,.9],[.3,1.18],[.25,1.45],[.29,1.72],[.19,2.02],[.14,2.28],[.045,2.58],[0,2.72]].map(([r,y])=>new THREE.Vector2(r,y)),[]);
+ const coreProfile=useMemo(()=>[[0,0],[.1,.08],[.19,.22],[.22,.42],[.16,.65],[.17,.83],[.11,1.08],[.08,1.34],[.025,1.62],[0,1.78]].map(([r,y])=>new THREE.Vector2(r,y)),[]);
+ useFrame((_,delta)=>{
+  phase.current+=delta;const t=phase.current;
+  if(outer.current){outer.current.scale.set(.91+Math.sin(t*8.7)*.075,.9+Math.sin(t*12.4)*.09,.9+Math.cos(t*7.3)*.07);outer.current.rotation.z=Math.sin(t*2.1)*.055;outer.current.position.x=Math.sin(t*1.35)*.065;outer.current.rotation.x=Math.cos(t*1.8)*.035;}
+  if(core.current){core.current.scale.set(.94+Math.sin(t*11.8+.8)*.08,.94+Math.sin(t*15.1)*.08,.92+Math.cos(t*9.7)*.065);core.current.rotation.z=Math.sin(t*2.6+.5)*.045;}
+  embers.current.forEach((ember,i)=>{if(!ember)return;const rise=(t*.36+i*.29)%1;ember.position.set(Math.sin(t*2.2+i*2.1)*(.12+rise*.2),FLARE_STACK_HEIGHT+.36+rise*1.55,Math.cos(t*1.8+i)*(.1+rise*.14));ember.scale.setScalar(.032*(1-rise));});
+ });
  return <>
-  <mesh position={[0,12.04,0]}><sphereGeometry args={[.24,12,10]}/><meshBasicMaterial color="#ffb047" toneMapped={false}/></mesh>
-  <group ref={outer} position={[0,12.03,0]}>
-   <mesh><latheGeometry args={[outerProfile,20]}/><meshBasicMaterial color="#ed4d12" transparent opacity={.78} depthWrite={false} side={THREE.DoubleSide} toneMapped={false}/></mesh>
-   <mesh position={[.08,.08,.02]} scale={[.65,.88,.68]}><latheGeometry args={[outerProfile,16]}/><meshBasicMaterial color="#ff7b1b" transparent opacity={.62} depthWrite={false} side={THREE.DoubleSide} toneMapped={false}/></mesh>
+  <group ref={outer} position={[0,FLARE_STACK_HEIGHT,0]}>
+   <mesh><latheGeometry args={[outerProfile,24]}/><meshBasicMaterial color="#ed4d12" transparent opacity={.75} depthWrite={false} side={THREE.DoubleSide} toneMapped={false}/></mesh>
+   <mesh position={[.1,.12,.025]} scale={[.68,.9,.7]}><latheGeometry args={[outerProfile,18]}/><meshBasicMaterial color="#ff7b1b" transparent opacity={.68} depthWrite={false} side={THREE.DoubleSide} toneMapped={false}/></mesh>
+   <mesh position={[-.13,.24,-.08]} rotation={[.08,0,-.08]} scale={[.48,.73,.52]}><latheGeometry args={[outerProfile,16]}/><meshBasicMaterial color="#ff9a26" transparent opacity={.5} depthWrite={false} side={THREE.DoubleSide} toneMapped={false}/></mesh>
   </group>
-  <group ref={core} position={[0,12.05,0]}>
-   <mesh><latheGeometry args={[coreProfile,18]}/><meshBasicMaterial color="#ffd36a" transparent opacity={.96} depthWrite={false} side={THREE.DoubleSide} toneMapped={false}/></mesh>
-   <mesh position={[0,.05,0]} scale={[.52,.62,.52]}><latheGeometry args={[coreProfile,16]}/><meshBasicMaterial color="#fff2bb" transparent opacity={.88} depthWrite={false} side={THREE.DoubleSide} toneMapped={false}/></mesh>
+  <group ref={core} position={[0,FLARE_STACK_HEIGHT+.06,0]}>
+   <mesh><latheGeometry args={[coreProfile,20]}/><meshBasicMaterial color="#ffd36a" transparent opacity={.96} depthWrite={false} side={THREE.DoubleSide} toneMapped={false}/></mesh>
+   <mesh position={[0,.06,0]} scale={[.5,.66,.52]}><latheGeometry args={[coreProfile,16]}/><meshBasicMaterial color="#fff1b7" transparent opacity={.9} depthWrite={false} side={THREE.DoubleSide} toneMapped={false}/></mesh>
   </group>
-  {Array.from({length:5},(_,i)=><mesh key={`flare-ember-${i}`} ref={el=>{embers.current[i]=el}}><sphereGeometry args={[1,7,6]}/><meshBasicMaterial color={i%2?'#ff9c35':'#ffd26a'} toneMapped={false}/></mesh>)}
-  <pointLight position={[0,12.45,.1]} color="#ff842d" intensity={night?46:2.5} distance={night?26:8} decay={2}/>
+  {Array.from({length:6},(_,i)=><mesh key={`flare-ember-${i}`} ref={el=>{embers.current[i]=el}}><sphereGeometry args={[1,7,6]}/><meshBasicMaterial color={i%2?'#ff9c35':'#ffd26a'} toneMapped={false}/></mesh>)}
+  <pointLight position={[0,FLARE_STACK_HEIGHT+.45,.1]} color="#ff842d" intensity={night?42:2.3} distance={night?25:8} decay={2}/>
  </>;
 }
 function Flare({item}:{item:SiteItem}) {
+ const decks=[5.2,10.5,14.55];
+ const stripeLevels=[2.1,6.4,10.7,14.5];
+ const stackRadius=(y:number)=>.54-(y/FLARE_STACK_HEIGHT)*.2;
  return <ClickGroup item={item} position={item.position}>
-   <mesh position={[0,6,0]} castShadow><cylinderGeometry args={[.28,.5,12,16]}/><meshStandardMaterial color="#d3d0c2" metalness={.38} roughness={.6}/></mesh>
-   {/* High-visibility weathered red/white stack bands and lightning rings */}
-   {[1.8,5.8,9.8].map(y=><mesh key={`paint-${y}`} position={[0,y,0]}><cylinderGeometry args={[.5-y*.018,.5-y*.018,1.15,16]}/><meshStandardMaterial color="#a84e3f" roughness={.68}/></mesh>)}
-   {[0,1,2,3].map(i=><mesh key={i} position={[Math.cos(i*Math.PI/2)*.7,6,Math.sin(i*Math.PI/2)*.7]}><cylinderGeometry args={[.06,.06,12,6]}/><meshStandardMaterial color="#d1b875"/></mesh>)}
-   {[0,1,2,3].map(i=><mesh key={`x${i}`} position={[0,1+i*2.7,0]} rotation={[0,i%2?Math.PI/4:-Math.PI/4,Math.PI/2]}><cylinderGeometry args={[.04,.04,1.8,6]}/><meshStandardMaterial color="#d1b875"/></mesh>)}
-   {[4,8].map(y=><group key={`flare-deck-${y}`}><mesh position={[0,y,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[.4,1.25,28]}/><meshStandardMaterial color="#303a36" side={THREE.DoubleSide}/></mesh><mesh position={[0,y+.55,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[1.22,.035,6,28]}/><meshStandardMaterial color="#d8c58e"/></mesh>{Array.from({length:16},(_,i)=>{const a=i*Math.PI/8;return <mesh key={i} position={[Math.cos(a)*1.22,y+.27,Math.sin(a)*1.22]}><cylinderGeometry args={[.025,.025,.52,6]}/><meshStandardMaterial color="#d8c58e"/></mesh>})}</group>)}
-   <mesh position={[.54,6,0]}><boxGeometry args={[.055,10.4,.055]}/><meshStandardMaterial color="#dbc995"/></mesh>
-   {Array.from({length:25},(_,i)=><mesh key={`flare-rung-${i}`} position={[.82,.8+i*.42,0]}><boxGeometry args={[.4,.045,.05]}/><meshStandardMaterial color="#dbc995"/></mesh>)}
+  {/* A small hardstand keeps the flare base legible against the wider process paving. */}
+  <mesh position={[-.5,.075,.35]} receiveShadow>
+   <boxGeometry args={[8,.15,7]}/>
+   <meshStandardMaterial map={getYardSurfaceMap('concrete',8/9,7/9)} color="#c7cbc2" roughness={.94}/>
+  </mesh>
+  <group position={[0,.15,0]}>
+   {/* Self-supported, tapered stack with a heavy base collar, shell courses, and bands. */}
+   <mesh position={[0,FLARE_STACK_HEIGHT/2,0]} castShadow receiveShadow>
+    <cylinderGeometry args={[.34,.54,FLARE_STACK_HEIGHT,24,1,true]}/>
+    <meshStandardMaterial color="#d1d2c8" metalness={.42} roughness={.58} side={THREE.DoubleSide}/>
+   </mesh>
+   <mesh position={[0,.2,0]}><cylinderGeometry args={[.77,.84,.4,20]}/><meshStandardMaterial color="#68756d" metalness={.4} roughness={.62}/></mesh>
+   {[.32,4.2,8.2,12.2].map(y=><mesh key={`flare-shell-joint-${y}`} position={[0,y,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[stackRadius(y),.025,6,28]}/><meshStandardMaterial color="#858d81" metalness={.55} roughness={.5}/></mesh>)}
+   {stripeLevels.map(y=><mesh key={`flare-paint-${y}`} position={[0,y,0]}><cylinderGeometry args={[stackRadius(y)+.006,stackRadius(y)+.012,1.05,24]}/><meshStandardMaterial color="#a8493d" roughness={.68}/></mesh>)}
+   {/* Three open grated service decks: toe board, mid-rail, top rail, and braces. */}
+   {decks.map(y=><group key={`flare-deck-${y}`}>
+    <mesh position={[0,y,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[.46,1.23,36]}/><meshStandardMaterial color="#343c38" metalness={.48} roughness={.78} side={THREE.DoubleSide}/></mesh>
+    <mesh position={[0,y-.045,0]} rotation={[-Math.PI/2,0,0]}><torusGeometry args={[1.19,.025,6,36]}/><meshStandardMaterial color="#9a9d8d" metalness={.35}/></mesh>
+    {[y+.18,y+.52].map((rail,railIndex)=><mesh key={`flare-deck-rail-${railIndex}`} position={[0,rail,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[1.22,.026,6,36]}/><meshStandardMaterial color="#d4c18c" metalness={.45} roughness={.55}/></mesh>)}
+    {Array.from({length:16},(_,i)=>{const angle=i*Math.PI/8;return <group key={`flare-deck-post-${i}`}>
+     <mesh position={[Math.cos(angle)*1.22,y+.35,Math.sin(angle)*1.22]}><cylinderGeometry args={[.022,.022,.7,6]}/><meshStandardMaterial color="#c8b77f" metalness={.4}/></mesh>
+     {i%4===0&&<Pipe a={[Math.cos(angle)*.53,y-.04,Math.sin(angle)*.53]} b={[Math.cos(angle)*1.02,y-.42,Math.sin(angle)*1.02]} color="#aa9a6f" radius={.025}/>}
+    </group>})}
+    {/* A narrow maintenance ladder gate on each platform, kept on the same side as the cage ladder. */}
+    <Box position={[.56,y+.34,-.51]} scale={[.12,.56,.12]} color="#dfce9a"/>
+   </group>)}
+   {/* Fixed ladder with paired rails, rungs, and a restrained safety-cage silhouette. */}
+   <Pipe a={[.56,1.05,-.31]} b={[.56,15.1,-.31]} color="#d0be8b" radius={.027}/>
+   <Pipe a={[.56,1.05,.31]} b={[.56,15.1,.31]} color="#d0be8b" radius={.027}/>
+   {Array.from({length:36},(_,i)=>{const y=1.18+i*.39;return <Box key={`flare-ladder-rung-${i}`} position={[.56,y,0]} scale={[.055,.04,.62]} color="#d0be8b"/>})}
+   {[3.1,3.85,4.6,6.25,7,7.75,9.8,10.55,11.3,13.6,14.35,15.1].map(y=><mesh key={`flare-ladder-hoop-${y}`} position={[.56,y,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.43,.018,5,20]}/><meshStandardMaterial color="#aa9b73" metalness={.38}/></mesh>)}
+   {/* Top-service collar, burner head, perimeter pilots, and three lightning electrodes. */}
+   <mesh position={[0,15.72,0]}><cylinderGeometry args={[.38,.43,.54,20]}/><meshStandardMaterial color="#78847b" metalness={.64} roughness={.4}/></mesh>
+   <mesh position={[0,16.02,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.35,.045,8,24]}/><meshStandardMaterial color="#c4b98e" metalness={.62}/></mesh>
+   <mesh position={[0,16.18,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.27,.024,6,20]}/><meshStandardMaterial color="#444d47" metalness={.45}/></mesh>
+   {Array.from({length:3},(_,i)=>{const angle=i*Math.PI*2/3,r=.46,x=Math.cos(angle)*r,z=Math.sin(angle)*r;return <group key={`flare-pilot-${i}`}>
+    <Pipe a={[x,15.95,z]} b={[x,16.42,z]} color="#a7a28c" radius={.035}/>
+    <Pipe a={[x,16.42,z]} b={[Math.cos(angle)*.28,16.46,Math.sin(angle)*.28]} color="#b6a779" radius={.025}/>
+    <mesh position={[x,16.55,z]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.07,.018,5,10]}/><meshStandardMaterial color="#e68a3a" emissive="#a13b18" emissiveIntensity={.35}/></mesh>
+   </group>})}
+   {[0,1,2].map(i=>{const a=i*Math.PI*2/3;return <Pipe key={`flare-lightning-${i}`} a={[Math.cos(a)*.39,13.1,Math.sin(a)*.39]} b={[Math.cos(a)*.39,16.9,Math.sin(a)*.39]} color="#c2b785" radius={.018}/>})}
+   {/* Conceptual knockout drum, saddles, local header, and base-inlet connection. */}
+   <mesh position={[-2.55,.82,2.18]} rotation={[0,0,Math.PI/2]} castShadow><cylinderGeometry args={[.39,.39,2.05,20]}/><meshStandardMaterial color="#89958c" map={getWeatheredSteelMap()} metalness={.5} roughness={.55}/></mesh>
+   {[-3.56,-1.54].map(x=><mesh key={`flare-drum-head-${x}`} position={[x,.82,2.18]} scale={[.34,.39,.39]} castShadow><sphereGeometry args={[1,16,10]}/><meshStandardMaterial color="#89958c" map={getWeatheredSteelMap()} metalness={.48} roughness={.56}/></mesh>)}
+   {[-3.15,-1.95].map(x=><group key={`flare-drum-saddle-${x}`}><Box position={[x,.4,2.18]} scale={[.18,.52,.72]} color="#59645e"/><Box position={[x,.23,2.18]} scale={[.72,.12,.82]} color="#69756c"/></group>)}
+   {[-3.15,-1.95].map(x=><mesh key={`flare-drum-seam-${x}`} position={[x,.82,2.18]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.39,.022,6,20]}/><meshStandardMaterial color="#aab0a3" metalness={.58}/></mesh>)}
+   <Pipe a={[-4.48,.78,2.18]} b={[-3.58,.78,2.18]} color="#9b6b4b" radius={.11}/>
+   <Pipe a={[-3.34,1.18,2.18]} b={[-3.34,1.45,2.18]} color="#859087" radius={.055}/>
+   <mesh position={[-3.34,1.53,2.18]}><cylinderGeometry args={[.105,.105,.09,12]}/><meshStandardMaterial color="#c9bb8e" metalness={.42}/></mesh>
+   <PipelinePath points={[[-1.52,.84,2.18],[-1.13,.84,1.58],[-.72,1.02,.86],[-.48,1.12,.38]]} color="#9b6b4b" radius={.105}/>
+   {[-4.05,-1.15].map(x=><group key={`flare-header-support-${x}`}><Box position={[x,.34,2.18]} scale={[.12,.56,.12]} color="#616c64"/><Box position={[x,.11,2.18]} scale={[.45,.12,.42]} color="#737d72"/></group>)}
    <FlareFire/>
+  </group>
  </ClickGroup>;
 }
 const truckRoute:[number,number][]=[[10,14],[23,14],[23,23],[6,23],[6,14]];
 function routePoint(progress:number){const distance=(progress%1)*truckRoute.length,index=Math.floor(distance),part=distance-index,a=truckRoute[index],b=truckRoute[(index+1)%truckRoute.length];return {x:a[0]+(b[0]-a[0])*part,z:a[1]+(b[1]-a[1])*part,dx:b[0]-a[0],dz:b[1]-a[1]}}
 function TruckTrafficSafety(){const night=useStore(s=>s.night);return <group>
- <mesh rotation={[-Math.PI/2,0,0]} position={[16.5,-.026,14]}><planeGeometry args={[13.2,4.5]}/><meshStandardMaterial color="#414a47" roughness={.94}/></mesh>
- <mesh rotation={[-Math.PI/2,0,0]} position={[23,-.026,18.5]}><planeGeometry args={[4.5,9]}/><meshStandardMaterial color="#414a47" roughness={.94}/></mesh>
- <mesh rotation={[-Math.PI/2,0,0]} position={[14.5,-.026,23]}><planeGeometry args={[17,4.5]}/><meshStandardMaterial color="#414a47" roughness={.94}/></mesh>
- <mesh rotation={[-Math.PI/2,0,0]} position={[6,-.026,18.5]}><planeGeometry args={[4.5,9]}/><meshStandardMaterial color="#414a47" roughness={.94}/></mesh>
+ <mesh rotation={[-Math.PI/2,0,0]} position={[16.5,-.026,14]}><planeGeometry args={[13.2,4.5]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',13.2/12,4.5/12)} color="#ffffff" roughness={.96}/></mesh>
+ <mesh rotation={[-Math.PI/2,0,0]} position={[23,-.026,18.5]}><planeGeometry args={[4.5,9]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',4.5/12,9/12)} color="#ffffff" roughness={.96}/></mesh>
+ <mesh rotation={[-Math.PI/2,0,0]} position={[14.5,-.026,23]}><planeGeometry args={[17,4.5]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',17/12,4.5/12)} color="#ffffff" roughness={.96}/></mesh>
+ <mesh rotation={[-Math.PI/2,0,0]} position={[6,-.026,18.5]}><planeGeometry args={[4.5,9]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',4.5/12,9/12)} color="#ffffff" roughness={.96}/></mesh>
  {/* Continuous marked pedestrian route, physically guarded from the one-way truck loop. */}
  <mesh rotation={[-Math.PI/2,0,0]} position={[15,-.008,9.8]}><planeGeometry args={[20,1.8]}/><meshStandardMaterial color="#747d73" roughness={.9}/></mesh>
  {[8.95,10.65].map(z=><Box key={`walk-edge-${z}`} position={[15,.018,z]} scale={[20,.035,.07]} color="#dfd4a6"/>)}
@@ -1002,16 +1056,16 @@ export function World(){
   {Array.from({length:22},(_,i)=>{const x=-33+i*4;return <group key={`fence-${i}`}><Box position={[x,.52,-28.65]} scale={[.09,.95,.09]} color="#69776e"/>{x<=35&&![4,5].includes(i)&&<Box position={[x,.52,28.65]} scale={[.09,.95,.09]} color="#69776e"/>}</group>})}
   {Array.from({length:15},(_,i)=><Box key={`west-fence-${i}`} position={[-33.78,.52,-27+i*3.85]} scale={[.09,.95,.09]} color="#69776e"/>)}
   {/* site edge and zone paving */}
-  <mesh rotation={[-Math.PI/2,0,0]} position={[-10,-.08,-7]}><planeGeometry args={[42,34]}/><meshStandardMaterial color={night?'#394541':'#9da79c'}/></mesh>
-  <mesh rotation={[-Math.PI/2,0,0]} position={[16,-.075,-9]}><planeGeometry args={[24,22]}/><meshStandardMaterial color={night?'#3d4540':'#aaa995'}/></mesh>
-  <mesh rotation={[-Math.PI/2,0,0]} position={[15,-.07,16]}><planeGeometry args={[28,17]}/><meshStandardMaterial color={night?'#343f3b':'#919a8d'}/></mesh>
+  <mesh rotation={[-Math.PI/2,0,0]} position={[-10,-.08,-7]}><planeGeometry args={[42,34]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',42/9,34/9)} color={night?'#46534f':'#c2c6bd'} roughness={.96}/></mesh>
+  <mesh rotation={[-Math.PI/2,0,0]} position={[16,-.075,-9]}><planeGeometry args={[24,22]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',24/9,22/9)} color={night?'#4b534d':'#d1cebc'} roughness={.96}/></mesh>
+  <mesh rotation={[-Math.PI/2,0,0]} position={[15,-.07,16]}><planeGeometry args={[28,17]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',28/9,17/9)} color={night?'#47524c':'#b2bcb2'} roughness={.96}/></mesh>
   {/* Company campus: paved forecourt, marked visitor parking, planted edge and secure vehicle gate */}
-  <mesh rotation={[-Math.PI/2,0,0]} position={[-24,-.075,22]}><planeGeometry args={[20,12]}/><meshStandardMaterial color={night?'#39423e':'#999d91'} roughness={.94}/></mesh>
-  <mesh rotation={[-Math.PI/2,0,0]} position={[-25.8,-.035,25.85]}><planeGeometry args={[14.2,5.1]}/><meshStandardMaterial color={night?'#222b29':'#555c57'} roughness={.94}/></mesh>
+  <mesh rotation={[-Math.PI/2,0,0]} position={[-24,-.075,22]}><planeGeometry args={[20,12]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',20/9,12/9)} color={night?'#4b544e':'#c2c2b6'} roughness={.96}/></mesh>
+  <mesh rotation={[-Math.PI/2,0,0]} position={[-25.8,-.035,25.85]}><planeGeometry args={[14.2,5.1]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',14.2/12,5.1/12)} color={night?'#747c76':'#ffffff'} roughness={.96}/></mesh>
   {Array.from({length:6},(_,i)=><mesh key={`parking-line-${i}`} position={[-32.8+i*2.35,.012,25.85]}><boxGeometry args={[.045,.025,4.55]}/><meshBasicMaterial color="#d8d0aa"/></mesh>)}
   {[-31.7,-29.35,-27,-24.65,-22.3,-19.95].map((x,i)=><CampusCar key={`campus-car-${i}`} position={[x,.04,25.8]} color={['#5b716f','#c5c0ad','#87918b'][i%3]}/>)}
-  <mesh rotation={[-Math.PI/2,0,0]} position={[-15.45,-.025,25.8]}><planeGeometry args={[2.7,6.5]}/><meshStandardMaterial color="#555c57"/></mesh>
-  <mesh rotation={[-Math.PI/2,0,0]} position={[-17.3,-.02,23.75]}><planeGeometry args={[3.8,1.8]}/><meshStandardMaterial color="#555c57"/></mesh>
+  <mesh rotation={[-Math.PI/2,0,0]} position={[-15.45,-.025,25.8]}><planeGeometry args={[2.7,6.5]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',2.7/10,6.5/10)} color="#ffffff" roughness={.96}/></mesh>
+  <mesh rotation={[-Math.PI/2,0,0]} position={[-17.3,-.02,23.75]}><planeGeometry args={[3.8,1.8]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',3.8/10,1.8/10)} color="#ffffff" roughness={.96}/></mesh>
   {[[-32.8,17.3],[-32.8,20.4],[-15.8,17.3],[-15.8,21.8]].map(([x,z],i)=><CampusTree key={`landscape-edge-${i}`} position={[x,0,z]}/>)}
   <group position={[-24,.08,16.8]}><Box position={[0,.38,0]} scale={[8.1,.72,.38]} color="#64795a"/><Box position={[0,.77,0]} scale={[8.35,.08,.5]} color="#788b63"/></group>
   {/* Steel gate frame and striped lifting barrier at the southern campus entrance */}
@@ -1022,7 +1076,7 @@ export function World(){
   {[-17.1,-16.3,-15.5,-14.7,-13.9].map(x=><Box key={`barrier-mark-${x}`} position={[x,1.1,27.8]} scale={[.35,.14,.15]} color="#c34e3f" rotation={[0,0,-.02]}/>)}
   <CompanyCampusDetails gatehouse={items.find(x=>x.id==='SEC-01')!}/>
   {/* Road network */}
-  {[[-1,0,4,2.3],[0,7,2.3,44],[1,13,2.5,26],[-15,0,2.2,23]].map((r,i)=><mesh key={i} rotation={[-Math.PI/2,0,0]} position={[r[0],-.035,r[1]]}><planeGeometry args={[r[3],r[2]]}/><meshStandardMaterial color="#414b47"/></mesh>)}
+  {[[-1,0,4,2.3],[0,7,2.3,44],[1,13,2.5,26],[-15,0,2.2,23]].map((r,i)=><mesh key={i} rotation={[-Math.PI/2,0,0]} position={[r[0],-.035,r[1]]}><planeGeometry args={[r[3],r[2]]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',r[3]/12,r[2]/12)} color="#ffffff" roughness={.96}/></mesh>)}
   {Array.from({length:10},(_,i)=><mesh key={'dash'+i} rotation={[-Math.PI/2,0,0]} position={[-20+i*4,.005,7]}><planeGeometry args={[2,.12]}/><meshBasicMaterial color="#d8cf9d"/></mesh>)}
   {/* Water + quay */}
   {/* Bounded port basin with paved shoreline and a broad loading quay */}

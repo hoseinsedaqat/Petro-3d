@@ -146,7 +146,7 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  <Pipe a={[7,1.35,-19.6]} b={[30,1.35,-19.6]} color="#bd6c51" radius={.15}/>{[9,15,21,27].map(x=><Pipe key={`fallback-lpg-${x}`} a={[x-1.55,1.35,-19.6]} b={[x-1.55,1.35,-21.2]} color="#bd6c51" radius={.1}/>)}
  <ProcessRefinery/><MainPipeway/><FacilityInterconnects/><ElectricalFeed/><FlowLines/>
  {items.filter(x=>x.id==='FCC-01'||x.id==='HDS-01').map(unit=><RefineryUnit key={`fallback-${unit.id}`} item={unit}/>)}
- <CrudeReceiving item={items.find(x=>x.id==='CRUDE-01')!}/><SulfurRecovery item={items.find(x=>x.id==='SRU-01')!}/><DesalterUnit item={items.find(x=>x.id==='DS-101')!}/><CoolingBattery item={items.find(x=>x.id==='CW-01')!}/><WastewaterPlant item={items.find(x=>x.id==='WWT-01')!}/><ElectricalSubstation item={items.find(x=>x.id==='SUB-01')!}/><FirewaterFacility item={items.find(x=>x.id==='FW-01')!}/><FirewaterRing/>
+ <CrudeReceiving item={items.find(x=>x.id==='CRUDE-01')!}/><SulfurRecovery item={items.find(x=>x.id==='SRU-01')!}/><DesalterUnit item={items.find(x=>x.id==='DS-101')!}/><CoolingBattery item={items.find(x=>x.id==='CW-01')!}/><WastewaterPlant item={items.find(x=>x.id==='WWT-01')!}/><ElectricalSubstation item={items.find(x=>x.id==='SUB-01')!}/><FirewaterFacility item={items.find(x=>x.id==='FW-01')!}/><FirewaterRing/><TransferPumpStation item={items.find(x=>x.id==='P-301A')!}/>
  {items.filter(x=>x.kind==='worker').map((person,i)=><WorkerFallback key={`fallback-${person.id}`} item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>)}
  <ControlBuilding item={items.find(x=>x.id==='CCR-01')!}/><LaboratoryBuilding item={items.find(x=>x.id==='LAB-01')!}/>
  <WaterTreatmentFacility item={items.find(x=>x.id==='WW-01')!}/>
@@ -408,6 +408,73 @@ function FireStation({item}:{item:SiteItem}){
   <Box position={[0,4.14,-2.22]} scale={[.78,.12,.08]} color="#6b766e"/>
   <mesh position={[3.32,2.35,3.02]}><boxGeometry args={[.22,.08,.13]}/><meshStandardMaterial color="#f1d9a6" emissive={night?'#ffc46d':'#000000'} emissiveIntensity={night?1.2:0}/></mesh>
   {night&&<pointLight position={[3.32,2.28,3.16]} color="#ffe1ae" intensity={1.6} distance={7} decay={2}/>}
+ </ClickGroup>;
+}
+function ProcessPumpSet({x}:{x:number}){
+ return <group position={[x,0,-.35]}>
+  <Box position={[0,.16,0]} scale={[.74,.18,1.16]} color="#414e48"/>
+  {[-.29,.29].flatMap(dx=>[-.43,.43].map(z=><group key={`${dx}-${z}`} position={[dx,.27,z]}>
+   <mesh><cylinderGeometry args={[.045,.045,.12,8]}/><meshStandardMaterial color="#c7b88e" metalness={.6}/></mesh>
+   <mesh position={[0,.07,0]}><cylinderGeometry args={[.015,.015,.05,6]}/><meshStandardMaterial color="#77857b"/></mesh>
+  </group>))}
+  {/* Horizontal driver, ribbed motor casing, terminal box and fan cover. */}
+  <mesh position={[0,.76,-.43]} rotation={[Math.PI/2,0,0]} castShadow><cylinderGeometry args={[.235,.235,.66,20]}/><meshStandardMaterial color="#536a61" metalness={.5} roughness={.54}/></mesh>
+  {[-.69,-.55,-.4,-.25,-.1].map(z=><mesh key={z} position={[0,.76,z]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.235,.025,6,18]}/><meshStandardMaterial color="#89958b" metalness={.55}/></mesh>)}
+  <mesh position={[0,.76,-.78]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.2,.2,.1,18]}/><meshStandardMaterial color="#77867d" metalness={.5}/></mesh>
+  <Box position={[.18,1.02,-.42]} scale={[.25,.18,.3]} color="#66786d"/>
+  <Box position={[0,.76,-.03]} scale={[.49,.36,.25]} color="#c0a76a"/>
+  {/* Bearing housing and volute-shaped casing at the pump end. */}
+  <Box position={[0,.76,.16]} scale={[.36,.3,.28]} color="#708078"/>
+  <mesh position={[0,.77,.39]} scale={[.34,.3,.34]} castShadow><sphereGeometry args={[1,18,14]}/><meshStandardMaterial color="#70847a" metalness={.48} roughness={.48}/></mesh>
+  <mesh position={[0,.77,.57]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.27,.035,7,18]}/><meshStandardMaterial color="#aeb6aa" metalness={.5}/></mesh>
+  {Array.from({length:8},(_,i)=>{const a=i*Math.PI/4;return <mesh key={`pump-case-bolt-${i}`} position={[Math.cos(a)*.27,.77+Math.sin(a)*.27,.59]}><sphereGeometry args={[.028,6,6]}/><meshStandardMaterial color="#c9bd95" metalness={.6}/></mesh>})}
+  {/* Suction nozzle, bolted flange, discharge riser and a stylized valve/check body. */}
+  <Pipe a={[0,.76,.56]} b={[0,.76,1.21]} color="#98a39a" radius={.105}/>
+  <mesh position={[0,.76,1.2]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.14,.035,7,18]}/><meshStandardMaterial color="#c8b985" metalness={.6}/></mesh>
+  <Pipe a={[0,.91,.38]} b={[0,1.43,.38]} color="#9ba69b" radius={.095}/>
+  <mesh position={[0,1.22,.38]}><sphereGeometry args={[.17,12,10]}/><meshStandardMaterial color="#8e9a90" metalness={.4}/></mesh>
+  <Pipe a={[0,1.43,.38]} b={[0,1.43,.93]} color="#b48a54" radius={.085}/>
+  <mesh position={[0,1.48,.38]}><torusGeometry args={[.12,.023,6,16]}/><meshStandardMaterial color="#d0bd86" metalness={.58}/></mesh>
+  <Box position={[0,.35,.5]} scale={[.16,.18,.15]} color="#596b60"/>
+ </group>;
+}
+function TransferPumpStation({item}:{item:SiteItem}){
+ const night=useStore(s=>s.night);
+ const pumpCenters=[-1.05,-.18];
+ return <ClickGroup item={item} position={item.position}>
+  {/* Kept on the western end of the existing utility slab, clear of WWT vessels and pipe supports. */}
+  <Box position={[-.62,.075,-.35]} scale={[1.9,.15,1.42]} color="#73776e"/>
+  <Box position={[-.62,.16,-.35]} scale={[1.75,.06,1.28]} color="#3b4741"/>
+  {pumpCenters.map((x,i)=><ProcessPumpSet key={`P-301-set-${i}`} x={x}/>)}
+  {/* Shared suction/discharge headers with flanged branch take-offs and supports. */}
+  <Pipe a={[-1.43,.76,.86]} b={[.18,.76,.86]} color="#778f8b" radius={.11}/>
+  {pumpCenters.map((x,i)=><group key={`P-301-suction-branch-${i}`}>
+   <Pipe a={[x,.76,.82]} b={[x,.76,.98]} color="#778f8b" radius={.075}/>
+   <mesh position={[x,.76,.9]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.115,.023,6,16]}/><meshStandardMaterial color="#c8b985" metalness={.55}/></mesh>
+   <Pipe a={[x,1.43,.58]} b={[x,1.43,.72]} color="#b48a54" radius={.07}/>
+   <mesh position={[x,1.43,.68]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.095,.022,6,16]}/><meshStandardMaterial color="#d0bd86" metalness={.58}/></mesh>
+  </group>)}
+  <Pipe a={[-1.43,1.43,.72]} b={[.18,1.43,.72]} color="#b48a54" radius={.095}/>
+  {[-1.35,.1].map(x=><group key={`P-301-header-support-${x}`}>
+   <Box position={[x,1.05,.72]} scale={[.08,1.16,.08]} color="#5a675f"/>
+   <Box position={[x,1.53,.72]} scale={[.32,.07,.22]} color="#a4a28e"/>
+  </group>)}
+  {/* Compact local panel, instrument dials, conduit and small service canopy frame. */}
+  <Box position={[.36,.84,-.63]} scale={[.28,1.34,.6]} color="#59675e"/>
+  <Box position={[.36,1.0,-.315]} scale={[.22,.44,.035]} color="#82938a"/>
+  {[-1.28,-.38].map((x,i)=><group key={`P-301-gauge-${i}`}>
+   <Pipe a={[x,1.43,.72]} b={[x,1.78,.72]} color="#8c9990" radius={.025}/>
+   <mesh position={[x,1.86,.76]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.13,.13,.07,16]}/><meshStandardMaterial color="#d6d4c8" metalness={.25}/></mesh>
+   <mesh position={[x,1.86,.805]} rotation={[Math.PI/2,0,0]}><circleGeometry args={[.093,16]}/><meshBasicMaterial color="#d9dfd2"/></mesh>
+   <Pipe a={[x,1.86,.81]} b={[x+.035,1.91,.81]} color="#b84f40" radius={.012}/>
+  </group>)}
+  {[-1.45,.35].map(x=><Box key={`P-301-canopy-edge-${x}`} position={[x,2.32,.05]} scale={[.08,.09,1.72]} color="#637168"/>)}
+  <Box position={[-.55,2.32,-.77]} scale={[1.78,.09,.08]} color="#637168"/>
+  <Box position={[-.55,2.32,.88]} scale={[1.78,.09,.08]} color="#637168"/>
+  <Pipe a={[.32,.22,-.88]} b={[.32,2.26,-.88]} color="#68766d" radius={.035}/>
+  <Box position={[-.55,1.86,1.0]} scale={[1.9,.08,.08]} color="#8c9587"/>
+  <group position={[-.55,2.12,1.05]}><EquipmentTag label={item.id} position={[0,0,0]}/></group>
+  {night&&<pointLight position={[.25,2.05,.65]} color="#ffe0ae" intensity={.75} distance={4.5} decay={2}/>}
  </ClickGroup>;
 }
 function WaterTreatmentFacility({item}:{item:SiteItem}){
@@ -976,7 +1043,7 @@ export function World(){
   <WastewaterPlant item={items.find(x=>x.id==='WWT-01')!}/>
   <ElectricalSubstation item={items.find(x=>x.id==='SUB-01')!}/>
   <FirewaterFacility item={items.find(x=>x.id==='FW-01')!}/><FirewaterRing/>
-  <ClickGroup item={items.find(x=>x.id==='P-301A')} position={items.find(x=>x.id==='P-301A')!.position}><Box position={[0,.8,0]} scale={[3,1.6,2]} color="#777f74"/><mesh position={[0,1.75,0]}><cylinderGeometry args={[.62,.62,.3,16]}/><meshStandardMaterial color="#c69d5d" metalness={.5}/></mesh>{[-1,1].map(x=><mesh key={x} position={[x*1.1,.9,0]}><cylinderGeometry args={[.48,.48,.6,16]}/><meshStandardMaterial color="#52665d"/></mesh>)}</ClickGroup>
+  <TransferPumpStation item={items.find(x=>x.id==='P-301A')!}/>
   <WaterTreatmentFacility item={items.find(x=>x.id==='WW-01')!}/>
   <FireStation item={items.find(x=>x.id==='FIRE-01')!}/>
   <TruckTrafficSafety/>

@@ -149,8 +149,8 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  <CrudeReceiving item={items.find(x=>x.id==='CRUDE-01')!}/><SulfurRecovery item={items.find(x=>x.id==='SRU-01')!}/><DesalterUnit item={items.find(x=>x.id==='DS-101')!}/><CoolingBattery item={items.find(x=>x.id==='CW-01')!}/><WastewaterPlant item={items.find(x=>x.id==='WWT-01')!}/><ElectricalSubstation item={items.find(x=>x.id==='SUB-01')!}/><FirewaterFacility item={items.find(x=>x.id==='FW-01')!}/><FirewaterRing/>
  {items.filter(x=>x.kind==='worker').map((person,i)=><WorkerFallback key={`fallback-${person.id}`} item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>)}
  <ControlBuilding item={items.find(x=>x.id==='CCR-01')!}/><LaboratoryBuilding item={items.find(x=>x.id==='LAB-01')!}/>
- <Building item={{...items.find(x=>x.id==='LAB-01')!,id:'WW-01',position:[-24,0,14],fa:'تصفیه‌خانه آب',en:'Water treatment',descriptionFa:'سامانه نمایشی تصفیه آب صنعتی.',descriptionEn:'Demo industrial water treatment facility.'}} color="#688178" size={[5,2.4,4]}/>
- <Building item={{...items.find(x=>x.id==='LAB-01')!,id:'FIRE-01',position:[-26,0,5],fa:'ایستگاه آتش‌نشانی',en:'Fire station'}} color="#8d6552" size={[5,2.3,3.5]}/>
+ <WaterTreatmentFacility item={items.find(x=>x.id==='WW-01')!}/>
+ <FireStation item={items.find(x=>x.id==='FIRE-01')!}/>
  <mesh rotation={[-Math.PI/2,0,0]} position={[-24,-.07,22]}><planeGeometry args={[20,12]}/><meshStandardMaterial color="#999d91"/></mesh>
  <mesh rotation={[-Math.PI/2,0,0]} position={[-25.8,-.03,25.85]}><planeGeometry args={[14.2,5.1]}/><meshStandardMaterial color="#555c57"/></mesh>
  {[-32.8,-30.45,-28.1,-25.75,-23.4,-21.05].map(x=><mesh key={`fallback-stall-${x}`} position={[x,.01,25.85]}><boxGeometry args={[.045,.02,4.55]}/><meshBasicMaterial color="#d8d0aa"/></mesh>)}
@@ -251,27 +251,6 @@ function MarineLoadingArm({position,color}:{position:[number,number,number];colo
  <mesh position={[4.65,2.78,2.72]}><sphereGeometry args={[.22,12,10]}/><meshStandardMaterial color="#a6aaa0" metalness={.6}/></mesh>
  <Box position={[4.65,1.8,2.72]} scale={[.6,.12,.72]} color="#c7b276"/>
  </group>}
-function Building({item, color='#7c8980', size=[5,2.5,4]}:{item:SiteItem;color?:string;size?:[number,number,number]}) {
- const night=useStore(s=>s.night);const front=size[2]/2+.045;const columns=Math.max(3,Math.floor(size[0]/1.35));const spacing=size[0]/(columns+1);
- return <ClickGroup item={item} position={item.position}>
-   <Box position={[0,.12,0]} scale={[size[0]+.38,.24,size[2]+.38]} color="#636c63"/>
-   <Box position={[0,size[1]/2,0]} scale={size} color={color}/>
-   <Box position={[0,size[1]-.12,0]} scale={[size[0]+.18,.2,size[2]+.18]} color="#a5a697"/>
-   <Box position={[0,size[1]+.08,0]} scale={[size[0]+.52,.18,size[2]+.52]} color="#b19a6b"/>
-   {/* Recessed entrance and a repeated glazed facade with clear mullions */}
-   <Box position={[0,.79,front+.025]} scale={[1.18,1.5,.09]} color="#253b3a"/>
-   <Box position={[0,1.5,front+.08]} scale={[1.38,.13,.32]} color="#c1a86f"/>
-   <Box position={[0,.13,front+.31]} scale={[1.72,.26,.64]} color="#9a9b8c"/>
-   {[.98,Math.min(2.16,size[1]-.5)].map((y,row)=><group key={row}>
-    {Array.from({length:columns},(_,i)=>{const x=(i-(columns-1)/2)*spacing;if(row===0&&Math.abs(x)<.9)return null;return <group key={i}><mesh position={[x,y,front+.035]}><boxGeometry args={[Math.min(.86,spacing*.76),.68,.055]}/><meshStandardMaterial color="#233a3b" roughness={.32}/></mesh><mesh position={[x,y,front+.068]}><boxGeometry args={[Math.min(.72,spacing*.64),.51,.026]}/><meshStandardMaterial color={night?'#f3d8a4':row?'#9db2ad':'#91aaa2'} emissive={night?'#db9348':'#58766d'} emissiveIntensity={night?.95:.12} roughness={.28}/></mesh></group>})}
-   </group>)}
-   {[-1,1].map(i=><Box key={`rib-${i}`} position={[i*(size[0]/2-.16),size[1]/2,0]} scale={[.12,size[1],size[2]+.08]} color="#59685f"/>)}
-   {/* Roof plant: screened ventilation units, ducts, and a small flue */}
-   {[-1,1].map(i=><group key={`hvac-${i}`} position={[i*size[0]*.27,size[1]+.22,-size[2]*.14]}><Box position={[0,.22,0]} scale={[.92,.42,.72]} color="#737f76"/><Box position={[0,.46,0]} scale={[1,.08,.8]} color="#a9aa9e"/><mesh position={[0,.49,0]} rotation={[-Math.PI/2,0,0]}><cylinderGeometry args={[.21,.21,.035,16]}/><meshStandardMaterial color="#4d5c54"/></mesh></group>)}
-   <mesh position={[size[0]/2-.38,size[1]+.46,-size[2]/2+.42]}><cylinderGeometry args={[.12,.16,.85,10]}/><meshStandardMaterial color="#78857b" metalness={.28}/></mesh>
-   <Box position={[0,size[1]+.27,-size[2]/2-.25]} scale={[size[0]+.25,.3,.18]} color="#878c7e"/>
- </ClickGroup>;
-}
 function ControlBuilding({item}:{item:SiteItem}){
  const night=useStore(s=>s.night);
  return <ClickGroup item={item} position={item.position}>
@@ -347,6 +326,168 @@ function LaboratoryBuilding({item}:{item:SiteItem}){
   <mesh position={[1.68,1.97,2.25]}><boxGeometry args={[.3,.07,.15]}/><meshStandardMaterial color="#ead8ac" emissive={night?'#ffbc63':'#000000'} emissiveIntensity={night?1.1:0}/></mesh>
   {night&&<pointLight position={[1.68,1.92,2.35]} color="#ffe1ad" intensity={.9} distance={5} decay={2}/>}
  </ClickGroup>
+}
+function FireEngine({x,variant=0}:{x:number;variant?:number}){
+ const red=variant?'#b84336':'#c34a3b';
+ return <group position={[x,.12,-.12]}>
+  {/* Compact six-wheel industrial response appliance, parked within the open bay. */}
+  <Box position={[0,.63,-.22]} scale={[1.48,.42,4.35]} color="#343d3a"/>
+  <Box position={[0,1.12,-.52]} scale={[1.42,.96,2.3]} color={red}/>
+  <Box position={[0,1.34,-.55]} scale={[1.46,.14,2.12]} color="#e4d9bd"/>
+  <Box position={[0,1.42,.98]} scale={[1.5,1.44,1.48]} color={red}/>
+  <Box position={[0,1.75,1.74]} scale={[1.26,.62,.055]} color="#354744"/>
+  <Box position={[0,1.39,2.15]} scale={[1.47,.3,.13]} color="#353e3b"/>
+  <Box position={[0,1.24,2.235]} scale={[.54,.36,.035]} color="#7f8c87"/>
+  {[-1,1].map(side=><group key={`engine-side-${side}`}>
+   <Box position={[side*.755,1.52,1.03]} scale={[.035,.62,.66]} color="#344744"/>
+   <Box position={[side*.78,1.6,1.05]} scale={[.025,.42,.48]} color="#819895"/>
+   {[-1.45,.05,1.37].map(z=><group key={`${side}-${z}`} position={[side*.77,.43,z]}>
+    <mesh rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.35,.35,.22,16]}/><meshStandardMaterial color="#202725" roughness={.86}/></mesh>
+    <mesh rotation={[0,0,Math.PI/2]}><torusGeometry args={[.19,.045,7,14]}/><meshStandardMaterial color="#9a9d91" metalness={.38}/></mesh>
+   </group>)}
+   <Box position={[side*.74,1.12,-.55]} scale={[.035,.12,1.95]} color="#e6dcbf"/>
+   <Box position={[side*.742,1.18,-1.12]} scale={[.04,.43,.5]} color="#873e34"/>
+   <Box position={[side*.742,1.18,-.48]} scale={[.04,.43,.5]} color="#873e34"/>
+  </group>)}
+  {[-.48,.48].map(dx=><mesh key={`engine-headlamp-${dx}`} position={[dx,1.25,2.255]}><circleGeometry args={[.105,12]}/><meshStandardMaterial color="#f2d493" emissive="#8c6540" emissiveIntensity={.18}/></mesh>)}
+  {/* Lightbar, hose reel and ladder rails. */}
+  <Box position={[0,2.16,1.02]} scale={[1.05,.13,.23]} color="#303a37"/>
+  <Box position={[-.34,2.25,1.02]} scale={[.2,.12,.18]} color="#d4a74f"/>
+  <Box position={[.34,2.25,1.02]} scale={[.2,.12,.18]} color="#5f8990"/>
+  <Box position={[0,1.72,-1.72]} scale={[.72,.55,.045]} color="#edd9a1"/>
+  <Box position={[0,1.58,-1.75]} scale={[.62,.12,.035]} color="#a94d3d"/>
+  {[-.52,.52].map(dx=><Pipe key={`engine-ladder-${dx}`} a={[dx,1.99,-1.45]} b={[dx,2.17,.05]} color="#b8bcb0" radius={.035}/>)}
+ </group>;
+}
+function FireStation({item}:{item:SiteItem}){
+ const night=useStore(s=>s.night);
+ return <ClickGroup item={item} position={item.position}>
+  {/* A marked hardstand links the two vehicle bays to the existing utility road. */}
+  <mesh rotation={[-Math.PI/2,0,0]} position={[-.2,.025,3.7]} receiveShadow><planeGeometry args={[8.3,1.6]}/><meshStandardMaterial color={night?'#333a37':'#555d57'} roughness={.95}/></mesh>
+  <Box position={[-.2,.045,3.7]} scale={[8.15,.025,1.5]} color="#555d57"/>
+  {[ -3.1,-2.75,2.35,2.7].map(x=><Box key={`apron-edge-${x}`} position={[x,.063,3.7]} scale={[.045,.025,1.42]} color="#d0c9b0"/>)}
+  <Box position={[4.42,.028,3.18]} scale={[1.0,.02,.68]} color="#555d57"/>
+  {/* Concrete slab, rear and side walls; the front is intentionally open at both apparatus bays. */}
+  <Box position={[0,.12,0]} scale={[7.8,.24,5.9]} color="#73766d"/>
+  <Box position={[0,.26,0]} scale={[7.48,.08,5.58]} color="#4b514d"/>
+  <Box position={[-3.72,1.86,0]} scale={[.2,3.36,5.55]} color="#8e9389"/>
+  <Box position={[3.72,1.86,0]} scale={[.2,3.36,5.55]} color="#858c82"/>
+  <Box position={[0,1.86,-2.7]} scale={[7.5,3.36,.2]} color="#858c82"/>
+  {/* Structural bay jambs and lintels leave clear openings for both fire engines. */}
+  <Box position={[-3.66,1.7,2.72]} scale={[.24,3.12,.22]} color="#717a71"/>
+  <Box position={[3.66,1.7,2.72]} scale={[.24,3.12,.22]} color="#717a71"/>
+  <Box position={[0,1.64,2.72]} scale={[.38,3.0,.24]} color="#707970"/>
+  {[-1.84,1.84].map(x=><group key={`station-bay-${x}`}>
+   <Box position={[x,1.38,2.655]} scale={[3.22,2.64,.07]} color="#303a37"/>
+   <Box position={[x,2.82,2.72]} scale={[3.44,.16,.28]} color="#b0aa96"/>
+   {[-1,1].map(side=><Box key={side} position={[x+side*1.68,1.42,2.72]} scale={[.11,2.85,.14]} color="#69766e"/>)}
+   <Box position={[x,3.22,2.64]} scale={[3.15,.38,.1]} color="#53635c"/>
+   {[-.9,0,.9].map(dx=><Box key={dx} position={[x+dx,3.22,2.72]} scale={[.04,.3,.04]} color="#b1a77f"/>)}
+  </group>)}
+  {/* Visible apparatus and bay interior fittings. */}
+  {[-1.82,1.82].map((x,i)=><FireEngine key={`fire-engine-${i}`} x={x} variant={i}/>)}
+  {[-3.38,3.38].map((x,i)=><group key={`locker-${i}`}>
+   <Box position={[x,1.02,-1.68]} scale={[.35,1.48,1.3]} color="#596b61"/>
+   {[.55,1.0,1.45].map(y=><Box key={y} position={[x, y,-.99]} scale={[.28,.07,.05]} color="#c1b58c"/>)}
+   <Box position={[x,1.06,-.98]} scale={[.2,.72,.035]} color="#b49c69"/>
+  </group>)}
+  <Box position={[0,.34,-2.56]} scale={[7.25,.14,.16]} color="#9d9c8e"/>
+  {/* Staff entrance, glazed upper band, roof edge and modest pitched metal roof. */}
+  <Box position={[3.32,1.1,2.79]} scale={[.66,1.98,.12]} color="#394944"/>
+  <Box position={[3.32,1.1,2.86]} scale={[.44,1.68,.035]} color={night?'#e7d6b1':'#728a85'}/>
+  <Box position={[3.32,.14,3.03]} scale={[1.12,.22,.66]} color="#a19f91"/>
+  <Box position={[0,3.3,0]} scale={[7.85,.34,5.9]} color="#6e7971"/>
+  <Box position={[0,3.24,2.91]} scale={[7.7,.34,.3]} color="#a49f8e"/>
+  {[-2.8,-1.4,0,1.4,2.8].map(x=><Box key={`fire-station-transom-${x}`} position={[x,3.24,3.08]} scale={[.08,.44,.05]} color="#6f7c73"/>)}
+  <Box position={[-1.85,3.63,0]} scale={[4.05,.14,6.24]} rotation={[0,0,-.12]} color="#515d57"/>
+  <Box position={[1.85,3.63,0]} scale={[4.05,.14,6.24]} rotation={[0,0,.12]} color="#515d57"/>
+  <Box position={[0,3.9,0]} scale={[.16,.2,6.3]} color="#748078"/>
+  <Box position={[0,3.52,3.18]} scale={[2.35,.42,.18]} color="#394843"/>
+  <group position={[0,3.52,3.3]}><EquipmentTag label={item.id} position={[0,0,0]}/></group>
+  {[ -3.35,3.35].map(x=><Pipe key={`downpipe-${x}`} a={[x,3.15,2.82]} b={[x,.35,2.82]} color="#737f75" radius={.045}/>)}
+  <Box position={[0,4.14,-2.22]} scale={[.78,.12,.08]} color="#6b766e"/>
+  <mesh position={[3.32,2.35,3.02]}><boxGeometry args={[.22,.08,.13]}/><meshStandardMaterial color="#f1d9a6" emissive={night?'#ffc46d':'#000000'} emissiveIntensity={night?1.2:0}/></mesh>
+  {night&&<pointLight position={[3.32,2.28,3.16]} color="#ffe1ae" intensity={1.6} distance={7} decay={2}/>}
+ </ClickGroup>;
+}
+function WaterTreatmentFacility({item}:{item:SiteItem}){
+ const night=useStore(s=>s.night);
+ const filterCenters=[.2,1.24], membraneRows=[1.02,1.58,2.14];
+ return <ClickGroup item={item} position={item.position}>
+  {/* Compact service-water package: pretreatment filters, membrane skid and clearwell. */}
+  <Box position={[0,.08,0]} scale={[6.5,.16,4.8]} color="#73796f"/>
+  <Box position={[0,.19,0]} scale={[6.25,.08,4.58]} color="#4e5953"/>
+  {/* Open galvanized skid frame leaves the packaged equipment visible from above. */}
+  {[-1.72,1.72].flatMap(x=>[-1.24,1.24].map(z=><group key={`ro-frame-post-${x}-${z}`}>
+   <Box position={[x,1.32,z]} scale={[.12,2.45,.12]} color="#426b82"/>
+   <Box position={[x,.32,z]} scale={[.3,.12,.3]} color="#384b54"/>
+  </group>))}
+  {[.42,1.16,2.48].map(y=><group key={`ro-frame-level-${y}`}>
+   <Box position={[0,y,-1.24]} scale={[3.55,.12,.13]} color="#3f6680"/><Box position={[0,y,1.24]} scale={[3.55,.12,.13]} color="#3f6680"/>
+   {[-1.72,1.72].map(x=><Box key={x} position={[x,y,0]} scale={[.12,.12,2.5]} color="#3f6680"/>)}
+  </group>)}
+  {/* Three tiers of horizontal membrane pressure vessels, with end caps and clamps. */}
+  {membraneRows.flatMap((y,row)=>[-.75,0,.75].map(z=><group key={`ro-membrane-${row}-${z}`}>
+   <mesh position={[.02,y,z]} rotation={[0,0,Math.PI/2]} castShadow><cylinderGeometry args={[.205,.205,2.86,18]}/><meshStandardMaterial color="#e0e3d9" metalness={.18} roughness={.36}/></mesh>
+   {[-1,1].map(side=><mesh key={side} position={[.02+side*1.435,y,z]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.215,.215,.08,18]}/><meshStandardMaterial color="#75867e" metalness={.42}/></mesh>)}
+   {[-.85,.85].map(side=><mesh key={side} position={[.02+side*.74,y,z]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.214,.025,6,18]}/><meshStandardMaterial color="#536d78" metalness={.52}/></mesh>)}
+  </group>))}
+  {/* Paired multimedia/cartridge pretreatment vessels. */}
+  {filterCenters.map((z,i)=><group key={`water-filter-${i}`} position={[-2.35,0,z]}>
+   <mesh position={[0,.2,0]}><cylinderGeometry args={[.38,.42,.28,18]}/><meshStandardMaterial color="#53645c" metalness={.38}/></mesh>
+   <mesh position={[0,1.12,0]} castShadow><cylinderGeometry args={[.34,.38,1.58,20,1,true]}/><meshStandardMaterial color={i?'#aeb8ae':'#b8c0b6'} metalness={.42} roughness={.5} side={THREE.DoubleSide}/></mesh>
+   <mesh position={[0,1.93,0]}><sphereGeometry args={[.34,18,10,0,Math.PI*2,0,Math.PI/2]}/><meshStandardMaterial color="#aab5ab" metalness={.38}/></mesh>
+   {[.56,1.68].map(y=><mesh key={y} position={[0,y,0]}><torusGeometry args={[.365,.045,6,20]}/><meshStandardMaterial color="#c7b681" metalness={.48}/></mesh>)}
+   <mesh position={[0,2.05,0]}><cylinderGeometry args={[.12,.15,.2,12]}/><meshStandardMaterial color="#87958b" metalness={.4}/></mesh>
+   <Pipe a={[.34,.76,0]} b={[.62,.76,0]} color="#74979a" radius={.055}/>
+   <Box position={[.42,1.3,.15]} scale={[.14,.05,.12]} color="#52675d"/>
+  </group>)}
+  {/* Feed-water buffer and treated-water clearwell are separate, low storage vessels. */}
+  <group position={[-2.35,0,-1.35]}>
+   <mesh position={[0,.92,0]} castShadow><cylinderGeometry args={[.58,.62,1.58,24]}/><meshStandardMaterial color="#a6b2a7" metalness={.4} roughness={.56}/></mesh>
+   <mesh position={[0,1.72,0]}><cylinderGeometry args={[.58,.58,.1,24]}/><meshStandardMaterial color="#d0c298" metalness={.3}/></mesh>
+   <mesh position={[0,1.79,0]}><cylinderGeometry args={[.13,.18,.16,12]}/><meshStandardMaterial color="#78867e" metalness={.45}/></mesh>
+   <mesh position={[0,.19,0]}><cylinderGeometry args={[.64,.64,.2,24]}/><meshStandardMaterial color="#536158" metalness={.28}/></mesh>
+  </group>
+  <group position={[2.66,0,1.58]}>
+   <mesh position={[0,.79,0]} castShadow><cylinderGeometry args={[.51,.55,1.34,24]}/><meshStandardMaterial color="#aab7ab" metalness={.4} roughness={.55}/></mesh>
+   <mesh position={[0,1.47,0]}><cylinderGeometry args={[.51,.51,.1,24]}/><meshStandardMaterial color="#d2c89c" metalness={.3}/></mesh>
+   <mesh position={[0,1.55,0]}><cylinderGeometry args={[.12,.15,.15,12]}/><meshStandardMaterial color="#7c8980" metalness={.4}/></mesh>
+   <mesh position={[0,.16,0]}><cylinderGeometry args={[.57,.57,.18,24]}/><meshStandardMaterial color="#58645b"/></mesh>
+  </group>
+  {/* Small chemical day tanks and metering pumps; no specific treatment recipe is implied. */}
+  {[-1.34,-.38].map((x,i)=><group key={`water-dose-${i}`} position={[x,0,-1.86]}>
+   <mesh position={[0,.42,0]} castShadow><cylinderGeometry args={[.24,.29,.76,16]}/><meshStandardMaterial color={i?'#879a87':'#b28d56'} metalness={.25}/></mesh>
+   <mesh position={[0,.82,0]}><cylinderGeometry args={[.24,.24,.07,16]}/><meshStandardMaterial color="#d2bd85"/></mesh>
+   <Box position={[.32,.23,.3]} scale={[.34,.42,.3]} color="#4d5e55"/><Pipe a={[.28,.45,.3]} b={[.62,.75,.3]} color="#9b855a" radius={.035}/>
+  </group>)}
+  {/* Local transfer/booster pumps under the RO rack. */}
+  {[-.48,.72].map((x,i)=><group key={`ro-pump-${i}`} position={[x,.18,1.73]}>
+   <Box position={[0,.36,0]} scale={[.74,.55,.62]} color="#56695e"/>
+   <mesh position={[0,.39,.39]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.22,.07,8,14]}/><meshStandardMaterial color={i?'#74999a':'#bf8852'} metalness={.48}/></mesh>
+   <mesh position={[0,.43,-.38]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.17,.17,.55,12]}/><meshStandardMaterial color="#85938a" metalness={.54}/></mesh>
+   <Box position={[0,.73,0]} scale={[.12,.3,.14]} color="#d0bd89"/>
+  </group>)}
+  {/* Local pipework indicates package connections, not a fixed process flow or rated design. */}
+  <Pipe a={[-2.35,.72,-.55]} b={[-2.35,.72,-.25]} color="#819b91" radius={.075}/>
+  <Pipe a={[-2.35,.72,.58]} b={[-2.35,.72,1.02]} color="#819b91" radius={.075}/>
+  <Pipe a={[-1.97,.72,.58]} b={[-1.66,.72,.58]} color="#6c9497" radius={.07}/>
+  <Pipe a={[-1.66,.72,.58]} b={[-1.66,1.15,.58]} color="#6c9497" radius={.07}/>
+  <Pipe a={[-1.66,1.15,.58]} b={[-1.38,1.15,.58]} color="#6c9497" radius={.07}/>
+  <Pipe a={[1.48,1.48,-.75]} b={[2.02,1.22,-.75]} color="#729c99" radius={.075}/>
+  <Pipe a={[2.02,1.22,-.75]} b={[2.5,1.0,-.2]} color="#729c99" radius={.075}/>
+  <Pipe a={[2.5,1.0,-.2]} b={[2.5,1.0,1.58]} color="#729c99" radius={.075}/>
+  <Pipe a={[-2.35,1.8,-.73]} b={[-1.8,1.8,-.73]} color="#b1844e" radius={.065}/>
+  {/* Open service canopy frame and a readable equipment tag. */}
+  {[-2.85,2.85].map(x=><Box key={`water-roof-edge-${x}`} position={[x,2.72,0]} scale={[.12,.12,4.35]} color="#5c6b62"/>)}
+  {[-2.08,2.08].map(z=><Box key={`water-roof-cross-${z}`} position={[0,2.72,z]} scale={[5.82,.12,.12]} color="#5c6b62"/>)}
+  <Box position={[0,2.55,0]} scale={[5.55,.1,.1]} color="#6d7c71"/>
+  {[-3.0,3.0].map(x=><Box key={`water-bollard-${x}`} position={[x,.52,2.22]} scale={[.12,1.02,.12]} color="#58665e"/>)}
+  <Box position={[0,2.95,2.43]} scale={[2.5,.12,.16]} color="#8d9588"/>
+  <group position={[0,3.2,2.48]}><EquipmentTag label={item.id} position={[0,0,0]}/></group>
+  <mesh position={[2.95,2.42,2.19]}><boxGeometry args={[.2,.08,.12]}/><meshStandardMaterial color="#efd9a6" emissive={night?'#ffd08a':'#000000'} emissiveIntensity={night?1.05:0}/></mesh>
+  {night&&<pointLight position={[2.95,2.34,2.3]} color="#ffe0ae" intensity={1.1} distance={6} decay={2}/>}
+ </ClickGroup>;
 }
 function SecurityGatehouse({item}:{item:SiteItem}){
  const night=useStore(s=>s.night);
@@ -836,8 +977,8 @@ export function World(){
   <ElectricalSubstation item={items.find(x=>x.id==='SUB-01')!}/>
   <FirewaterFacility item={items.find(x=>x.id==='FW-01')!}/><FirewaterRing/>
   <ClickGroup item={items.find(x=>x.id==='P-301A')} position={items.find(x=>x.id==='P-301A')!.position}><Box position={[0,.8,0]} scale={[3,1.6,2]} color="#777f74"/><mesh position={[0,1.75,0]}><cylinderGeometry args={[.62,.62,.3,16]}/><meshStandardMaterial color="#c69d5d" metalness={.5}/></mesh>{[-1,1].map(x=><mesh key={x} position={[x*1.1,.9,0]}><cylinderGeometry args={[.48,.48,.6,16]}/><meshStandardMaterial color="#52665d"/></mesh>)}</ClickGroup>
-  <Building item={{...items.find(x=>x.id==='LAB-01')!,id:'WW-01',position:[-24,0,14],fa:'تصفیه‌خانه آب',en:'Water treatment',descriptionFa:'سامانه نمایشی تصفیه آب صنعتی.',descriptionEn:'Demo industrial water treatment facility.'}} color="#688178" size={[5,2.4,4]}/>
-  <Building item={{...items.find(x=>x.id==='LAB-01')!,id:'FIRE-01',position:[-26,0,5],fa:'ایستگاه آتش‌نشانی',en:'Fire station'}} color="#8d6552" size={[5,2.3,3.5]}/>
+  <WaterTreatmentFacility item={items.find(x=>x.id==='WW-01')!}/>
+  <FireStation item={items.find(x=>x.id==='FIRE-01')!}/>
   <TruckTrafficSafety/>
   {/* truck terminal gates and canopies */}
   {[10,15,20].map(x=><group key={x} position={[x,0,15]}><Box position={[0,3.3,0]} scale={[4,.25,5.4]} color="#b7aa84"/><Box position={[0,1.6,-2.2]} scale={[.16,3.2,.16]} color="#68776d"/><Box position={[0,1.6,2.2]} scale={[.16,3.2,.16]} color="#68776d"/></group>)}

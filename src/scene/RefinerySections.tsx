@@ -285,6 +285,74 @@ export function WastewaterPlant({item}:{item:SiteItem}){
   <Beam position={[0,1.4,3.2]} size={[4.8,2.8,2.5]} color="#78877d"/><Beam position={[0,2.9,3.2]} size={[5,.2,2.7]} color="#b09c6e"/>
   {[-1.35,0,1.35].map((x,i)=><group key={`filter-${i}`} position={[x,0,3.15]}><mesh position={[0,1.45,0]} castShadow><cylinderGeometry args={[.45,.55,2.25,16]}/><meshStandardMaterial color="#b1b9ad" metalness={.35}/></mesh><mesh position={[0,2.6,0]}><cylinderGeometry args={[.18,.4,.32,14]}/><meshStandardMaterial color="#859288"/></mesh></group>)}
   {[-2.3,0,2.3].map((x,i)=><group key={`pump-${i}`} position={[x,.15,-3.15]}><Beam position={[0,.35,0]} size={[.85,.55,.7]} color="#52675c"/><mesh position={[0,.38,.42]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.22,.07,8,14]}/><meshStandardMaterial color="#b47d4d" metalness={.5}/></mesh></group>)}
+  {/* Illustrative treatment train around the existing oil-separation channels:
+      equalization, aeration, secondary clarification, polishing and sludge handling. */}
+  <group position={[-4.55,0,-2.55]}>
+   <mesh position={[0,.12,0]}><cylinderGeometry args={[.79,.84,.24,24]}/><meshStandardMaterial color="#596a60" metalness={.4}/></mesh>
+   <mesh position={[0,1.03,0]} castShadow><cylinderGeometry args={[.73,.77,1.62,24,1,true]}/><meshStandardMaterial color="#9ca99f" metalness={.42} roughness={.58} side={THREE.DoubleSide}/></mesh>
+   <mesh position={[0,.58,0]}><cylinderGeometry args={[.72,.72,.04,24]}/><meshStandardMaterial color="#708c82" roughness={.35}/></mesh>
+   <mesh position={[0,1.86,0]}><cylinderGeometry args={[.79,.79,.1,24]}/><meshStandardMaterial color="#747e73" metalness={.4}/></mesh>
+   <mesh position={[0,1.93,0]}><cylinderGeometry args={[.28,.28,.08,16]}/><meshStandardMaterial color="#87968c" metalness={.4}/></mesh>
+   <Run a={[0,.6,0]} b={[0,1.9,0]} color="#82958b" r={.07}/>
+   <Beam position={[.77,1.0,0]} size={[.06,.9,.06]} color={safety}/><Beam position={[.78,1.35,0]} size={[.06,.06,.12]} color="#c8bd9a"/>
+   <Beam position={[0,2.02,0]} size={[1.65,.06,.06]} color={safety}/>
+  </group>
+  {/* Low aeration basin with visible diffuser grid and air header; not a rated process design. */}
+  <group position={[4.5,0,0]}>
+   <Beam position={[0,.16,0]} size={[2.3,.3,2.05]} color="#65766c"/>
+   {[-1,1].flatMap(s=>[
+    <Beam key={`bio-end-${s}`} position={[0,.63,s*.96]} size={[2.3,.98,.14]} color="#8c9588"/>,
+   ])}
+   {[-1,1].map(x=><Beam key={`bio-side-${x}`} position={[x*1.08,.63,0]} size={[.14,.98,1.8]} color="#8c9588"/>)}
+   <mesh position={[0,.78,0]}><boxGeometry args={[2.05,.045,1.77]}/><meshStandardMaterial color="#63847d" roughness={.36} metalness={.12}/></mesh>
+   {[-.58,0,.58].map(x=><Run key={`air-grid-${x}`} a={[x,.84,-.7]} b={[x,.84,.7]} color="#9ba99e" r={.035}/>)}
+   {[-.55,0,.55].map(z=><Run key={`diffuser-${z}`} a={[-.82,.84,z]} b={[.82,.84,z]} color="#a4aea2" r={.03}/>)}
+   {[-.55,0,.55].map(x=>[-.45,.35].map(z=><mesh key={`aeration-bubble-${x}-${z}`} position={[x,.91,z]}><sphereGeometry args={[.075,8,6]}/><meshStandardMaterial color="#b6d0c1" transparent opacity={.75}/></mesh>))}
+   <Run a={[0,1.12,-.98]} b={[0,1.55,-1.38]} color="#a9b4a9" r={.07}/>
+  </group>
+  {/* Circular secondary clarifier with a center feedwell, bridge and launder rim. */}
+  <group position={[4.5,0,2.75]}>
+   <mesh position={[0,.12,0]}><cylinderGeometry args={[1.12,1.18,.24,32]}/><meshStandardMaterial color="#69776d"/></mesh>
+   <mesh position={[0,.54,0]}><cylinderGeometry args={[1.08,1.15,.66,32,1,true]}/><meshStandardMaterial color="#92998d" side={THREE.DoubleSide}/></mesh>
+   <mesh position={[0,.69,0]}><cylinderGeometry args={[.98,.98,.035,32]}/><meshStandardMaterial color="#729087" roughness={.34}/></mesh>
+   <mesh position={[0,.89,0]}><torusGeometry args={[1.08,.075,8,32]}/><meshStandardMaterial color="#c4b58b" metalness={.34}/></mesh>
+   <mesh position={[0,.86,0]}><cylinderGeometry args={[.24,.3,.56,16]}/><meshStandardMaterial color="#849187" metalness={.35}/></mesh>
+   <Run a={[-1.03,1.04,0]} b={[1.03,1.04,0]} color="#c4b98f" r={.045}/>
+   <Run a={[0,1.05,-.98]} b={[0,1.05,.98]} color="#9ba79a" r={.035}/>
+   {[-.85,.85].map(x=><Beam key={`clarifier-rail-${x}`} position={[x,1.14,0]} size={[.045,.22,.045]} color={safety}/>)}
+   <Beam position={[0,1.25,0]} size={[.05,.06,1.8]} color={safety}/>
+  </group>
+  {/* Sludge holding and compact dewatering press skid, kept within the existing pad. */}
+  <group position={[-4.55,0,2.75]}>
+   <mesh position={[0,.12,0]}><cylinderGeometry args={[.56,.61,.24,20]}/><meshStandardMaterial color="#596a60"/></mesh>
+   <mesh position={[0,.93,0]} castShadow><cylinderGeometry args={[.5,.53,1.38,20,1,true]}/><meshStandardMaterial color="#a0aaa0" metalness={.4} side={THREE.DoubleSide}/></mesh>
+   <mesh position={[0,1.63,0]}><cylinderGeometry args={[.57,.57,.11,20]}/><meshStandardMaterial color="#707c72" metalness={.4}/></mesh>
+   <Run a={[0,.3,0]} b={[0,1.7,0]} color="#8c9b8f" r={.055}/>
+  </group>
+  <group position={[-4.5,0,.35]}>
+   <Beam position={[0,.15,0]} size={[1.55,.22,1.32]} color="#555f59"/>
+   {[-.48,-.27,-.06,.15,.36].map((x,i)=><group key={`press-plate-${i}`}>
+    <Beam position={[x,.74,0]} size={[.09,1.0,.84]} color={i%2?'#78877e':'#a3ada2'}/>
+    <Beam position={[x,.72,.48]} size={[.12,.12,.08]} color="#c4b68b"/>
+   </group>)}
+   <Beam position={[0,1.3,0]} size={[1.45,.1,.16]} color="#68766e"/>
+   <Beam position={[0,1.42,-.52]} size={[.32,.22,.32]} color="#947c52"/>
+  </group>
+  {/* Color-coded demo headers indicate routing only; actual treatment trains vary by refinery. */}
+  <Run a={[-3.15,.82,-1.18]} b={[-4.55,.82,-1.18]} color="#9a8056" r={.085}/>
+  <Run a={[-4.55,.82,-1.18]} b={[-4.55,1.72,-1.82]} color="#9a8056" r={.085}/>
+  <Run a={[-4.55,.72,-1.9]} b={[-4.55,.72,-4.02]} color="#8d7754" r={.085}/>
+  <Run a={[-4.55,.72,-4.02]} b={[4.5,.72,-4.02]} color="#8d7754" r={.085}/>
+  <Run a={[4.5,.72,-4.02]} b={[4.5,.72,-1.02]} color="#6d9790" r={.085}/>
+  <Run a={[4.5,.72,1.02]} b={[4.5,.72,1.7]} color="#6d9790" r={.085}/>
+  <Run a={[4.5,1.1,2.75]} b={[2.42,1.1,2.75]} color="#78a19c" r={.09}/>
+  <Run a={[2.42,1.1,2.75]} b={[1.35,1.1,3.15]} color="#78a19c" r={.09}/>
+  <Run a={[2.38,.74,3.9]} b={[5.75,.74,3.9]} color="#6d9a9a" r={.09}/>
+  {/* Sludge-transfer routing follows the perimeter to avoid crossing the filter building. */}
+  <Run a={[5.65,.43,2.75]} b={[5.65,.43,-4.05]} color="#877f67" r={.075}/>
+  <Run a={[5.65,.43,-4.05]} b={[-5.5,.43,-4.05]} color="#877f67" r={.075}/>
+  <Run a={[-5.5,.43,-4.05]} b={[-5.5,.43,.35]} color="#877f67" r={.075}/>
+  <Run a={[-5.5,.43,.35]} b={[-4.5,.62,.35]} color="#877f67" r={.075}/>
   {[-3.8,-2.2,2.2,3.8].map(x=><Beam key={x} position={[x,1.65,-1.4]} size={[.07,2.4,.07]} color={safety}/>)}
   <Beam position={[0,2.8,-1.4]} size={[7.7,.07,.07]} color={safety}/>
   <Run a={[-4,1.9,-3.5]} b={[4,1.9,-3.5]} color="#72999a" r={.09}/><Run a={[3.2,.8,-3.5]} b={[3.2,.8,1.2]} color="#b38152" r={.09}/>

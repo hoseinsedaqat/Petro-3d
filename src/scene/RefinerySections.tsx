@@ -198,10 +198,15 @@ export function HydrogenPlant({item}:{item:SiteItem}){
   <Run a={[3.4,1.35,-2.7]} b={[6.65,1.35,-2.7]} color="#8ca19b" r={.09}/>
   <Run a={[6.65,1.35,-2.7]} b={[6.65,4.25,.4]} color="#9fb6b3" r={.1}/>
   <Run a={[6.65,4.25,.4]} b={[7.2,4.25,.8]} color="#9fb6b3" r={.1}/>
-  {/* Elevated service walkway, ladder access, local control cabinet and equipment tag. */}
+  {/* Elevated service walkway with a continuous guardrail, clear ladder landing and open-sided access. */}
   <Beam position={[.65,3.15,3.95]} size={[7.2,.13,.88]} color="#343e39"/>
-  {[-2.7,.65,4.0].map(x=><Beam key={`h2-walk-rail-${x}`} position={[x,3.65,4.28]} size={[.07,1,.07]} color="#d1bd82"/>)}
-  <Beam position={[.65,4.14,4.28]} size={[6.8,.07,.07]} color="#d1bd82"/>
+  {[-2.15,-1.05,.05,1.15,2.25,3.35,4.0].map(x=><Beam key={`h2-walk-rail-post-${x}`} position={[x,3.68,4.28]} size={[.07,.96,.07]} color="#d1bd82"/>)}
+  <Beam position={[.925,4.15,4.28]} size={[6.15,.07,.07]} color="#d1bd82"/>
+  <Beam position={[.925,3.68,4.28]} size={[6.15,.055,.055]} color="#d1bd82"/>
+  <Beam position={[.925,3.29,4.28]} size={[6.15,.14,.07]} color="#b0a27b"/>
+  <Beam position={[4.0,3.68,3.55]} size={[.07,.96,.07]} color="#d1bd82"/>
+  <Beam position={[4.0,4.15,3.915]} size={[.07,.07,.73]} color="#d1bd82"/>
+  <Beam position={[4.0,3.68,3.915]} size={[.055,.055,.73]} color="#d1bd82"/>
   <Run a={[-2.55,.34,4.1]} b={[-2.55,3.1,4.1]} color="#cbb87f" r={.028}/>
   <Run a={[-2.95,.34,4.1]} b={[-2.95,3.1,4.1]} color="#cbb87f" r={.028}/>
   {Array.from({length:11},(_,i)=><Beam key={`h2-ladder-rung-${i}`} position={[-2.75,.5+i*.235,4.1]} size={[.44,.045,.055]} color="#cbb87f"/>)}
@@ -369,6 +374,9 @@ export function WastewaterPlant({item}:{item:SiteItem}){
     <Beam position={[lane===0?-1.25:1.5,1.5,0]} size={[.18,.15,2.1]} color="#bd8354"/>
     {[-.84,.84].map(side=><Beam key={side} position={[lane===0?-1.25:1.5,1.42,side]} size={[.065,.65,.065]} color={safety}/>)}
   </group>)}
+  {/* Closed oily-water sewer inlet enters the first covered separation lane through its west headwall. */}
+  <Run a={[-3.25,1.22,-1.18]} b={[-2.84,1.22,-1.18]} color="#625d52" r={.095}/>
+  <mesh position={[-3.2,1.22,-1.18]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.17,.035,6,18]}/><meshStandardMaterial color="#b4a575" metalness={.48}/></mesh>
   {/* Filter building, dosing skids, pipe headers and access rails */}
   <Beam position={[0,1.4,3.2]} size={[4.8,2.8,2.5]} color="#78877d"/><Beam position={[0,2.9,3.2]} size={[5,.2,2.7]} color="#b09c6e"/>
   {[-1.35,0,1.35].map((x,i)=><group key={`filter-${i}`} position={[x,0,3.15]}><mesh position={[0,1.45,0]} castShadow><cylinderGeometry args={[.45,.55,2.25,16]}/><meshStandardMaterial color="#b1b9ad" metalness={.35}/></mesh><mesh position={[0,2.6,0]}><cylinderGeometry args={[.18,.4,.32,14]}/><meshStandardMaterial color="#859288"/></mesh></group>)}

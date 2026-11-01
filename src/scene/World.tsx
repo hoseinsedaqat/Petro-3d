@@ -131,7 +131,7 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  <color attach="background" args={[night?'#09121d':'#d6e0d5']}/><fog attach="fog" args={[night?'#09121d':'#d6e0d5',80,145]}/><ambientLight intensity={night?.2:1.25}/><directionalLight position={[-25,45,20]} intensity={night?.3:2} castShadow/>
  <NightLighting night={night}/>
  <SiteTerrain night={night}/>
- <SitePerimeterFence/><CompanyArrivalLandscape/><CompanyMonumentSign/><RoadDrainageAndEmergencyAccess/>
+ <SitePerimeterFence/><CompanyArrivalLandscape/><CompanyMonumentSign/><RoadDrainageAndEmergencyAccess/><OilyWaterSewerNetwork/>
  <mesh rotation={[-Math.PI/2,0,0]} position={[-10,-.05,-8]}><planeGeometry args={[40,32]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',40/9,32/9)} color={night?'#59635d':'#cdd1c8'} roughness={.96}/></mesh>
  <mesh rotation={[-Math.PI/2,0,0]} position={[16,-.05,-8]}><planeGeometry args={[24,22]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',24/9,22/9)} color={night?'#59635d':'#d1cebc'} roughness={.96}/></mesh>
  <WaterSurface position={[61.25,-.16,14]} size={[47.5,48]} night={night}/>
@@ -959,11 +959,10 @@ function AirNitrogenNetwork(){
    [[-6,13.55,2.72],[2.5,13.55,2.72],[9.5,13.55,2.72],[9.5,13.55,.5],[9.5,2.35,.5],[2.5,2.35,.5]],
    [[-6,13.55,2.72],[2,13.55,2.72],[6,13.55,2.72],[6,13.55,-14],[6,2.35,-14],[2,2.35,-14]],
   ].map((points,i)=><PipelinePath key={`instrument-air-drop-${i}`} points={points as [number,number,number][]} color={air} radius={.055}/>)}
-  {/* Nitrogen is separately routed for illustrative tank blanketing, purge and terminal interfaces. */}
+  {/* Nitrogen serves illustrative tank blanketing and terminal users. No unsupported branch is routed to the flare. */}
   {[
    [[10,7.2,2.72],[10,7.2,-9],[15,7.2,-13],[15,2.05,-13]],
    [[20,7.2,2.72],[20,7.2,14],[20,3.55,14]],
-   [[-6,15.65,2.72],[-12,15.65,2.72],[-22,15.65,2.72],[-22,15.65,-12],[-22,2.55,-12]],
   ].map((points,i)=><PipelinePath key={`nitrogen-drop-${i}`} points={points as [number,number,number][]} color={nitrogen} radius={.055}/>)}
  </group>;
 }
@@ -989,6 +988,53 @@ function RoadDrainageAndEmergencyAccess(){
   {/* Road-edge pavement joints and a restrained repaired seam add scale without distressed, uniform grunge. */}
   {[-12,4,16].map((x,i)=><Box key={`road-repair-${i}`} position={[x,.008,6.98]} scale={[.7,.018,.06]} color="#515b55"/>)}
   {[-19,21].map(x=><group key={`road-edge-post-${x}`}><Box position={[x,.56,5.42]} scale={[.12,1.08,.12]} color="#57645d"/><Box position={[x,.88,5.35]} scale={[.13,.22,.035]} color="#d8bc76"/></group>)}
+ </group>;
+}
+function OilyWaterManhole({position}:{position:[number,number,number]}){
+ return <group position={position}>
+  <mesh position={[0,-.125,0]} receiveShadow><cylinderGeometry args={[.48,.52,.12,18]}/><meshStandardMaterial color="#81867b" roughness={.96}/></mesh>
+  <mesh position={[0,-.045,0]}><cylinderGeometry args={[.39,.39,.04,18]}/><meshStandardMaterial color="#424b46" metalness={.32} roughness={.76}/></mesh>
+  {Array.from({length:10},(_,i)=>{const a=i*Math.PI/5;return <Box key={`ows-lid-rib-${i}`} position={[Math.cos(a)*.22,-.018,Math.sin(a)*.22]} scale={[.012,.012,.29]} color="#8c9389" rotation={[0,-a,0]}/>})}
+  <Box position={[0,-.014,.31]} scale={[.22,.026,.075]} color="#c0aa72"/>
+ </group>;
+}
+function OilyDrainGrate({position}:{position:[number,number,number]}){
+ return <group position={position}>
+  <Box position={[0,-.018,0]} scale={[.72,.055,.52]} color="#73796f"/>
+  <Box position={[0,.014,0]} scale={[.58,.025,.38]} color="#303a35"/>
+  {Array.from({length:7},(_,i)=><Box key={`ows-grate-bar-${i}`} position={[-.24+i*.08,.033,0]} scale={[.025,.025,.34]} color="#a6a89d"/>)}
+ </group>;
+}
+function OilyWaterSewerNetwork(){
+ const y=-.42;
+ const paths:[number,number,number][][]=[
+  // Sealed gravity-collection trunk follows the process edge and ties into the WWT inlet on its west headwall.
+  [[-28.7,y,-6.2],[-8.2,y,-6.2],[8,y,-6.2],[8,y,14],[-8.25,y,14],[-8.25,y,16.82]],
+  // Unit-area drains are isolated branches; clean road/storm inlets remain separate.
+  [[-26,y,-16],[-26,y,-6.2]],
+  [[-18.5,y,-4.8],[-18.5,y,-6.2]],
+  [[-10.3,y,-8.8],[-10.3,y,-6.2]],
+  [[-11.2,y,-20],[-8.2,y,-20],[-8.2,y,-6.2]],
+  [[4.2,y,-26],[4.2,y,-20],[-8.2,y,-20]],
+  [[4.2,y,-18.9],[4.2,y,-6.2]],
+  [[5.3,y,2.3],[5.3,y,-6.2]],
+  [[-12.95,.15,-13.7],[-12.95,y,-13.7],[-12.95,y,-6.2]],
+  [[10,y,-9],[8,y,-9],[8,y,-6.2]],
+  [[10,y,14],[8,y,14]],
+  // Existing bund-sump outlet remains manually isolatable before entering the closed oily-water sewer.
+  [[31.9,-.12,-9],[31.9,y,-9],[31.9,y,14],[8,y,14]],
+  // No open discharge: the final short riser enters the existing covered treatment channel.
+  [[-8.25,y,16.82],[-8.25,.95,16.82],[-8.25,1.22,16.82]],
+ ];
+ return <group>
+  {paths.map((points,i)=><PipelinePath key={`ows-sewer-${i}`} points={points} color="#5f5548" radius={.095}/>)}
+  {[
+   [-28.7,0,-6.2],[-18.5,0,-4.8],[-26,0,-16],[-11.2,0,-20],
+   [4.2,0,-26],[4.2,0,-18.9],[5.3,0,2.3],[10,0,14],
+  ].map(([x,y,z],i)=><OilyDrainGrate key={`ows-source-grate-${i}`} position={[x,y,z]}/>)}
+  {[
+   [-26,0,-6.2],[-14,0,-6.2],[-8.2,0,-20],[0,0,-6.2],[8,0,-6.2],[8,0,14],[-9.4,0,14],
+  ].map(([x,y,z],i)=><OilyWaterManhole key={`ows-access-${i}`} position={[x,y,z]}/>)}
  </group>;
 }
 function CompanyMonumentSign(){
@@ -1186,17 +1232,31 @@ function PerimeterFenceRun({start,end,axis,coordinate}:{start:number;end:number;
 }
 function SitePerimeterFence(){
  const northPosts=Array.from({length:22},(_,i)=>-33+i*4);
+ const originalNorthPosts=northPosts.filter(x=>x<=-17||x>=7);
+ const hydrogenBoundaryPosts:[number,number][]=[
+  [-14,-28.65],[-14,-31.35],[-14,-34.05],[-14,-36.75],
+  [-11.5,-36.75],[-9,-36.75],[-6.5,-36.75],[-4,-36.75],[-1.5,-36.75],[1,-36.75],[3.5,-36.75],[6,-36.75],
+  [6,-34.05],[6,-31.35],[6,-28.65],
+ ];
  const southPosts=northPosts.filter((_,i)=>i<=17&&i!==4&&i!==5);
  const westPosts=Array.from({length:15},(_,i)=>-27+i*3.85);
  return <group>
-  {/* Existing gate opening and fence coordinates stay fixed; only the missing mesh and rails are filled in. */}
-  <PerimeterFenceRun start={-33} end={51} axis="x" coordinate={-28.65}/>
+  {/* Keep the established perimeter and gate; jog the north boundary around H2-01 so it is inside the secure plot, not cut by the fence. */}
+  <PerimeterFenceRun start={-33} end={-14} axis="x" coordinate={-28.65}/>
+  <PerimeterFenceRun start={6} end={51} axis="x" coordinate={-28.65}/>
+  <PerimeterFenceRun start={-36.75} end={-28.65} axis="z" coordinate={-14}/>
+  <PerimeterFenceRun start={-14} end={6} axis="x" coordinate={-36.75}/>
+  <PerimeterFenceRun start={-36.75} end={-28.65} axis="z" coordinate={6}/>
   <PerimeterFenceRun start={-33} end={-17} axis="x" coordinate={28.65}/>
   <PerimeterFenceRun start={-13} end={35} axis="x" coordinate={28.65}/>
   <PerimeterFenceRun start={-27} end={26.9} axis="z" coordinate={-33.78}/>
-  {northPosts.map(x=><group key={`north-fence-post-${x}`}>
+  {originalNorthPosts.map(x=><group key={`north-fence-post-${x}`}>
    <Box position={[x,.98,-28.65]} scale={[.12,1.96,.12]} color="#69776e"/>
    <mesh position={[x,1.99,-28.65]}><cylinderGeometry args={[.085,.085,.08,8]}/><meshStandardMaterial color="#9ca69c" metalness={.42}/></mesh>
+  </group>)}
+  {hydrogenBoundaryPosts.map(([x,z],i)=><group key={`h2-boundary-post-${i}`}>
+   <Box position={[x,.98,z]} scale={[.12,1.96,.12]} color="#69776e"/>
+   <mesh position={[x,1.99,z]}><cylinderGeometry args={[.085,.085,.08,8]}/><meshStandardMaterial color="#9ca69c" metalness={.42}/></mesh>
   </group>)}
   {southPosts.map(x=><group key={`south-fence-post-${x}`}>
    <Box position={[x,.98,28.65]} scale={[.12,1.96,.12]} color="#69776e"/>
@@ -1419,13 +1479,19 @@ function FlareKnockoutDrum({item}:{item:SiteItem}) {
 }
 function FlareSystemConnections(){
  const vduToKod:[number,number,number][]=[[-7,3.55,-17],[-9.4,3.55,-17],[-10.7,2.25,-16.25],[-12.75,1.45,-15.4]];
- const kodToFlare:[number,number,number][]=[[-17.82,2.34,-15.4],[-19.72,2.34,-15.4],[-21.65,1.92,-13.65],[-22.48,1.27,-11.62]];
+ // Keep the KO-drum vapor outlet at pipe-rack height, route it on supported orthogonal runs, then tie into the flare riser at its base.
+ const kodToFlare:[number,number,number][]=[[-17.82,2.34,-15.4],[-20.4,2.34,-15.4],[-20.4,2.34,-12],[-21.48,2.34,-12],[-21.48,.75,-12]];
+ const flareSupports:[number,number][]=[[-19.3,-15.4],[-20.4,-13.8],[-21,-12]];
  return <group>
   <PipelinePath points={vduToKod} color="#9b6b4b" radius={.13}/>
   <PipelinePath points={kodToFlare} color="#9b6b4b" radius={.13}/>
   <ValveWheel position={[-11.65,1.78,-15.8]} color="#7e7663"/>
-  <ValveWheel position={[-20.1,2.34,-15.4]} color="#7e7663"/>
-  {[-19.4,-20.8].map(x=><group key={`flare-header-stand-${x}`}><Box position={[x,1.11,-15.4]} scale={[.14,2.22,.14]} color="#657169"/><Box position={[x,.17,-15.4]} scale={[.55,.12,.48]} color="#818b80"/><Box position={[x,2.22,-15.4]} scale={[.56,.12,.42]} color="#838c80"/></group>)}
+  <ValveWheel position={[-19.75,2.34,-15.4]} color="#7e7663"/>
+  {flareSupports.map(([x,z],i)=><group key={`flare-header-stand-${i}`}>
+   <Box position={[x,1.11,z]} scale={[.14,2.22,.14]} color="#657169"/>
+   <Box position={[x,.17,z]} scale={[.55,.12,.48]} color="#818b80"/>
+   <Box position={[x,2.22,z]} scale={[.56,.12,.42]} color="#838c80"/>
+  </group>)}
  </group>;
 }
 
@@ -1954,7 +2020,7 @@ const processFlowRoutes:{color:string;points:[number,number,number][]}[]=[
  {color:'#b88c56',points:[[-8.55,4.76,24.7],[-12.4,5.85,24.9],[-12.4,5.85,6],[-6,5.85,6],[-6,5.85,2.72],[30,5.85,2.72],[2.5,5.85,2.72],[2.5,5.85,.5],[2.5,2.25,.5]]},
  {color:'#b88c56',points:[[-6,5.85,2.72],[-12,5.85,2.72],[-12,5.85,-9],[-12,2.25,-9]]},
  {color:'#d29a69',points:[[-7,3.55,-17],[-9.4,3.55,-17],[-10.7,2.25,-16.25],[-12.75,1.45,-15.4]]},
- {color:'#ffbd68',points:[[-17.82,2.34,-15.4],[-19.72,2.34,-15.4],[-21.65,1.92,-13.65],[-22.48,1.27,-11.62]]},
+ {color:'#ffbd68',points:[[-17.82,2.34,-15.4],[-20.4,2.34,-15.4],[-20.4,2.34,-12],[-21.48,2.34,-12],[-21.48,.75,-12]]},
  {color:'#9fd2ce',points:[[3.2,4.25,-28.2],[3.2,6.75,-28.2],[10,6.75,-29],[10,6.75,-16],[10,6.75,-8],[9.5,6.75,-8],[9.5,6.75,.7],[9.5,5.3,.7],[8.1,5.3,.7]]},
  {color:'#6d9698',points:[[2.5,2.25,.5],[2.5,3.05,.5],[2.5,3.05,3.55],[-6,3.05,3.55],[-12.4,3.05,6],[-12.4,3.05,24.5],[-9.8,3.05,24.5],[-6.14,3.05,25.95],[-6.14,3.38,25.95]]},
  {color:'#6b9da6',points:[[3.8,3.2,24.72],[3.8,6.65,24.72],[4.8,6.65,24.72],[4.8,6.65,13.2],[10,6.65,13.2],[10,6.65,4.75],[10,6.65,2.72],[10,13.55,2.72],[-6,13.55,2.72],[-6,6.65,2.72],[-31,6.65,2.72]]},
@@ -2008,7 +2074,7 @@ export function World(){
   {/* Road network */}
   {[[-1,0,4,2.3],[0,7,2.3,44],[1,13,2.5,26],[-15,0,2.2,23]].map((r,i)=><mesh key={i} rotation={[-Math.PI/2,0,0]} position={[r[0],-.035,r[1]]}><planeGeometry args={[r[3],r[2]]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',r[3]/12,r[2]/12)} color="#ffffff" roughness={.96}/></mesh>)}
   {Array.from({length:10},(_,i)=><mesh key={'dash'+i} rotation={[-Math.PI/2,0,0]} position={[-20+i*4,.005,7]}><planeGeometry args={[2,.12]}/><meshBasicMaterial color="#d8cf9d"/></mesh>)}
-  <RoadDrainageAndEmergencyAccess/>
+  <RoadDrainageAndEmergencyAccess/><OilyWaterSewerNetwork/>
   {/* Water + quay */}
   {/* Bounded port basin with paved shoreline and a broad loading quay */}
   <WaterSurface position={[61.25,-.16,14]} size={[47.5,48]} night={night}/>

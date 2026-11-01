@@ -50,9 +50,6 @@
         </div>
       </div>
     </div>
-    <script>
-      (()=>{let value=0;const started=Date.now(),label=document.getElementById('pv-boot-percent'),bar=document.getElementById('pv-boot-bar');const timer=window.setInterval(()=>{value=Math.min(86,Math.floor(86*(1-Math.exp(-(Date.now()-started)/18000))));if(label)label.textContent=String(value).padStart(2,'0').replace(/[0-9]/g,d=>'۰۱۲۳۴۵۶۷۸۹'[Number(d)]);if(bar)bar.style.width=value+'%';if(value>=86)window.clearInterval(timer)},250)})();
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

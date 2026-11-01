@@ -1,4 +1,4 @@
-import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { AdaptiveDpr, AdaptiveEvents, OrbitControls, useGLTF, useAnimations, Center, Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -39,7 +39,7 @@ function RefineryLandscapeBuffers(){
   // Tree islands remain outside the secured process plot and clear of roads, hydrants, the H2 compound, marine apron and loading-yard sweep.
   const treePoints:[number,number][]=[
    [-58,-19],[-58,-5],[-58,9],[-58,23],[-57,-44],[-43,-45],[-30,-44],[22,-45],[36,-44],[50,-43],[-57,43],[-44,44],[-31,42],[-6,44],[5,43],
-   [-51,-22],[-51,-5],[-51,11],[-51,25],[-62,-44],[-49,-45],[-37,-44],[-25,-44],[14,-45],[28,-44],[42,-44],[56,-44],[-62,43],[-49,44],[-36,44],[-23,46],[-16,47],[8,45],
+   [-51,-22],[-51,-5],[-51,11],[-51,25],[-62,-44],[-49,-45],[-37,-44],[-25,-44],[14,-45],[28,-44],[42,-44],[56,-44],[-62,43],[-49,44],[-36,44],[-23,46],[-16,47],[8,45],[-57,31],[-43,32],[68,-44],[79,-44],[49,44],[63,44],[77,44],
   ];
   const beds:[number,number][]=[[-55,-19],[-55,-5],[-55,9],[-54,23],[-55,-44],[-42,-44],[-29,-43],[23,-44],[37,-43],[51,-42],[-54,43],[-42,43],[-29,41],[-6,42],[5,42],...treePoints.slice(15).map(([x,z],i)=>[x+(i%2?.15:-.15),z+(i%3===0?.25:-.2)] as [number,number])];
   const trunks:LandscapeInstance[]=treePoints.map(([,z],i)=>({position:[treePoints[i][0],1.12,z],scale:[.88+(i%4)*.08,1, .88+(i%3)*.07],color:['#604d3b','#70563f','#66513c','#775b42'][i%4]}));
@@ -72,19 +72,21 @@ function RefineryLandscapeBuffers(){
   const meadowPolygons:[number,number][][]=[
    [[-70,-28],[-62,-31],[-49,-29],[-45,-20],[-46,18],[-52,28],[-63,31],[-70,29]],
    [[-70,-49],[-58,-50],[-25,-49],[-22,-43],[-26,-39],[-52,-38],[-68,-39]],
-   [[13,-49],[22,-50],[67,-49],[66,-40],[51,-38],[16,-39]],
+   [[13,-49],[22,-50],[68,-49],[82,-47],[84,-44],[82,-40],[66,-38],[51,-38],[16,-39]],
    [[-70,36],[-58,35],[-43,35],[-32,37],[-24,43],[-28,49],[-43,50],[-70,49]],
    [[-10,36],[-3,35],[8,36],[10,42],[8,47],[5,49],[-5,49],[-10,48]],
    // Small additional lawn pockets complete the south buffer but leave the visitor-gate drive open.
    [[-23,37],[-20.6,36.6],[-20.2,43],[-22.8,45.5],[-24.2,42]],
    [[28.2,39.2],[35.2,39.2],[35.2,48.5],[32,49.4],[28.2,47]],
+   [[41,40],[50,39.5],[68,40],[82,42],[84,47],[75,49],[54,49],[43,47]],
+   [[-70,29],[-59,29.3],[-45,29.2],[-38.4,30.5],[-38.5,33.3],[-44,35],[-59,35],[-68,35.5]],
   ];
   const meadows=meadowPolygons.map((polygon,index)=>makeMeadow(polygon,index%2?'#91a66f':'#8fa36d'));
   // Fine-scale native groundcover fills the wide lawn panels in the references. The clusters are instanced, kept low, and exist only inside the planted buffers.
   const meadowCover:LandscapeInstance[]=[];let coverSeed=7741;const coverRandom=()=>{coverSeed=(coverSeed*1664525+1013904223)>>>0;return coverSeed/4294967296};
   meadowPolygons.forEach((polygon,zone)=>{
    const xs=polygon.map(point=>point[0]),zs=polygon.map(point=>point[1]);const minX=Math.min(...xs),maxX=Math.max(...xs),minZ=Math.min(...zs),maxZ=Math.max(...zs),spacing=zone===0?1.85:1.55;
-   let row=0;for(let z=minZ+.35;z<maxZ;z+=spacing,row++)for(let x=minX+.35+(row%2)*spacing*.5;x<maxX;x+=spacing){const px=x+(coverRandom()-.5)*.6,pz=z+(coverRandom()-.5)*.6;if(!isInsideLandscapePolygon(px,pz,polygon))continue;const index=Math.floor(coverRandom()*6);meadowCover.push({position:[px,-.012,pz],scale:[.8+coverRandom()*.65,.75+coverRandom()*.9,.8+coverRandom()*.65],color:['#738a59','#7d905f','#89996b','#697f53','#92a06c','#708357'][(index+zone)%6],rotation:coverRandom()*Math.PI*2})}
+   let row=0;for(let z=minZ+.35;z<maxZ;z+=spacing,row++)for(let x=minX+.35+(row%2)*spacing*.5;x<maxX;x+=spacing){const px=x+(coverRandom()-.5)*.6,pz=z+(coverRandom()-.5)*.6;if(!isInsideLandscapePolygon(px,pz,polygon))continue;const index=Math.floor(coverRandom()*6);meadowCover.push({position:[px,-.012,pz],scale:[.8+coverRandom()*.65,.75+coverRandom()*.9,.8+coverRandom()*.65],color:['#738a59','#7d905f','#89996b','#697f53','#92a06c','#708357'][(index+zone)%6],rotation:coverRandom()*Math.PI*2});if(coverRandom()<.055)flowers.push({position:[px,.1,pz],scale:[1,1,1],color:flowerColors[(index+zone)%flowerColors.length],rotation:coverRandom()*Math.PI*2})}
   });
   const treeTrunkGeometry=new THREE.CylinderGeometry(.13,.2,2.24,7);
   const branchGeometry=new THREE.CylinderGeometry(.045,.09,1.18,6);
@@ -1904,8 +1906,7 @@ function DrumLoadingForklift({item}:{item:SiteItem}){
 function sideValue(index:number){return index===0?-.75:.75}
 const shipModelUrl=`${import.meta.env.BASE_URL}models/ships/oil-tanker.glb`;
 const workerModelUrl=`${import.meta.env.BASE_URL}models/workers/cesium-man.glb`;
-useGLTF.preload(shipModelUrl);
-useGLTF.preload(workerModelUrl);
+// GLB models load lazily inside their Suspense boundaries; the initial site frame uses lightweight local fallbacks.
 function Ship({item}:{item:SiteItem}) {
  const ref=useRef<THREE.Group>(null); const playing=useStore(s=>s.playing);const phase=useRef(0);const gltf=useGLTF(shipModelUrl);
  const model=useMemo(()=>gltf.scene.clone(true),[gltf.scene]);
@@ -2249,8 +2250,9 @@ function FlowPulse({points,color,delay}:{points:[number,number,number][];color:s
 function FocusCamera({controlsRef}:{controlsRef:React.RefObject<any>}){const focus=useStore(s=>s.focus);const {camera}=useThree();const previous=useRef<[number,number,number]|null>(null);const desired=useRef<THREE.Vector3|null>(null);const desiredCamera=useRef<THREE.Vector3|null>(null);useFrame(()=>{if(focus&&focus!==previous.current){const controls=controlsRef.current;const current=controls?.target||new THREE.Vector3(0,0,0);const delta=new THREE.Vector3(...focus).sub(current);desired.current=new THREE.Vector3(...focus);desiredCamera.current=camera.position.clone().add(delta);previous.current=focus;}if(desired.current&&controlsRef.current){controlsRef.current.target.lerp(desired.current,.12);if(desiredCamera.current)camera.position.lerp(desiredCamera.current,.12);controlsRef.current.update();if(controlsRef.current.target.distanceTo(desired.current)<.08){desired.current=null;desiredCamera.current=null;}}});return null;}
 export function SceneReadySignal({onReady}:{onReady:()=>void}){const sent=useRef(false);useFrame(()=>{if(!sent.current){sent.current=true;onReady()}});return null;}
 
-export function World(){
- const controlsRef=useRef<any>(null);const night=useStore(s=>s.night);const quality=useStore(s=>s.quality); const mode=useStore(s=>s.mode); const filtered=useMemo(()=>items.filter(x=>mode==='overview'||mode==='all'||x.zone===mode||(mode==='storage'&&['tank','sphere-tank'].includes(x.kind))||(mode==='refinery'&&['process','furnace','flare'].includes(x.kind))),[mode]);
+export function World({loadHighDetail=false}:{loadHighDetail?:boolean}){
+ const controlsRef=useRef<any>(null);const [highDetailReady,setHighDetailReady]=useState(false);const night=useStore(s=>s.night);const quality=useStore(s=>s.quality); const mode=useStore(s=>s.mode); const filtered=useMemo(()=>items.filter(x=>mode==='overview'||mode==='all'||x.zone===mode||(mode==='storage'&&['tank','sphere-tank'].includes(x.kind))||(mode==='refinery'&&['process','furnace','flare'].includes(x.kind))),[mode]);
+ useEffect(()=>{if(!loadHighDetail)return;const timer=window.setTimeout(()=>setHighDetailReady(true),900);return()=>window.clearTimeout(timer)},[loadHighDetail]);
  return <>
   <color attach="background" args={[night?'#09121d':'#d6e0d5']}/><fog attach="fog" args={[night?'#09121d':'#d6e0d5',80,145]}/>
   <ambientLight intensity={night?.2:1.15}/><directionalLight position={[-30,55,22]} intensity={night?.32:2.3} castShadow={quality!=='low'} shadow-mapSize={quality==='high'?[2048,2048]:[1024,1024]} shadow-camera-left={-60} shadow-camera-right={60} shadow-camera-top={60} shadow-camera-bottom={-60}/><NightLighting night={night}/>
@@ -2331,9 +2333,9 @@ export function World(){
   {items.filter(x=>x.kind==='truck').map((t,i)=><Truck key={t.id} item={t} index={i}/>)}
   <DrumLoadingForklift item={items.find(x=>x.id==='FL-027')!}/>
   {/* ship, loading arm connecting to jetty */}
-  <AssetBoundary fallback={(_error)=> <ShipFallback item={items.find(x=>x.id==='VES-08')!}/>}><Suspense fallback={<ShipFallback item={items.find(x=>x.id==='VES-08')!}/>}><Ship item={items.find(x=>x.id==='VES-08')!}/></Suspense></AssetBoundary>
+  {highDetailReady?<AssetBoundary fallback={(_error)=> <ShipFallback item={items.find(x=>x.id==='VES-08')!}/>}><Suspense fallback={<ShipFallback item={items.find(x=>x.id==='VES-08')!}/>}><Ship item={items.find(x=>x.id==='VES-08')!}/></Suspense></AssetBoundary>:<ShipFallback item={items.find(x=>x.id==='VES-08')!}/> }
   <MarineLoadingArm position={[32.2,0,4]} color="#c69d5d"/><MarineLoadingArm position={[32.2,0,18]} color="#d6d0bc"/>
-  {items.filter(x=>x.kind==='worker').map((person,i)=><AssetBoundary key={person.id} fallback={()=> <WorkerFallback item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>}><Suspense fallback={<WorkerFallback item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>}><Worker item={person} index={i} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/></Suspense></AssetBoundary>)}
+  {items.filter(x=>x.kind==='worker').map((person,i)=>highDetailReady?<AssetBoundary key={person.id} fallback={()=> <WorkerFallback item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>}><Suspense fallback={<WorkerFallback item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>}><Worker item={person} index={i} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/></Suspense></AssetBoundary>:<WorkerFallback key={`fallback-${person.id}`} item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>)}
   {mode==='personnel'&&items.map((it)=><mesh key={'pin'+it.id} position={[it.position[0],4,it.position[2]]}><sphereGeometry args={[.35,10,10]}/><meshBasicMaterial color="#f4cb79"/></mesh>)}
   <AdaptiveDpr pixelated/><AdaptiveEvents/><OrbitControls ref={controlsRef} regress makeDefault target={[0,0,0]} minPolarAngle={.25} maxPolarAngle={Math.PI/2.12} minDistance={24} maxDistance={100} enableDamping dampingFactor={.08} />
   <FocusCamera controlsRef={controlsRef}/>

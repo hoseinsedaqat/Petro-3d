@@ -7,7 +7,7 @@ import { items, type SiteItem } from '../data/site';
 import { useStore } from '../store';
 import { ProcessRefinery } from './ProcessSteelwork';
 import { SphereTank } from './SphereTank';
-import { CoolingBattery, CrudeReceiving, DesalterUnit, ElectricalSubstation, EquipmentTag, HydrogenPlant, RefineryUnit, SulfurRecovery, WastewaterPlant } from './RefinerySections';
+import { CoolingBattery, CrudeReceiving, DesalterUnit, ElectricalSubstation, EquipmentTag, HydrogenPlant, RefineryUnit, SourWaterStripper, SulfurRecovery, WastewaterPlant } from './RefinerySections';
 import { getChainlinkMap, getWeatheredSteelMap, getYardSurfaceMap } from './materials';
 
 function ShorelineSeawall(){return <group>
@@ -131,7 +131,7 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  <color attach="background" args={[night?'#09121d':'#d6e0d5']}/><fog attach="fog" args={[night?'#09121d':'#d6e0d5',80,145]}/><ambientLight intensity={night?.2:1.25}/><directionalLight position={[-25,45,20]} intensity={night?.3:2} castShadow/>
  <NightLighting night={night}/>
  <SiteTerrain night={night}/>
- <SitePerimeterFence/><CompanyArrivalLandscape/><CompanyMonumentSign/><RoadDrainageAndEmergencyAccess/><OilyWaterSewerNetwork/>
+ <SitePerimeterFence/><CompanyArrivalLandscape/><CompanyMonumentSign/><RoadDrainageAndEmergencyAccess/><OilyWaterSewerNetwork/><SourWaterProcessNetwork/>
  <mesh rotation={[-Math.PI/2,0,0]} position={[-10,-.05,-8]}><planeGeometry args={[40,32]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',40/9,32/9)} color={night?'#59635d':'#cdd1c8'} roughness={.96}/></mesh>
  <mesh rotation={[-Math.PI/2,0,0]} position={[16,-.05,-8]}><planeGeometry args={[24,22]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',24/9,22/9)} color={night?'#59635d':'#d1cebc'} roughness={.96}/></mesh>
  <WaterSurface position={[61.25,-.16,14]} size={[47.5,48]} night={night}/>
@@ -147,7 +147,7 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  <Pipe a={[7,1.35,-19.6]} b={[30,1.35,-19.6]} color="#bd6c51" radius={.15}/>{[9,15,21,27].map(x=><Pipe key={`fallback-lpg-${x}`} a={[x-1.55,1.35,-19.6]} b={[x-1.55,1.35,-21.2]} color="#bd6c51" radius={.1}/>)}
  <ProcessRefinery/><MainPipeway/><AirCoolerBank item={items.find(x=>x.id==='ACHE-01')!}/><FacilityInterconnects/><ElectricalFeed/><HydrogenSupplyNetwork/><FlowLines/>
  {items.filter(x=>x.id==='FCC-01'||x.id==='HDS-01').map(unit=><RefineryUnit key={`fallback-${unit.id}`} item={unit}/>)}
- <HydrogenPlant item={items.find(x=>x.id==='H2-01')!}/>
+ <HydrogenPlant item={items.find(x=>x.id==='H2-01')!}/><SourWaterStripper item={items.find(x=>x.id==='SWS-01')!}/>
  <CrudeReceiving item={items.find(x=>x.id==='CRUDE-01')!}/><SulfurRecovery item={items.find(x=>x.id==='SRU-01')!}/><DesalterUnit item={items.find(x=>x.id==='DS-101')!}/><CoolingBattery item={items.find(x=>x.id==='CW-01')!}/><WastewaterPlant item={items.find(x=>x.id==='WWT-01')!}/><ElectricalSubstation item={items.find(x=>x.id==='SUB-01')!}/><FirewaterFacility item={items.find(x=>x.id==='FW-01')!}/><FirewaterRing/><TransferPumpStation item={items.find(x=>x.id==='P-301A')!}/>
  {items.filter(x=>x.kind==='worker').map((person,i)=><WorkerFallback key={`fallback-${person.id}`} item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>)}
  <ControlBuilding item={items.find(x=>x.id==='CCR-01')!}/><LaboratoryBuilding item={items.find(x=>x.id==='LAB-01')!}/>
@@ -817,7 +817,9 @@ function SteamUtilityNetwork(){
   [[-6,5.85,2.72],[-6,5.85,-15.5],[-6,2.25,-15.5],[-6.8,2.25,-17]],
   [[2,5.85,2.72],[2,5.85,-14],[2,2.25,-14]],
   [[2.5,5.85,2.72],[2.5,5.85,.5],[2.5,2.25,.5]],
+  [[-12.4,5.85,6],[-20.5,5.85,6],[-20.5,5.85,-20.5],[-17.5,5.85,-20.5],[-17.5,5.85,-22.55],[-17.5,1.6,-22.55]],
  ];
+ const swsCondensate:[number,number,number][]=[[-17.8,.75,-21.6],[-17.8,.75,-20.5],[-17.8,3.05,-20.5],[-20.5,3.05,-20.5],[-20.5,3.05,6],[-12.4,3.05,6]];
  const condensateMain:[number,number,number][]=[[-12.4,3.05,24.5],[-12.4,3.05,6],[-6,3.05,3.55],[2.5,3.05,3.55],[2.5,3.05,.5],[.5,3.05,.5],[-6,3.05,-3.8],[-12,3.05,-3.8],[-12,3.05,-9],[-12,2.25,-9]];
  const makeup:[number,number,number][]=[[-21,6.55,14],[-16,6.55,14],[-12.4,6.55,14],[-12.4,6.55,24.9],[-9.2,6.55,24.9],[-6.14,6.55,25.95],[-6.14,4.0,25.95]];
  return <group>
@@ -831,9 +833,16 @@ function SteamUtilityNetwork(){
   <PipelinePath points={[[-6,5.85,2.72],[-12,5.85,2.72]]} color={steam} radius={.075}/>
   {steamBranches.map((points,i)=><PipelinePath key={`steam-consumer-${i}`} points={points} color={steam} radius={.075}/>)}
   <PipelinePath points={condensateMain} color={condensate} radius={.085}/>
+  <PipelinePath points={swsCondensate} color={condensate} radius={.065}/>
   <PipelinePath points={[[-12.4,3.05,24.5],[-9.8,3.05,24.5],[-6.14,3.05,25.95],[-6.14,3.38,25.95]]} color={condensate} radius={.075}/>
   <PipelinePath points={[[2,2.25,-14],[2,3.05,-14],[2,3.05,-3.8],[-6,3.05,-3.8]]} color={condensate} radius={.065}/>
   <PipelinePath points={[[-6.8,2.25,-17],[-5.4,2.25,-17],[-5.4,3.05,-17],[-5.4,3.05,-3.8]]} color={condensate} radius={.065}/>
+  {[[ -15,6],[-18,6],[-20.5,0],[-20.5,-10],[-20.5,-18],[-19,-20.5]].map(([x,z],i)=><group key={`sws-steam-rack-bent-${i}`}>
+   <Box position={[x,2.98,z]} scale={[.1,5.72,.1]} color="#65736b"/>
+   <Box position={[x,.14,z]} scale={[.38,.16,.38]} color="#898b7a"/>
+   <Box position={[x,5.75,z]} scale={[.62,.1,.3]} color="#8b958b"/>
+   <Box position={[x,3.02,z]} scale={[.48,.09,.25]} color="#a0936d"/>
+  </group>)}
   {[[-12.4,5.85,24.9],[-12.4,5.85,6],[-6,5.85,2.72],[10,5.85,2.72],[20,5.85,2.72]].map(([x,y,z],i)=><mesh key={`steam-header-shoe-${i}`} position={[x,y-.12,z]}><cylinderGeometry args={[.16,.16,.12,10]}/><meshStandardMaterial color="#c1ad79" metalness={.42}/></mesh>)}
   {[-10,10,20].map(x=><group key={`steam-header-guide-${x}`}><Pipe a={[x,5.84,2.72]} b={[x+.18,5.84,2.72]} color="#d4bd82" radius={.15}/></group>)}
  </group>;
@@ -1035,6 +1044,29 @@ function OilyWaterSewerNetwork(){
   {[
    [-26,0,-6.2],[-14,0,-6.2],[-8.2,0,-20],[0,0,-6.2],[8,0,-6.2],[8,0,14],[-9.4,0,14],
   ].map(([x,y,z],i)=><OilyWaterManhole key={`ows-access-${i}`} position={[x,y,z]}/>)}
+ </group>;
+}
+function SourWaterProcessNetwork(){
+ const feedY=-.66,productY=-.95;
+ const sourWaterFeeds:[number,number,number][][]=[
+  // Sour process water stays in a closed, dedicated collection header—not the oily floor-drain sewer.
+  [[-12,feedY,-6.5],[-15,feedY,-6.5],[-15,feedY,-24],[-23.35,feedY,-24],[-23.35,feedY,-22.25],[-23.35,1.08,-22.25]],
+  [[-8,feedY,-18.5],[-15,feedY,-18.5],[-15,feedY,-24]],
+  [[4,feedY,.5],[4,feedY,-6.5],[-12,feedY,-6.5]],
+  [[4,feedY,-14],[-15,feedY,-14],[-15,feedY,-24]],
+ ];
+ const strippedWater:[number,number,number][]=[[-20.25,.18,-24.55],[-20.25,productY,-24.55],[-20.25,productY,-24],[-12,productY,-24],[-12,productY,14],[-10.45,productY,15.45],[-10.45,.95,15.45]];
+ const sourGas:[number,number,number][]=[[-23.5,3.5,-23.5],[-24.3,3.5,-23.5],[-33.45,3.5,-23.5],[-33.45,3.5,-14.35],[-33.45,2.55,-14.35],[-33.1,2.55,-14.35]];
+ const gasSupports:[number,number][]=[[-26.5,-23.5],[-29.5,-23.5],[-32.3,-23.5],[-33.45,-21],[-33.45,-18],[-33.45,-15.6]];
+ return <group>
+  {sourWaterFeeds.map((points,i)=><PipelinePath key={`sws-feed-${i}`} points={points} color="#9a8056" radius={.07}/>)}
+  <PipelinePath points={strippedWater} color="#6d9790" radius={.075}/>
+  <PipelinePath points={sourGas} color="#b57857" radius={.075}/>
+  {gasSupports.map(([x,z],i)=><group key={`swag-support-${i}`}>
+   <Box position={[x,1.72,z]} scale={[.1,3.44,.1]} color="#66736b"/>
+   <Box position={[x,.15,z]} scale={[.42,.12,.42]} color="#838b80"/>
+   <Box position={[x,3.46,z]} scale={[.34,.1,.22]} color="#929589"/>
+  </group>)}
  </group>;
 }
 function CompanyMonumentSign(){
@@ -2021,6 +2053,9 @@ const processFlowRoutes:{color:string;points:[number,number,number][]}[]=[
  {color:'#b88c56',points:[[-6,5.85,2.72],[-12,5.85,2.72],[-12,5.85,-9],[-12,2.25,-9]]},
  {color:'#d29a69',points:[[-7,3.55,-17],[-9.4,3.55,-17],[-10.7,2.25,-16.25],[-12.75,1.45,-15.4]]},
  {color:'#ffbd68',points:[[-17.82,2.34,-15.4],[-20.4,2.34,-15.4],[-20.4,2.34,-12],[-21.48,2.34,-12],[-21.48,.75,-12]]},
+ {color:'#cf8c68',points:[[-23.5,3.5,-23.5],[-24.3,3.5,-23.5],[-33.45,3.5,-23.5],[-33.45,3.5,-14.35],[-33.45,2.55,-14.35],[-33.1,2.55,-14.35]]},
+ {color:'#b78348',points:[[-12.4,5.85,6],[-20.5,5.85,6],[-20.5,5.85,-20.5],[-17.5,5.85,-20.5],[-17.5,5.85,-22.55],[-17.5,1.6,-22.55]]},
+ {color:'#6d9790',points:[[-17.8,.75,-21.6],[-17.8,.75,-20.5],[-17.8,3.05,-20.5],[-20.5,3.05,-20.5],[-20.5,3.05,6],[-12.4,3.05,6]]},
  {color:'#9fd2ce',points:[[3.2,4.25,-28.2],[3.2,6.75,-28.2],[10,6.75,-29],[10,6.75,-16],[10,6.75,-8],[9.5,6.75,-8],[9.5,6.75,.7],[9.5,5.3,.7],[8.1,5.3,.7]]},
  {color:'#6d9698',points:[[2.5,2.25,.5],[2.5,3.05,.5],[2.5,3.05,3.55],[-6,3.05,3.55],[-12.4,3.05,6],[-12.4,3.05,24.5],[-9.8,3.05,24.5],[-6.14,3.05,25.95],[-6.14,3.38,25.95]]},
  {color:'#6b9da6',points:[[3.8,3.2,24.72],[3.8,6.65,24.72],[4.8,6.65,24.72],[4.8,6.65,13.2],[10,6.65,13.2],[10,6.65,4.75],[10,6.65,2.72],[10,13.55,2.72],[-6,13.55,2.72],[-6,6.65,2.72],[-31,6.65,2.72]]},
@@ -2074,7 +2109,7 @@ export function World(){
   {/* Road network */}
   {[[-1,0,4,2.3],[0,7,2.3,44],[1,13,2.5,26],[-15,0,2.2,23]].map((r,i)=><mesh key={i} rotation={[-Math.PI/2,0,0]} position={[r[0],-.035,r[1]]}><planeGeometry args={[r[3],r[2]]}/><meshStandardMaterial map={getYardSurfaceMap('asphalt',r[3]/12,r[2]/12)} color="#ffffff" roughness={.96}/></mesh>)}
   {Array.from({length:10},(_,i)=><mesh key={'dash'+i} rotation={[-Math.PI/2,0,0]} position={[-20+i*4,.005,7]}><planeGeometry args={[2,.12]}/><meshBasicMaterial color="#d8cf9d"/></mesh>)}
-  <RoadDrainageAndEmergencyAccess/><OilyWaterSewerNetwork/>
+  <RoadDrainageAndEmergencyAccess/><OilyWaterSewerNetwork/><SourWaterProcessNetwork/>
   {/* Water + quay */}
   {/* Bounded port basin with paved shoreline and a broad loading quay */}
   <WaterSurface position={[61.25,-.16,14]} size={[47.5,48]} night={night}/>
@@ -2092,6 +2127,7 @@ export function World(){
   <OverheadCondenser item={items.find(x=>x.id==='E-101')!}/><RefluxAccumulator item={items.find(x=>x.id==='V-102')!}/><RefluxPumpSet item={items.find(x=>x.id==='P-102A')!}/>
   {filtered.filter(x=>x.id==='FCC-01'||x.id==='HDS-01').map(unit=><RefineryUnit key={unit.id} item={unit}/>)}
   {filtered.filter(x=>x.id==='H2-01').map(unit=><HydrogenPlant key={unit.id} item={unit}/>)}
+  {filtered.filter(x=>x.id==='SWS-01').map(unit=><SourWaterStripper key={unit.id} item={unit}/>)}
   {filtered.filter(x=>x.id==='DS-101').map(unit=><DesalterUnit key={unit.id} item={unit}/>)}
   {filtered.filter(x=>x.id==='CRUDE-01').map(unit=><CrudeReceiving key={unit.id} item={unit}/>)}
   {filtered.filter(x=>x.id==='SRU-01').map(unit=><SulfurRecovery key={unit.id} item={unit}/>)}

@@ -217,6 +217,60 @@ export function HydrogenPlant({item}:{item:SiteItem}){
  </Selectable>;
 }
 
+export function SourWaterStripper({item}:{item:SiteItem}){
+ const night=useStore(s=>s.night);
+ return <Selectable item={item}>
+  <mesh position={[0,.08,0]} receiveShadow><boxGeometry args={[6.8,.16,6]}/><meshStandardMaterial color="#81877e" roughness={.92}/></mesh>
+  <mesh position={[0,.18,0]}><boxGeometry args={[6.55,.08,5.76]}/><meshStandardMaterial color="#4c5952" roughness={.82}/></mesh>
+  {/* Compact steam-reboiled sour-water stripper package; open steel keeps the process train inspectable. */}
+  {[-3.02,3.02].flatMap(x=>[-2.55,2.55].map(z=><group key={`sws-frame-${x}-${z}`}>
+   <Beam position={[x,2.18,z]} size={[.13,4.25,.13]} color="#68776d"/>
+   <Beam position={[x,.32,z]} size={[.34,.16,.34]} color="#a08d66"/>
+  </group>))}
+  <Vessel x={.25} z={-.55} r={.58} h={6.9} color="#a9b4aa"/>
+  {[3.25,5.35].map(y=><group key={`sws-column-deck-${y}`}>
+   <mesh position={[.25,y,-.55]} rotation={[Math.PI/2,0,0]}><ringGeometry args={[.72,1.02,28]}/><meshStandardMaterial color="#47534d" metalness={.4} side={THREE.DoubleSide}/></mesh>
+   <mesh position={[.25,y+.45,-.55]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[1.02,.022,6,28]}/><meshStandardMaterial color="#d0bd83" metalness={.42}/></mesh>
+   {Array.from({length:12},(_,n)=>{const a=n*Math.PI/6;return <Beam key={n} position={[.25+Math.cos(a),y+.22,-.55+Math.sin(a)]} size={[.04,.42,.04]} color="#c6b57e"/>})}
+  </group>)}
+  {/* Feed flash drum, process reboiler, overhead condenser and reflux receiver. */}
+  <HorizontalVessel x={-2.1} z={1.75} y={1.05} length={2.0} r={.38}/>
+  <HorizontalVessel x={2.0} z={1.45} y={1.05} length={2.1} r={.42}/>
+  <HorizontalVessel x={-1.95} z={-1.9} y={4.8} length={1.8} r={.32}/>
+  <HorizontalVessel x={-2.3} z={-1.85} y={2.45} length={1.8} r={.32}/>
+  <Run a={[-2.85,1.08,1.75]} b={[-1.1,1.08,1.75]} color="#9a8056" r={.08}/>
+  <Run a={[-1.1,1.08,1.75]} b={[-.22,1.9,-.15]} color="#9a8056" r={.08}/>
+  <Run a={[.25,1.32,-.55]} b={[.25,.72,-.55]} color="#aa8052" r={.075}/>
+  <Run a={[.25,.72,-.55]} b={[1.55,.72,.2]} color="#aa8052" r={.075}/>
+  <Run a={[1.55,.72,.2]} b={[2.0,1.05,1.45]} color="#aa8052" r={.075}/>
+  <Run a={[.25,.35,-.55]} b={[.25,.18,-.55]} color="#6d9790" r={.075}/>
+  {/* External steam inlet and trapped-condensate return make the reboiler service explicit. */}
+  <Run a={[3.2,1.6,1.45]} b={[3.0,1.6,1.45]} color="#b78348" r={.07}/>
+  <mesh position={[3.0,1.6,1.45]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.12,.022,6,14]}/><meshStandardMaterial color="#c5b47b" metalness={.48}/></mesh>
+  <Run a={[3.0,.95,1.45]} b={[2.7,.65,2.4]} color="#6d9790" r={.055}/>
+  <Beam position={[2.7,.32,2.4]} size={[.72,.16,.62]} color="#4b5b53"/>
+  <Run a={[2.7,.4,2.4]} b={[2.7,.75,2.4]} color="#6d9790" r={.055}/>
+  {/* Overhead gas is cooled, condensate returns as reflux, and non-condensables leave on a separate acid-gas header. */}
+  <Run a={[.25,7.55,-.55]} b={[.25,5.55,-.55]} color="#b57857" r={.085}/>
+  <Run a={[.25,5.55,-.55]} b={[-.85,5.35,-1.9]} color="#b57857" r={.085}/>
+  <Run a={[-.85,5.35,-1.9]} b={[-1.95,4.8,-1.9]} color="#b57857" r={.085}/>
+  <Run a={[-1.95,4.45,-1.9]} b={[-2.3,3.02,-1.85]} color="#718f8a" r={.065}/>
+  <Run a={[-2.3,2.95,-1.85]} b={[-1.65,2.15,-.55]} color="#718f8a" r={.065}/>
+  <Run a={[-2.3,3.02,-1.85]} b={[-2.85,3.28,-.5]} color="#b57857" r={.07}/>
+  <Run a={[-2.85,3.28,-.5]} b={[-3,3.5,.5]} color="#b57857" r={.07}/>
+  {/* Process pumps, condensate-return pump, local panel and ladder; the ladder stays outside the vessel envelope. */}
+  {[-.8,.9].map((x,i)=><group key={`sws-pump-${i}`} position={[x,.2,2.5]}>
+   <Beam position={[0,.34,0]} size={[.82,.54,.66]} color="#52675d"/>
+   <mesh position={[0,.38,.38]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.2,.06,8,14]}/><meshStandardMaterial color={i?'#82968a':'#b78151'} metalness={.5}/></mesh>
+   <Beam position={[0,.73,0]} size={[.1,.25,.12]} color="#d1bd83"/>
+  </group>)}
+  {[2.75,3.18].map(x=><Run key={`sws-ladder-rail-${x}`} a={[x,.34,.2]} b={[x,5.7,.2]} color="#c8b77f" r={.028}/>)}
+  {Array.from({length:18},(_,i)=><Beam key={`sws-ladder-rung-${i}`} position={[2.965,.48+i*.29,.2]} size={[.43,.04,.05]} color="#c8b77f"/>)}
+  <Beam position={[2.58,1.28,-2.05]} size={[.62,1.44,.14]} color="#5b6b61"/>
+  <mesh position={[2.58,1.55,-1.96]}><sphereGeometry args={[.055,8,8]}/><meshStandardMaterial color={night?'#e6c269':'#849780'} emissive={night?'#7f5b1c':'#000000'} emissiveIntensity={night?.45:0}/></mesh>
+  <EquipmentTag label={item.id} position={[0,1.45,3.18]}/>
+ </Selectable>;
+}
 export function DesalterUnit({item}:{item:SiteItem}){
  return <Selectable item={item}>
   <mesh position={[0,.07,0]} receiveShadow><boxGeometry args={[11,.14,9.5]}/><meshStandardMaterial color="#85897f" roughness={.9}/></mesh>
@@ -269,6 +323,9 @@ export function SulfurRecovery({item}:{item:SiteItem}){
   {/* Claus reaction furnace and refractory combustion chamber */}
   <Beam position={[-3.05,1.45,1.65]} size={[2.15,2.9,1.8]} color="#606960"/>
   <mesh position={[-3.05,1.5,2.58]}><planeGeometry args={[1.08,1.26]}/><meshBasicMaterial color="#f18a3d" transparent opacity={.65}/></mesh>
+  {/* Sour-water acid-gas battery-limit tie-in to the thermal reactor; no atmospheric vent is modeled. */}
+  <Run a={[-4.1,2.55,1.65]} b={[-3.82,2.55,1.65]} color="#b57857" r={.075}/>
+  <mesh position={[-4.1,2.55,1.65]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.13,.025,6,16]}/><meshStandardMaterial color="#c4ad79" metalness={.5}/></mesh>
   <mesh position={[-3.05,3.2,1.65]}><cylinderGeometry args={[.31,.42,2.25,14]}/><meshStandardMaterial color="#727d74" map={getWeatheredSteelMap()} metalness={.35} roughness={.65}/></mesh>
   {/* Paired catalytic converters, waste-heat boiler and sulfur condenser */}
   <Vessel x={-.85} z={-.65} r={.72} h={6.3}/><Vessel x={1.15} z={-.65} r={.72} h={6.7} color="#a1aca2"/>
@@ -393,6 +450,9 @@ export function WastewaterPlant({item}:{item:SiteItem}){
    <Beam position={[.77,1.0,0]} size={[.06,.9,.06]} color={safety}/><Beam position={[.78,1.35,0]} size={[.06,.06,.12]} color="#c8bd9a"/>
    <Beam position={[0,2.02,0]} size={[1.65,.06,.06]} color={safety}/>
   </group>
+  {/* Stripped-water line enters equalization separately from the oily-water API-separator inlet. */}
+  <Run a={[-5.45,.95,-2.55]} b={[-4.92,.95,-2.55]} color="#6d9790" r={.075}/>
+  <mesh position={[-5.32,.95,-2.55]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.14,.025,6,16]}/><meshStandardMaterial color="#c2b381" metalness={.48}/></mesh>
   {/* Low aeration basin with visible diffuser grid and air header; not a rated process design. */}
   <group position={[4.5,0,0]}>
    <Beam position={[0,.16,0]} size={[2.3,.3,2.05]} color="#65766c"/>

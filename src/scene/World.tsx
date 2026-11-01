@@ -50,13 +50,12 @@ function FireHydrantBody(){return <group>
  <mesh position={[0,.26,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.23,.035,6,16]}/><meshStandardMaterial color="#d4bd78" metalness={.48}/></mesh>
  </group>}
 const fireHydrantSites:[number,number,number][]=[[-41.5,0,-12],[-41.5,0,13],[0,0,-27],[32.4,0,-24],[32.4,0,22],[0,0,25]];
-const firewaterLoop:[number,number,number][]=[[-36.5,-.32,7.3],[-41.5,-.32,7.3],[-41.5,-.32,-24],[-38.5,-.32,-27],[29.4,-.32,-27],[32.4,-.32,-24],[32.4,-.32,22],[29.4,-.32,25],[24.5,-.32,25],[24.5,-.32,32.2],[11,-.32,32.2],[11,-.32,25],[-38.5,-.32,25],[-41.5,-.32,22],[-41.5,-.32,7.3],[-36.5,-.32,7.3]];
+const firewaterLoop:[number,number,number][]=[[-36.5,-.16,7.3],[-41.5,-.16,7.3],[-41.5,-.16,-24],[-38.5,-.16,-27],[29.4,-.16,-27],[32.4,-.16,-24],[32.4,-.16,22],[29.4,-.16,25],[24.5,-.16,25],[24.5,-.16,32.2],[11,-.16,32.2],[11,-.16,25],[-38.5,-.16,25],[-41.5,-.16,22],[-41.5,-.16,7.3],[-36.5,-.16,7.3]];
 function FirewaterRing(){return <group>
- {/* The ring main sits below finished grade; only hydrant risers remain visible above the surface. */}
  <PipelinePath points={firewaterLoop} color="#a7473c" radius={.082}/>
- <Pipe a={[-36.5,-.32,7.3]} b={[-36.5,1.08,7.3]} color="#a7473c" radius={.12}/>
+ <Pipe a={[-36.5,-.16,7.3]} b={[-36.5,1.08,7.3]} color="#a7473c" radius={.12}/>
  <Pipe a={[-36.5,1.08,7.3]} b={[-36.5,1.08,9.8]} color="#a7473c" radius={.12}/>
- {fireHydrantSites.map((position,i)=><group key={`fire-hydrant-${i}`} position={position}><Pipe a={[0,-.32,0]} b={[0,.08,0]} color="#a7473c" radius={.08}/><FireHydrantBody/></group>)}
+ {fireHydrantSites.map((position,i)=><group key={`fire-hydrant-${i}`} position={position}><Pipe a={[0,-.16,0]} b={[0,.08,0]} color="#a7473c" radius={.08}/><FireHydrantBody/></group>)}
  </group>}
 function FirewaterFacility({item}:{item:SiteItem}){return <ClickGroup item={item} position={item.position}>
  {/* Dedicated storage tank with roof vent, gauge, shell courses and fixed access ladder. */}
@@ -131,7 +130,7 @@ export class AssetBoundary extends Component<{fallback:(error:string)=>ReactNode
 export function SceneFallback({message}:{message:string}){const fa=typeof document!=='undefined'&&document.documentElement.lang==='fa';const night=useStore(s=>s.night);return <>
  <color attach="background" args={[night?'#09121d':'#d6e0d5']}/><fog attach="fog" args={[night?'#09121d':'#d6e0d5',80,145]}/><ambientLight intensity={night?.2:1.25}/><directionalLight position={[-25,45,20]} intensity={night?.3:2} castShadow/>
  <NightLighting night={night}/>
- <SiteTerrain night={night}/><IndustrialLandscapeBelt/>
+ <SiteTerrain night={night}/>
  <SitePerimeterFence/><CompanyArrivalLandscape/><CompanyMonumentSign/><RoadDrainageAndEmergencyAccess/><OilyWaterSewerNetwork/><SourWaterProcessNetwork/>
  <mesh rotation={[-Math.PI/2,0,0]} position={[-10,-.05,-8]}><planeGeometry args={[40,32]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',40/9,32/9)} color={night?'#59635d':'#cdd1c8'} roughness={.96}/></mesh>
  <mesh rotation={[-Math.PI/2,0,0]} position={[16,-.05,-8]}><planeGeometry args={[24,22]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',24/9,22/9)} color={night?'#59635d':'#d1cebc'} roughness={.96}/></mesh>
@@ -170,7 +169,7 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  <VehicleTrafficClock/><TruckTrafficSafety/><TruckLoadingRack/><DrumLoadingApron/><TruckDispatchSignal/>
  {items.filter(x=>x.kind==='truck').map((t,i)=><Truck key={`fallback-${t.id}`} item={t} index={i}/>)}
  <DrumLoadingForklift item={items.find(x=>x.id==='FL-027')!}/>
- <ResponsiveCameraZoom/><OrbitControls makeDefault target={[0,0,0]} minPolarAngle={.25} maxPolarAngle={Math.PI/2.12} minDistance={24} maxDistance={100}/>
+ <OrbitControls makeDefault target={[0,0,0]} minPolarAngle={.25} maxPolarAngle={Math.PI/2.12} minDistance={24} maxDistance={100}/>
  <Html center><div className="scene-crash-card"><strong>{fa?'حالت بازیابی صحنه':'Scene recovery mode'}</strong><span>{fa?'نمای ساده فعال است؛ خطای اصلی برای عیب‌یابی:':'Showing a lightweight fallback. Runtime error:'}</span><code>{message}</code></div></Html>
  </>}
 function ClickGroup({item,children,position}: {item?:SiteItem;children:React.ReactNode;position?:[number,number,number]}) {
@@ -1356,27 +1355,6 @@ function CompanyArrivalLandscape(){
  </group>;
 }
 
-function IndustrialFlowerBed({position,seed}:{position:[number,number,number];seed:number}){
- const night=useStore(s=>s.night),flowerColors=['#d9bc78','#a77d8f','#e2d8be','#bd8a58'];
- return <group position={position}>
-  <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.115,0]} receiveShadow><planeGeometry args={[4.2,2.8]}/><meshStandardMaterial map={getYardSurfaceMap('soil',2.4,1.6)} color={night?'#82785f':'#b8a782'} roughness={1}/></mesh>
-  {Array.from({length:5},(_,i)=>{const x=-1.45+((i*7+seed*3)%8)*.39,z=-.82+((i*5+seed)%5)*.36;return <EntryXericShrub key={`buffer-shrub-${seed}-${i}`} position={[x,.015,z]} scale={.52+(i%3)*.08}/>})}
-  {Array.from({length:12},(_,i)=>{const x=-1.7+((i*7+seed*2)%10)*.36,z=-.92+((i*5+seed*3)%6)*.35,color=flowerColors[(i+seed)%flowerColors.length];return <group key={`buffer-flower-${seed}-${i}`} position={[x,.02,z]}>
-   <mesh position={[0,.16,0]}><cylinderGeometry args={[.012,.022,.3,5]}/><meshStandardMaterial color="#687b58"/></mesh>
-   <mesh position={[0,.32,0]}><sphereGeometry args={[.085,7,6]}/><meshStandardMaterial color={color} roughness={.82}/></mesh>
-   <mesh position={[.055,.34,0]} scale={[.58,1,.72]}><sphereGeometry args={[.075,7,6]}/><meshStandardMaterial color={color} roughness={.82}/></mesh>
-  </group>})}
- </group>;
-}
-function IndustrialLandscapeBelt(){
- const trees:[number,number][]=[[-30.45,-17],[-29.65,-7.2],[-30.35,2.6],[-29.7,12.4]];
- const beds:[number,number][]=[[-26.15,-17],[-25.8,-7],[-26.3,2.8],[-25.9,12.3]];
- return <group>
-  {/* Low-water perimeter buffer stays inside the west boundary, clear of roads, hydrants, fire access and process equipment. */}
-  {trees.map(([x,z],i)=><CampusTree key={`west-buffer-tree-${i}`} position={[x,0,z]}/>)}
-  {beds.map(([x,z],i)=><IndustrialFlowerBed key={`west-buffer-bed-${i}`} position={[x,0,z]} seed={i}/>)}
- </group>;
-}
 function CompanyCampusDetails({gatehouse}:{gatehouse:SiteItem}){
  const night=useStore(s=>s.night);
  return <group>
@@ -2188,15 +2166,13 @@ function FlowPulse({points,color,delay}:{points:[number,number,number][];color:s
 }
 
 function FocusCamera({controlsRef}:{controlsRef:React.RefObject<any>}){const focus=useStore(s=>s.focus);const {camera}=useThree();const previous=useRef<[number,number,number]|null>(null);const desired=useRef<THREE.Vector3|null>(null);const desiredCamera=useRef<THREE.Vector3|null>(null);useFrame(()=>{if(focus&&focus!==previous.current){const controls=controlsRef.current;const current=controls?.target||new THREE.Vector3(0,0,0);const delta=new THREE.Vector3(...focus).sub(current);desired.current=new THREE.Vector3(...focus);desiredCamera.current=camera.position.clone().add(delta);previous.current=focus;}if(desired.current&&controlsRef.current){controlsRef.current.target.lerp(desired.current,.12);if(desiredCamera.current)camera.position.lerp(desiredCamera.current,.12);controlsRef.current.update();if(controlsRef.current.target.distanceTo(desired.current)<.08){desired.current=null;desiredCamera.current=null;}}});return null;}
-function ResponsiveCameraZoom(){const {camera,size}=useThree();useEffect(()=>{if(!(camera instanceof THREE.OrthographicCamera))return;const aspect=size.width/Math.max(size.height,1);camera.zoom=aspect<.42?4.8:aspect<.7?6.4:aspect<1?8.2:10.5;camera.updateProjectionMatrix()},[camera,size.width,size.height]);return null;}
-export function SceneReadySignal({onReady}:{onReady:()=>void}){const sent=useRef(false);useFrame(()=>{if(!sent.current){sent.current=true;onReady()}});return null;}
 
 export function World(){
  const controlsRef=useRef<any>(null);const night=useStore(s=>s.night);const quality=useStore(s=>s.quality); const mode=useStore(s=>s.mode); const filtered=useMemo(()=>items.filter(x=>mode==='overview'||mode==='all'||x.zone===mode||(mode==='storage'&&['tank','sphere-tank'].includes(x.kind))||(mode==='refinery'&&['process','furnace','flare'].includes(x.kind))),[mode]);
  return <>
   <color attach="background" args={[night?'#09121d':'#d6e0d5']}/><fog attach="fog" args={[night?'#09121d':'#d6e0d5',80,145]}/>
   <ambientLight intensity={night?.2:1.15}/><directionalLight position={[-30,55,22]} intensity={night?.32:2.3} castShadow={quality!=='low'} shadow-mapSize={quality==='high'?[2048,2048]:[1024,1024]} shadow-camera-left={-60} shadow-camera-right={60} shadow-camera-top={60} shadow-camera-bottom={-60}/><NightLighting night={night}/>
-  <SiteTerrain night={night}/><IndustrialLandscapeBelt/>
+  <SiteTerrain night={night}/>
   {/* Raised, fenced industrial plot like a miniature engineering diorama */}
   <Box position={[8,.015,-29]} scale={[84,.24,.42]} color="#48534e"/><Box position={[1,.015,29]} scale={[70,.24,.42]} color="#48534e"/>
   <Box position={[-34,.015,0]} scale={[.42,.24,58]} color="#48534e"/>
@@ -2277,7 +2253,7 @@ export function World(){
   <MarineLoadingArm position={[32.2,0,4]} color="#c69d5d"/><MarineLoadingArm position={[32.2,0,18]} color="#d6d0bc"/>
   {items.filter(x=>x.kind==='worker').map((person,i)=><AssetBoundary key={person.id} fallback={()=> <WorkerFallback item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>}><Suspense fallback={<WorkerFallback item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>}><Worker item={person} index={i} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/></Suspense></AssetBoundary>)}
   {mode==='personnel'&&items.map((it)=><mesh key={'pin'+it.id} position={[it.position[0],4,it.position[2]]}><sphereGeometry args={[.35,10,10]}/><meshBasicMaterial color="#f4cb79"/></mesh>)}
-  <ResponsiveCameraZoom/><OrbitControls ref={controlsRef} makeDefault target={[0,0,0]} minPolarAngle={.25} maxPolarAngle={Math.PI/2.12} minDistance={24} maxDistance={100} enableDamping dampingFactor={.08} />
+  <OrbitControls ref={controlsRef} makeDefault target={[0,0,0]} minPolarAngle={.25} maxPolarAngle={Math.PI/2.12} minDistance={24} maxDistance={100} enableDamping dampingFactor={.08} />
   <FocusCamera controlsRef={controlsRef}/>
  </>;
 }

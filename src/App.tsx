@@ -1,24 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { useProgress } from '@react-three/drei';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Activity, Anchor, ArrowDownLeft, Bell, Box, Building2, Check, ChevronDown, CircleHelp, Clock3, Compass, Cpu, Factory, Gauge, Globe2, Layers3, Maximize2, Moon, Pause, Play, Plus, Radio, RotateCcw, Search, Settings2, ShieldAlert, Ship, Sun, Truck, Users, Waves, X, Zap } from 'lucide-react';
-import { AssetBoundary, SceneFallback, SceneReadySignal, World } from './scene/World';
+import { AssetBoundary, SceneFallback, World } from './scene/World';
 import { items, zones, type SiteItem } from './data/site';
 import { useStore } from './store';
 import { translations } from './i18n/translations';
 import './styles.css';
 import './monitoring-theme.css';
-import './scene-loading.css';
 
 const nav=[
  {id:'overview',icon:Compass},{id:'refinery',icon:Factory},{id:'storage',icon:Layers3},{id:'utilities',icon:Zap},{id:'truck',icon:Truck},{id:'marine',icon:Anchor},{id:'personnel',icon:Users},
 ];
 function App(){
  const lang=useStore(s=>s.lang),quality=useStore(s=>s.quality),set=useStore(s=>s.set),selected=useStore(s=>s.selected),select=useStore(s=>s.select),mode=useStore(s=>s.mode),playing=useStore(s=>s.playing),speed=useStore(s=>s.speed),night=useStore(s=>s.night),flow=useStore(s=>s.flow),reset=useStore(s=>s.reset),resetKey=useStore(s=>s.resetKey);
- const t=translations[lang];const rtl=lang==='fa'; const [query,setQuery]=useState(''); const [help,setHelp]=useState(false); const [analytics,setAnalytics]=useState(false); const [clock,setClock]=useState(8*60+42); const {active:assetsLoading,progress:assetProgress}=useProgress(); const [sceneReady,setSceneReady]=useState(false); const [showLoading,setShowLoading]=useState(true);
- useEffect(()=>{if(!sceneReady||assetsLoading)return;const timer=window.setTimeout(()=>setShowLoading(false),550);return()=>window.clearTimeout(timer)},[sceneReady,assetsLoading]);
- const shownProgress=assetsLoading?Math.max(1,Math.min(99,Math.round(assetProgress))):sceneReady?100:Math.max(3,Math.round(assetProgress));
+ const t=translations[lang];const rtl=lang==='fa'; const [query,setQuery]=useState(''); const [help,setHelp]=useState(false); const [analytics,setAnalytics]=useState(false); const [clock,setClock]=useState(8*60+42); const [intro,setIntro]=useState(!sessionStorage.getItem('pv-intro'));
  useEffect(()=>{document.documentElement.lang=lang;document.documentElement.dir=rtl?'rtl':'ltr';localStorage.setItem('pv-lang',lang)},[lang,rtl]);
  useEffect(()=>{const onKey=(e:KeyboardEvent)=>{if((e.target as HTMLElement)?.tagName==='INPUT')return;const current=useStore.getState();const focus=current.focus||[0,0,0];if(e.key==='Escape'){select(null);set('search','');setHelp(false);return}if(e.key.toLowerCase()==='r'){reset();return}if(e.key.toLowerCase()==='f'&&current.selected){set('focus',[...current.selected.position]);return}const step=e.shiftKey?10:4;const move:Record<string,[number,number,number]>={w:[0,0,-step],ArrowUp:[0,0,-step],s:[0,0,step],ArrowDown:[0,0,step],a:[-step,0,0],ArrowLeft:[-step,0,0],d:[step,0,0],ArrowRight:[step,0,0]};if(move[e.key]||move[e.key.toLowerCase()]){e.preventDefault();const [dx,dy,dz]=move[e.key]||move[e.key.toLowerCase()];set('focus',[focus[0]+dx,focus[1]+dy,focus[2]+dz]);}};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[select,set,reset]);
  useEffect(()=>{const timer=setInterval(()=>{if(useStore.getState().playing)setClock(v=>(v+Math.max(1,Math.round(useStore.getState().speed*2)))%1440)},1000);return()=>clearInterval(timer)},[]);
@@ -45,8 +41,8 @@ function App(){
 
   <main className="workspace">
    <div className="scene-wrap">
-    <Canvas shadows fallback={<div className="webgl-fallback">{rtl?'مرورگر شما WebGL را فعال نکرده؛ شتاب‌دهی سخت‌افزاری مرورگر را روشن کنید.':'WebGL is unavailable. Enable browser hardware acceleration and reload.'}</div>} dpr={quality==='low'?1:quality==='medium'?1.2:[1,1.5]} onCreated={()=>setSceneReady(true)} onPointerMissed={()=>select(null)} orthographic camera={{position:[54,72,58],zoom:10.5,near:.1,far:300}} gl={{antialias:false,alpha:false,powerPreference:'high-performance'}}>
-     <SceneReadySignal onReady={()=>setSceneReady(true)}/><AssetBoundary fallback={(error)=><SceneFallback message={error}/>}><World/></AssetBoundary>
+    <Canvas shadows fallback={<div className="webgl-fallback">{rtl?'مرورگر شما WebGL را فعال نکرده؛ شتاب‌دهی سخت‌افزاری مرورگر را روشن کنید.':'WebGL is unavailable. Enable browser hardware acceleration and reload.'}</div>} dpr={quality==='low'?1:quality==='medium'?1.2:[1,1.5]} onPointerMissed={()=>select(null)} orthographic camera={{position:[54,72,58],zoom:10.5,near:.1,far:300}} gl={{antialias:false,alpha:false,powerPreference:'high-performance'}}>
+     <AssetBoundary fallback={(error)=><SceneFallback message={error}/>}><World/></AssetBoundary>
     </Canvas>
     <div className="scene-topline"><div className="breadcrumb"><span>PetroVista</span><span className="crumb-slash">/</span><b>{mode==='overview'?t.overviewTitle:t[mode as keyof typeof t]||t.overviewTitle}</b></div><div className="scene-badges"><span className="weather"><Sun size={14}/>{night?'22° · Clear night':'28° · Clear'}</span><span className="scenario-label"><span/> DEMO SCENARIO 01</span></div></div>
     <div className="north-indicator"><span>N</span><div className="north-arrow"/><small>0°</small></div>
@@ -102,21 +98,10 @@ function App(){
    <div className="bottom-right"><button className="mode-pill" onClick={()=>set('night',!night)}>{night?<Moon size={14}/>:<Sun size={14}/>} {night?t.night:t.day}</button><span className="bottom-sep"/><span className="time-label">{t.time}</span><b className="bottom-clock">{clockText}</b></div>
   </footer>
   <div className="right-zoom"><button onClick={()=>set('quality',useStore.getState().quality==='high'?'medium':useStore.getState().quality==='medium'?'low':'high')}><Settings2 size={14}/></button><div className="zoom-line"/><button onClick={()=>set('focus',[0,0,0])}><Compass size={14}/></button></div>
-  <AnimatePresence>{showLoading&&<SceneLoading progress={shownProgress} rtl={rtl}/>}</AnimatePresence>
+  <AnimatePresence>{intro&&<motion.div className="welcome-backdrop" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}><motion.div className="welcome-card" initial={{y:18,scale:.97}} animate={{y:0,scale:1}}><button className="welcome-close" onClick={()=>{setIntro(false);sessionStorage.setItem('pv-intro','1')}}><X size={17}/></button><div className="welcome-logo"><Factory size={23}/></div><span className="eyebrow">WELCOME TO PETROVISTA 3D</span><h2>{rtl?'مجتمع صنعتی را کشف کنید':'Explore the industrial world'}</h2><p>{rtl?'در یک محیط سه‌بعدی تعاملی پالایشگاه را کاوش کنید، تجهیزات را بررسی کنید و جریان‌های فرآیندی نمایشی را دنبال کنید.':'Explore a refinery in 3D, inspect assets, and follow illustrative process flows in an interactive demo.'}</p><div className="welcome-steps"><span><i>01</i>{rtl?'حرکت با کشیدن و زوم':'Drag to pan · scroll to zoom'}</span><span><i>02</i>{rtl?'برای بررسی روی تجهیز کلیک کنید':'Click an asset to inspect'}</span><span><i>03</i>{rtl?'زبان را از نوار بالا تغییر دهید':'Switch language in the header'}</span></div><div className="welcome-note"><ShieldAlert size={14}/>{rtl?'این محیط شامل داده‌های نمایشی است و به سامانه صنعتی واقعی متصل نیست.':'This environment uses simulated demo data and is not connected to real industrial systems.'}</div><button className="welcome-cta" onClick={()=>{setIntro(false);sessionStorage.setItem('pv-intro','1')}}>{rtl?'شروع کاوش':'Start exploring'} <ArrowDownLeft size={16}/></button></motion.div></motion.div>}</AnimatePresence>
   <AnimatePresence>{help&&<Modal title={rtl?'راهنمای محیط':'Environment guide'} onClose={()=>setHelp(false)}><div className="help-grid"><HelpItem icon={<Compass/>} title={rtl?'حرکت در صحنه':'Navigate the scene'} text={rtl?'برای جابه‌جایی کلیک و بکشید؛ اسکرول برای زوم و راست‌کلیک برای چرخش.':'Drag to pan, scroll to zoom, and right-drag to rotate.'}/><HelpItem icon={<Box/>} title={rtl?'بازرسی تجهیزات':'Inspect assets'} text={rtl?'روی مخزن، واحد یا وسیله نقلیه کلیک کنید تا پنل جزئیات باز شود.':'Click a tank, unit, or vehicle to open its detail panel.'}/><HelpItem icon={<Activity/>} title={rtl?'جریان فرآیند':'Process flow'} text={rtl?'جریان نمایشی را برای دنبال کردن مسیر مفهومی پالایش فعال کنید.':'Turn on process flow to follow the illustrative refinery path.'}/><HelpItem icon={<Radio/>} title={rtl?'داده‌های نمایشی':'Demo data'} text={rtl?'همه مقادیر، وضعیت‌ها و فعالیت‌ها صرفاً نمایشی هستند.':'All values, statuses, and activities are simulated.'}/></div></Modal>}</AnimatePresence>
   <AnimatePresence>{analytics&&<Modal title={rtl?'تحلیل عملکرد نمایشی':'Demo performance analytics'} onClose={()=>setAnalytics(false)}><div className="analytics-summary"><Kpi icon={<Gauge/>} label={t.storageKpi} value="64%" meta="± 3.2%" color="blue"/><Kpi icon={<Activity/>} label={rtl?'نرخ فرآورش':'Throughput'} value="42.8" meta="kt/day · demo" color="blue"/><Kpi icon={<Bell/>} label={t.alerts} value="01" meta={rtl?'نیازمند بازبینی':'Review required'} color="amber"/></div><div className="large-chart"><MiniChart/><div>{rtl?'نمودار شاخص نمایشی ـ ۲۴ ساعت گذشته':'Illustrative performance index · last 24 hours'}</div></div></Modal>}</AnimatePresence>
  </div>;
-}
-function SceneLoading({progress,rtl}:{progress:number;rtl:boolean}){
- return <motion.div className="scene-loading-overlay" role="status" aria-live="polite" dir={rtl?'rtl':'ltr'} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:.25}}>
-  <div className="scene-loading-card">
-   <div className="scene-loading-brand"><span><Factory size={23}/></span><div><b>PetroVista <i>3D</i></b><small>{rtl?'محیط نمایشی پالایشگاه':'REFINERY SITE VISUALIZATION'}</small></div></div>
-   <div className="scene-loading-copy"><strong>{rtl?'در حال آماده‌سازی صحنه سه‌بعدی':'Preparing the 3D site'}</strong><span>{rtl?'بارگذاری مدل‌ها، بافت‌ها و محیط':'Loading models, materials and environment'}</span></div>
-   <div className="scene-loading-progress" role="progressbar" aria-label={rtl?'پیشرفت بارگذاری صحنه':'Scene loading progress'} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><div style={{width:`${progress}%`}}/></div>
-   <div className="scene-loading-meta"><span>{rtl?'پیشرفت بارگذاری':'SCENE INITIALIZATION'}</span><b>{progress}%</b></div>
-   <div className="scene-loading-foot"><i/>{rtl?'همه داده‌ها و وضعیت‌ها نمایشی هستند':'Illustrative data · no live control connection'}</div>
-  </div>
- </motion.div>;
 }
 function AssetIcon({kind}:{kind:string}){if(kind==='worker')return <Users size={20}/>;if(kind==='tank'||kind==='sphere-tank')return <Layers3 size={20}/>;if(kind==='truck'||kind==='forklift')return <Truck size={20}/>;if(kind==='ship'||kind==='marine')return <Ship size={20}/>;if(kind==='process'||kind==='furnace')return <Factory size={20}/>;if(kind==='building')return <Building2 size={20}/>;if(kind==='cooling')return <Waves size={20}/>;return <Cpu size={20}/>}
 function Kpi({icon,label,value,meta,color}:{icon:React.ReactNode;label:string;value:string;meta:string;color:string}){return <div className={`kpi-card ${color}`}><div className="kpi-icon">{icon}</div><span>{label}</span><b>{value}</b><small>{meta}</small></div>}

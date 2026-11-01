@@ -126,10 +126,15 @@ function SceneLoadingOverlay({progress,rtl}:{progress:number;rtl:boolean}){
    <div className="loader-refinery-art" aria-hidden="true"><svg viewBox="0 0 520 170" preserveAspectRatio="xMidYMid meet">
     <path className="loader-pipe" d="M25 130H493M58 130V93H197V130M192 130V110H337V130M335 130V88H463V130M72 93V61H135V93M225 110V54H268V110M393 88V45H438V88"/>
     <path className="loader-flow" d="M25 130H493M58 130V93H197V130M192 130V110H337V130M335 130V88H463V130"/>
+    <circle className="loader-oil-pulse" r="3.4"><animateMotion dur="6.4s" repeatCount="indefinite" path="M25 130H58V93H197V130H225V110H337V130H335V88H393V45H438V88H463V130H493"/></circle>
+    <circle className="loader-oil-pulse pulse-two" r="2.6"><animateMotion begin="2.1s" dur="6.4s" repeatCount="indefinite" path="M25 130H58V93H197V130H225V110H337V130H335V88H393V45H438V88H463V130H493"/></circle>
+    <circle className="loader-water-pulse" r="2.5"><animateMotion dur="4.7s" repeatCount="indefinite" path="M282 130V111H299V99H311V130H363"/></circle>
     <path className="loader-vessel" d="M72 92V51q0-9 9-9h45q9 0 9 9v42M77 52h53M225 108V50q0-10 10-10h14q10 0 10 10v59M228 53h28M393 86V40q0-8 8-8h28q8 0 8 8v46M397 43h36"/>
     <path className="loader-platform" d="M65 62h77M218 59h58M387 47h50M65 72h77M218 68h58M387 56h50"/>
-    <path className="loader-steel" d="M33 129V105q0-10 10-10h19v35M43 95V78h18v17M456 129V104h24v25M461 104V75h15v29M297 130V75h16v55M292 75h27M300 75V61h10M304 61V46"/>
-    <path className="loader-level" d="M83 82h41v10H83zM231 82h26v22h-26zM401 69h28v15h-28z"/><circle className="loader-light" cx="304" cy="43" r="3"/>
+    <path className="loader-steel" d="M33 129V105q0-10 10-10h19v35M43 95V78h18v17M297 130V75h16v55M292 75h27M300 75V61h10M304 61V46"/>
+    <path className="loader-vessel" d="M452 124h40l-5 8h-29zM459 123v-8h10v8M472 123v-5h8v5"/><path className="loader-platform" d="M454 134h39m-30 0v4m21-4v4"/>
+    <rect className="loader-level fill-one" x="83" y="82" width="41" height="10" rx="2"/><rect className="loader-level fill-two" x="231" y="82" width="26" height="22" rx="2"/><rect className="loader-level fill-three" x="401" y="69" width="28" height="15" rx="2"/>
+    <g className="loader-pump" transform="translate(304 101)"><circle r="6"/><path className="loader-rotor" d="M0 -4v8M-4 0h8"/></g><circle className="loader-light" cx="304" cy="43" r="3"/>
     <ellipse className="loader-vapor" cx="308" cy="33" rx="9" ry="6"/><ellipse className="loader-vapor vapor-two" cx="315" cy="26" rx="12" ry="7"/>
     <path className="loader-platform" d="M26 137h468M39 139v8m43-8v8m43-8v8m43-8v8m43-8v8m43-8v8m43-8v8m43-8v8m43-8v8m43-8v8"/>
    </svg></div>

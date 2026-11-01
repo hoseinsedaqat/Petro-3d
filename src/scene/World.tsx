@@ -27,6 +27,7 @@ function makeLandscapeInstances(geometry:THREE.BufferGeometry,entries:LandscapeI
  entries.forEach((entry,index)=>{object.position.set(...entry.position);if(entry.euler)object.rotation.set(...entry.euler);else object.rotation.set(0,entry.rotation??0,0);object.scale.set(...entry.scale);object.updateMatrix();mesh.setMatrixAt(index,object.matrix);mesh.setColorAt(index,new THREE.Color(entry.color))});
  mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;mesh.computeBoundingSphere();return mesh;
 }
+function isInsideLandscapePolygon(x:number,z:number,points:[number,number][]){let inside=false;for(let i=0,j=points.length-1;i<points.length;j=i++){const [xi,zi]=points[i],[xj,zj]=points[j];const intersects=(zi>z)!==(zj>z)&&x<(xj-xi)*(z-zi)/(zj-zi)+xi;if(intersects)inside=!inside}return inside}
 function makeMeadow(points:[number,number][],color:string){
  const curve=new THREE.CatmullRomCurve3(points.map(([x,z])=>new THREE.Vector3(x,-z,0)),true,'catmullrom',.28);
  const boundary=curve.getPoints(Math.max(48,points.length*8));const shape=new THREE.Shape();shape.moveTo(boundary[0].x,boundary[0].y);boundary.slice(1).forEach(point=>shape.lineTo(point.x,point.y));shape.closePath();
@@ -68,24 +69,34 @@ function RefineryLandscapeBuffers(){
    }
    for(let i=0;i<2;i++){const a=bed*1.77+i*2.75;stones.push({position:[cx+Math.cos(a)*1.75,.04,cz+Math.sin(a)*1.32],scale:[.3+(i%2)*.12,.16,.22],color:i?'#978f78':'#aaa18a',rotation:a})}
   });
-  const meadows=[
-   makeMeadow([[-70,-28],[-62,-31],[-49,-29],[-45,-20],[-46,18],[-52,28],[-63,31],[-70,29]],'#8fa36d'),
-   makeMeadow([[-70,-49],[-58,-50],[-25,-49],[-22,-43],[-26,-39],[-52,-38],[-68,-39]],'#91a66f'),
-   makeMeadow([[13,-49],[22,-50],[67,-49],[66,-40],[51,-38],[16,-39]],'#91a66f'),
-   makeMeadow([[-70,36],[-58,35],[-43,35],[-32,37],[-24,43],[-28,49],[-43,50],[-70,49]],'#8ca16a'),
-   makeMeadow([[-10,36],[-3,35],[8,36],[10,42],[8,47],[5,49],[-5,49],[-10,48]],'#91a66f'),
+  const meadowPolygons:[number,number][][]=[
+   [[-70,-28],[-62,-31],[-49,-29],[-45,-20],[-46,18],[-52,28],[-63,31],[-70,29]],
+   [[-70,-49],[-58,-50],[-25,-49],[-22,-43],[-26,-39],[-52,-38],[-68,-39]],
+   [[13,-49],[22,-50],[67,-49],[66,-40],[51,-38],[16,-39]],
+   [[-70,36],[-58,35],[-43,35],[-32,37],[-24,43],[-28,49],[-43,50],[-70,49]],
+   [[-10,36],[-3,35],[8,36],[10,42],[8,47],[5,49],[-5,49],[-10,48]],
+   // Small additional lawn pockets complete the south buffer but leave the visitor-gate drive open.
+   [[-23,37],[-20.6,36.6],[-20.2,43],[-22.8,45.5],[-24.2,42]],
+   [[28.2,39.2],[35.2,39.2],[35.2,48.5],[32,49.4],[28.2,47]],
   ];
+  const meadows=meadowPolygons.map((polygon,index)=>makeMeadow(polygon,index%2?'#91a66f':'#8fa36d'));
+  // Fine-scale native groundcover fills the wide lawn panels in the references. The clusters are instanced, kept low, and exist only inside the planted buffers.
+  const meadowCover:LandscapeInstance[]=[];let coverSeed=7741;const coverRandom=()=>{coverSeed=(coverSeed*1664525+1013904223)>>>0;return coverSeed/4294967296};
+  meadowPolygons.forEach((polygon,zone)=>{
+   const xs=polygon.map(point=>point[0]),zs=polygon.map(point=>point[1]);const minX=Math.min(...xs),maxX=Math.max(...xs),minZ=Math.min(...zs),maxZ=Math.max(...zs),spacing=zone===0?1.85:1.55;
+   let row=0;for(let z=minZ+.35;z<maxZ;z+=spacing,row++)for(let x=minX+.35+(row%2)*spacing*.5;x<maxX;x+=spacing){const px=x+(coverRandom()-.5)*.6,pz=z+(coverRandom()-.5)*.6;if(!isInsideLandscapePolygon(px,pz,polygon))continue;const index=Math.floor(coverRandom()*6);meadowCover.push({position:[px,-.012,pz],scale:[.8+coverRandom()*.65,.75+coverRandom()*.9,.8+coverRandom()*.65],color:['#738a59','#7d905f','#89996b','#697f53','#92a06c','#708357'][(index+zone)%6],rotation:coverRandom()*Math.PI*2})}
+  });
   const treeTrunkGeometry=new THREE.CylinderGeometry(.13,.2,2.24,7);
   const branchGeometry=new THREE.CylinderGeometry(.045,.09,1.18,6);
   const leafGeometry=new THREE.IcosahedronGeometry(1,1);
   const mulchGeometry=new THREE.CircleGeometry(1,18);
-  return {meadows,
+  return {meadows,meadowCoverMesh:makeLandscapeInstances(new THREE.ConeGeometry(.15,.32,5),meadowCover),
    trunkMesh:makeLandscapeInstances(treeTrunkGeometry,trunks),branchMesh:makeLandscapeInstances(branchGeometry,branches),canopyMesh:makeLandscapeInstances(leafGeometry,canopy),
    mulchMesh:makeLandscapeInstances(mulchGeometry,mulch),shrubMesh:makeLandscapeInstances(leafGeometry,shrubs),grassMesh:makeLandscapeInstances(new THREE.ConeGeometry(.21,.72,5),grass),
    flowerMesh:makeLandscapeInstances(new THREE.IcosahedronGeometry(.1,0),flowers),stoneMesh:makeLandscapeInstances(new THREE.DodecahedronGeometry(1,0),stones),
   };
  },[]);
- return <group>{landscape.meadows.map((mesh,i)=><primitive key={`green-buffer-meadow-${i}`} object={mesh} dispose={null}/>)}<primitive object={landscape.mulchMesh} dispose={null}/><primitive object={landscape.trunkMesh} dispose={null}/><primitive object={landscape.branchMesh} dispose={null}/><primitive object={landscape.canopyMesh} dispose={null}/><primitive object={landscape.shrubMesh} dispose={null}/><primitive object={landscape.grassMesh} dispose={null}/><primitive object={landscape.flowerMesh} dispose={null}/><primitive object={landscape.stoneMesh} dispose={null}/></group>;
+ return <group>{landscape.meadows.map((mesh,i)=><primitive key={`green-buffer-meadow-${i}`} object={mesh} dispose={null}/>)}<primitive object={landscape.meadowCoverMesh} dispose={null}/><primitive object={landscape.mulchMesh} dispose={null}/><primitive object={landscape.trunkMesh} dispose={null}/><primitive object={landscape.branchMesh} dispose={null}/><primitive object={landscape.canopyMesh} dispose={null}/><primitive object={landscape.shrubMesh} dispose={null}/><primitive object={landscape.grassMesh} dispose={null}/><primitive object={landscape.flowerMesh} dispose={null}/><primitive object={landscape.stoneMesh} dispose={null}/></group>;
 }
 function TankFarmBundAccess(){return <group>
  {/* Staggered concrete treads and paired handrails cross the east containment berm. */}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useProgress } from '@react-three/drei';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -23,9 +23,10 @@ const nav=[
 ];
 function App(){
  const lang=useStore(s=>s.lang),quality=useStore(s=>s.quality),set=useStore(s=>s.set),selected=useStore(s=>s.selected),select=useStore(s=>s.select),mode=useStore(s=>s.mode),playing=useStore(s=>s.playing),speed=useStore(s=>s.speed),night=useStore(s=>s.night),flow=useStore(s=>s.flow),reset=useStore(s=>s.reset),resetKey=useStore(s=>s.resetKey);
- const t=translations[lang];const rtl=lang==='fa'; const [query,setQuery]=useState(''); const [help,setHelp]=useState(false); const [analytics,setAnalytics]=useState(false); const [clock,setClock]=useState(8*60+42); const {active:assetsLoading,progress:assetProgress}=useProgress(); const [sceneReady,setSceneReady]=useState(false); const [showLoading,setShowLoading]=useState(true); const [shownProgress,setShownProgress]=useState(0); const loadStartedAt=useMemo(()=>Date.now(),[]);
- useEffect(()=>{const update=()=>{const elapsed=8+Math.floor((Date.now()-loadStartedAt)/520);const assetStage=assetsLoading?8+Math.round(assetProgress*.78):0;const complete=sceneReady&&!assetsLoading;const target=complete?100:Math.min(94,Math.max(elapsed,assetStage));setShownProgress(current=>Math.max(current,target))};update();const timer=window.setInterval(update,90);return()=>window.clearInterval(timer)},[assetsLoading,assetProgress,sceneReady,loadStartedAt]);
- useEffect(()=>{if(!sceneReady||assetsLoading)return;const timer=window.setTimeout(()=>setShowLoading(false),720);return()=>window.clearTimeout(timer)},[sceneReady,assetsLoading]);
+ const t=translations[lang];const rtl=lang==='fa'; const [query,setQuery]=useState(''); const [help,setHelp]=useState(false); const [analytics,setAnalytics]=useState(false); const [clock,setClock]=useState(8*60+42); const {progress:assetProgress}=useProgress(); const [sceneReady,setSceneReady]=useState(false); const [showLoading,setShowLoading]=useState(true);
+ // Keep the readout tied to actual loader progress; 100% means the scene has rendered its first frame.
+ const shownProgress=sceneReady?100:Math.min(94,Math.max(0,Math.round(assetProgress*.94)));
+ useEffect(()=>{if(!sceneReady)return;const timer=window.setTimeout(()=>setShowLoading(false),320);return()=>window.clearTimeout(timer)},[sceneReady]);
  useEffect(()=>{document.documentElement.lang=lang;document.documentElement.dir=rtl?'rtl':'ltr';localStorage.setItem('pv-lang',lang)},[lang,rtl]);
  useEffect(()=>{const onKey=(e:KeyboardEvent)=>{if((e.target as HTMLElement)?.tagName==='INPUT')return;const current=useStore.getState();const focus=current.focus||[0,0,0];if(e.key==='Escape'){select(null);set('search','');setHelp(false);return}if(e.key.toLowerCase()==='r'){reset();return}if(e.key.toLowerCase()==='f'&&current.selected){set('focus',[...current.selected.position]);return}const step=e.shiftKey?10:4;const move:Record<string,[number,number,number]>={w:[0,0,-step],ArrowUp:[0,0,-step],s:[0,0,step],ArrowDown:[0,0,step],a:[-step,0,0],ArrowLeft:[-step,0,0],d:[step,0,0],ArrowRight:[step,0,0]};if(move[e.key]||move[e.key.toLowerCase()]){e.preventDefault();const [dx,dy,dz]=move[e.key]||move[e.key.toLowerCase()];set('focus',[focus[0]+dx,focus[1]+dy,focus[2]+dz]);}};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[select,set,reset]);
  useEffect(()=>{const timer=setInterval(()=>{if(useStore.getState().playing)setClock(v=>(v+Math.max(1,Math.round(useStore.getState().speed*2)))%1440)},1000);return()=>clearInterval(timer)},[]);
@@ -53,7 +54,7 @@ function App(){
   <main className="workspace">
    <div className="scene-wrap">
     <Canvas shadows={quality!=='low'} fallback={<WebGLUnavailable rtl={rtl} onReady={()=>setSceneReady(true)}/>} dpr={quality==='low'?.75:quality==='medium'?1:[1,1.3]} onPointerMissed={()=>select(null)} orthographic camera={{position:[54,72,58],zoom:10.5,near:.1,far:300}} gl={{antialias:false,alpha:false,powerPreference:'high-performance'}}>
-     <SceneReadySignal onReady={()=>setSceneReady(true)}/><AssetBoundary fallback={(error)=><SceneFallback message={error}/>}><World/></AssetBoundary>
+     <SceneReadySignal onReady={()=>setSceneReady(true)}/><AssetBoundary fallback={(error)=><SceneFallback message={error}/>}><World loadHighDetail={sceneReady}/></AssetBoundary>
     </Canvas>
     <div className="scene-topline"><div className="breadcrumb"><span>PetroVista</span><span className="crumb-slash">/</span><b>{mode==='overview'?t.overviewTitle:t[mode as keyof typeof t]||t.overviewTitle}</b></div><div className="scene-badges"><span className="weather"><Sun size={14}/>{night?'22° · Clear night':'28° · Clear'}</span><span className="scenario-label"><span/> DEMO SCENARIO 01</span></div></div>
     <div className="north-indicator"><span>N</span><div className="north-arrow"/><small>0°</small></div>
@@ -64,7 +65,7 @@ function App(){
    <aside className="left-rail">
     <div className="rail-head"><span>{rtl?'پایش و ناوبری سایت':'SITE MONITORING'}</span><span className="rail-head-code">PV / OPS</span></div>
     <div className="rail-status-card">
-     <div className="rail-status-top"><span>{rtl?'خلاصه وضعیت':'SITE TELEMETRY'}</span><span className="demo-badge"><i/>{rtl?'نمایشی':'DEMO'}</span></div>
+     <div className="rail-status-top"><span>{rtl?'خلاصه وضعیت':'SITE TELEMETRY'}</span><span className="demo-badge"><i/>DEMO</span></div>
      <div className="rail-status-main"><span className="rail-status-icon"><Activity size={17}/></span><span><b>{rtl?'پایش محلی فعال':'Local monitor active'}</b><small>{rtl?'بدون اتصال به PLC':'No PLC connection'}</small></span><b className="rail-unit-count">18<span>/21</span></b></div>
      <div className="rail-status-track"><i/></div>
      <div className="rail-status-foot"><span>{rtl?'واحدهای پایدار · داده نمایشی':'UNITS IN DEMO VIEW'}</span><b>{clockText} <small>LOC</small></b></div>
@@ -97,7 +98,7 @@ function App(){
       <div className="inspector-kpis"><Kpi icon={<Factory size={16}/>} label={t.active} value="18" meta={rtl?'از ۲۱ واحد':'of 21 units'} color="blue"/><Kpi icon={<Truck size={16}/>} label={t.trucks} value="02" meta={rtl?'۲ جایگاه آزاد':'2 bays available'} color="amber"/><Kpi icon={<Gauge size={16}/>} label={t.storageKpi} value="64%" meta={rtl?'۸ مخزن پایش‌شده':'8 monitored tanks'} color="slate"/></div>
       <ProcessCyclePanel rtl={rtl} onFocus={position=>set('focus',[...position])}/>
       <section className="utility-snapshot"><div className="section-row"><span className="section-label">{rtl?'تراز یوتیلیتی · نمایشی':'DEMO UTILITIES BALANCE'}</span><span className="instrument-source"><i/>{rtl?'محلی':'LOCAL'}</span></div><div className="utility-metrics"><UtilityMetric label={rtl?'برق':'POWER'} value="18.6" unit="MW" fill={74}/><UtilityMetric label={rtl?'بخار':'STEAM'} value="42.1" unit="t/h" fill={61}/><UtilityMetric label={rtl?'آب خنک‌کن':'COOLING WATER'} value="124" unit="m³/h" fill={48}/></div></section>
-      <section className="instrument-panel"><div className="section-row"><span className="section-label">{rtl?'نشانگرهای فرایندی':'PROCESS INSTRUMENTS'}</span><span className="instrument-source"><i/>{rtl?'نمایشی':'DEMO'}</span></div><InstrumentRow tag="FIC-101" label={rtl?'دبی خوراک خام':'Crude charge flow'} value="82.4%" fill={82}/><InstrumentRow tag="TIC-204" label={rtl?'دمای خروجی کوره':'Furnace outlet temp'} value="352°C" fill={68}/><InstrumentRow tag="PIC-207" label={rtl?'فشار برج تقطیر':'Column pressure'} value="1.42 bar" fill={54}/></section>
+      <section className="instrument-panel"><div className="section-row"><span className="section-label">{rtl?'نشانگرهای فرایندی':'PROCESS INSTRUMENTS'}</span><span className="instrument-source"><i/>DEMO</span></div><InstrumentRow tag="FIC-101" label={rtl?'دبی خوراک خام':'Crude charge flow'} value="82.4%" fill={82}/><InstrumentRow tag="TIC-204" label={rtl?'دمای خروجی کوره':'Furnace outlet temp'} value="352°C" fill={68}/><InstrumentRow tag="PIC-207" label={rtl?'فشار برج تقطیر':'Column pressure'} value="1.42 bar" fill={54}/></section>
       <section className="mini-chart-section"><button className="chart-heading chart-open" onClick={()=>setAnalytics(true)}><div><span className="section-label">{rtl?'روند نمایشی تولید':'DEMO THROUGHPUT'}</span><b>42.8 <small>kt/day</small></b></div><span className="chart-change"><ArrowDownLeft size={12}/> 2.4%</span></button><MiniChart/></section>
       <section className="activity-section"><div className="section-row"><span className="section-label">{rtl?'فعالیت‌های اخیر':'RECENT ACTIVITY'}</span><button onClick={()=>setAnalytics(true)}>{rtl?'مشاهده همه':'View all'}</button></div><ActivityRow icon={<Truck size={14}/>} title={rtl?'کامیون TR-014 وارد جایگاه شد':'TR-014 entered loading bay'} time="08:39" color="amber"/><ActivityRow icon={<Check size={14}/>} title={rtl?'بازبینی ایمنی TK-103 ثبت شد':'TK-103 safety review logged'} time="08:26" color="slate"/><ActivityRow icon={<Anchor size={14}/>} title={rtl?'نفت‌کش آذر به اسکله رسید':'MT Azar arrived at berth'} time="08:12" color="blue"/></section>
       <div className="demo-callout"><div className="callout-icon"><Radio size={16}/></div><div><b>{rtl?'محیط شبیه‌سازی تعاملی':'Interactive demo environment'}</b><p>{rtl?'با انتخاب تجهیزات روی صحنه، وضعیت و داده‌های نمایشی را بررسی کنید.':'Select equipment in the scene to inspect simulated states and data.'}</p></div></div>
@@ -111,33 +112,38 @@ function App(){
    <div className="bottom-right"><button className="mode-pill" onClick={()=>set('night',!night)}>{night?<Moon size={14}/>:<Sun size={14}/>} {night?t.night:t.day}</button><span className="bottom-sep"/><span className="time-label">{t.time}</span><b className="bottom-clock">{clockText}</b></div>
   </footer>
   <div className="right-zoom"><button onClick={()=>set('quality',useStore.getState().quality==='high'?'medium':useStore.getState().quality==='medium'?'low':'high')}><Settings2 size={14}/></button><div className="zoom-line"/><button onClick={()=>set('focus',[0,0,0])}><Compass size={14}/></button></div>
-  <AnimatePresence>{showLoading&&<SceneLoadingOverlay progress={shownProgress} rtl={rtl}/>}</AnimatePresence>
+  <AnimatePresence>{showLoading&&<SceneLoadingOverlay progress={shownProgress}/>}</AnimatePresence>
   <AnimatePresence>{help&&<Modal title={rtl?'راهنمای محیط':'Environment guide'} onClose={()=>setHelp(false)}><div className="help-grid"><HelpItem icon={<Compass/>} title={rtl?'حرکت در صحنه':'Navigate the scene'} text={rtl?'برای جابه‌جایی کلیک و بکشید؛ اسکرول برای زوم و راست‌کلیک برای چرخش.':'Drag to pan, scroll to zoom, and right-drag to rotate.'}/><HelpItem icon={<Box/>} title={rtl?'بازرسی تجهیزات':'Inspect assets'} text={rtl?'روی مخزن، واحد یا وسیله نقلیه کلیک کنید تا پنل جزئیات باز شود.':'Click a tank, unit, or vehicle to open its detail panel.'}/><HelpItem icon={<Activity/>} title={rtl?'جریان فرآیند':'Process flow'} text={rtl?'جریان نمایشی را برای دنبال کردن مسیر مفهومی پالایش فعال کنید.':'Turn on process flow to follow the illustrative refinery path.'}/><HelpItem icon={<Radio/>} title={rtl?'داده‌های نمایشی':'Demo data'} text={rtl?'همه مقادیر، وضعیت‌ها و فعالیت‌ها صرفاً نمایشی هستند.':'All values, statuses, and activities are simulated.'}/></div></Modal>}</AnimatePresence>
   <AnimatePresence>{analytics&&<Modal title={rtl?'تحلیل عملکرد نمایشی':'Demo performance analytics'} onClose={()=>setAnalytics(false)}><div className="analytics-summary"><Kpi icon={<Gauge/>} label={t.storageKpi} value="64%" meta="± 3.2%" color="blue"/><Kpi icon={<Activity/>} label={rtl?'نرخ فرآورش':'Throughput'} value="42.8" meta="kt/day · demo" color="blue"/><Kpi icon={<Bell/>} label={t.alerts} value="01" meta={rtl?'نیازمند بازبینی':'Review required'} color="amber"/></div><div className="analytics-utility-grid"><div><small>{rtl?'توان مصرفی':'POWER DEMAND'}</small><b>18.6 <i>MW</i></b><span>74% {rtl?'بار نمایشی':'demo load'}</span></div><div><small>{rtl?'بخار فرایندی':'PROCESS STEAM'}</small><b>42.1 <i>t/h</i></b><span>61% {rtl?'بار نمایشی':'demo load'}</span></div><div><small>{rtl?'آب خنک‌کن':'COOLING WATER'}</small><b>124 <i>m³/h</i></b><span>48% {rtl?'بار نمایشی':'demo load'}</span></div><div><small>{rtl?'وضعیت هشدار':'ALARM STATE'}</small><b>{rtl?'۱ بازبینی':'01 review'}</b><span>{rtl?'داده آزمایشی':'simulated event'}</span></div></div><div className="large-chart"><MiniChart/><div>{rtl?'نمودار شاخص نمایشی ـ ۲۴ ساعت گذشته':'Illustrative performance index · last 24 hours'}</div></div></Modal>}</AnimatePresence>
  </div>;
 }
-function SceneLoadingOverlay({progress,rtl}:{progress:number;rtl:boolean}){
- const stages=rtl?['دریافت خوراک','تقطیر','تبدیل','یوتیلیتی','ذخیره و ارسال']:['Crude feed','Distillation','Conversion','Utilities','Storage & export'];
- const status=progress<22?(rtl?'راه‌اندازی هسته و داده‌های سایت':'Starting site data and runtime'):progress<58?(rtl?'ساخت چرخه فرایند و تجهیزات':'Building process flow and assets'):progress<90?(rtl?'پردازش بافت‌ها و آماده‌سازی صحنه':'Preparing materials and scene'):rtl?'تکمیل رندر نخستین فریم':'Finishing the first rendered frame';
- return <motion.div className="scene-loading-overlay" role="status" aria-live="polite" dir={rtl?'rtl':'ltr'} initial={{opacity:1}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:.3}}>
+function SceneLoadingOverlay({progress}:{progress:number}){
+ const stages=['Crude feed','Distillation','Conversion','Utilities','Storage & export'];
+ const status=progress<22?'Starting site data and runtime':progress<58?'Building process flow and assets':progress<90?'Preparing materials and scene':'Finishing the first rendered frame';
+ return <motion.div className="scene-loading-overlay" role="status" aria-live="polite" lang="en" dir="ltr" initial={{opacity:1}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:.3}}>
   <div className="scene-loading-card">
-   <div className="scene-loading-brand"><span className="scene-loading-mark">PV</span><div><b>PetroVista <i>3D</i></b><small>REFINERY OPERATIONS VIEW</small></div><span className="scene-demo-pill"><i/>{rtl?'نمایشی':'DEMO'}</span></div>
-   <div className="scene-loading-title"><strong>{rtl?'چرخه تولید پالایشگاه':'REFINERY PRODUCTION CYCLE'}</strong><span>{rtl?'از دریافت نفت خام تا ذخیره و ارسال محصول':'From crude receiving to product storage and export'}</span></div>
+   <div className="scene-loading-brand"><span className="scene-loading-mark">PV</span><div><b>PetroVista <i>3D</i></b><small>REFINERY OPERATIONS VIEW</small></div><span className="scene-demo-pill"><i/>DEMO</span></div>
+   <div className="scene-loading-title"><strong>REFINERY PRODUCTION CYCLE</strong><span>From crude receiving to product storage and export</span></div>
    <div className="loader-refinery-art" aria-hidden="true"><svg viewBox="0 0 520 170" preserveAspectRatio="xMidYMid meet">
     <path className="loader-pipe" d="M25 130H493M58 130V93H197V130M192 130V110H337V130M335 130V88H463V130M72 93V61H135V93M225 110V54H268V110M393 88V45H438V88"/>
     <path className="loader-flow" d="M25 130H493M58 130V93H197V130M192 130V110H337V130M335 130V88H463V130"/>
+    <circle className="loader-oil-pulse" r="3.4"><animateMotion dur="6.4s" repeatCount="indefinite" path="M25 130H58V93H197V130H225V110H337V130H335V88H393V45H438V88H463V130H493"/></circle>
+    <circle className="loader-oil-pulse pulse-two" r="2.6"><animateMotion begin="2.1s" dur="6.4s" repeatCount="indefinite" path="M25 130H58V93H197V130H225V110H337V130H335V88H393V45H438V88H463V130H493"/></circle>
+    <circle className="loader-water-pulse" r="2.5"><animateMotion dur="4.7s" repeatCount="indefinite" path="M282 130V111H299V99H311V130H363"/></circle>
     <path className="loader-vessel" d="M72 92V51q0-9 9-9h45q9 0 9 9v42M77 52h53M225 108V50q0-10 10-10h14q10 0 10 10v59M228 53h28M393 86V40q0-8 8-8h28q8 0 8 8v46M397 43h36"/>
     <path className="loader-platform" d="M65 62h77M218 59h58M387 47h50M65 72h77M218 68h58M387 56h50"/>
-    <path className="loader-steel" d="M33 129V105q0-10 10-10h19v35M43 95V78h18v17M456 129V104h24v25M461 104V75h15v29M297 130V75h16v55M292 75h27M300 75V61h10M304 61V46"/>
-    <path className="loader-level" d="M83 82h41v10H83zM231 82h26v22h-26zM401 69h28v15h-28z"/><circle className="loader-light" cx="304" cy="43" r="3"/>
+    <path className="loader-steel" d="M33 129V105q0-10 10-10h19v35M43 95V78h18v17M297 130V75h16v55M292 75h27M300 75V61h10M304 61V46"/>
+    <path className="loader-vessel" d="M452 124h40l-5 8h-29zM459 123v-8h10v8M472 123v-5h8v5"/><path className="loader-platform" d="M454 134h39m-30 0v4m21-4v4"/>
+    <rect className="loader-level fill-one" x="83" y="82" width="41" height="10" rx="2"/><rect className="loader-level fill-two" x="231" y="82" width="26" height="22" rx="2"/><rect className="loader-level fill-three" x="401" y="69" width="28" height="15" rx="2"/>
+    <g className="loader-pump" transform="translate(304 101)"><circle r="6"/><path className="loader-rotor" d="M0 -4v8M-4 0h8"/></g><circle className="loader-light" cx="304" cy="43" r="3"/>
     <ellipse className="loader-vapor" cx="308" cy="33" rx="9" ry="6"/><ellipse className="loader-vapor vapor-two" cx="315" cy="26" rx="12" ry="7"/>
     <path className="loader-platform" d="M26 137h468M39 139v8m43-8v8m43-8v8m43-8v8m43-8v8m43-8v8m43-8v8m43-8v8m43-8v8m43-8v8"/>
    </svg></div>
-   <div className="scene-cycle-steps">{stages.map((stage,index)=><div className={`scene-cycle-step ${progress>=index*20+15?'reached':''} ${progress>=index*20+15&&progress<(index+1)*20+15?'current':''}`} key={stage}><i><span>{String(index+1).padStart(2,'0')}</span></i><small>{stage}</small></div>)}</div>
+   <div className="scene-cycle-steps" style={{'--loader-progress':`${progress/100}`} as CSSProperties}>{stages.map((stage,index)=><div className={`scene-cycle-step ${progress>=index*20+15?'reached':''} ${progress>=index*20+15&&progress<(index+1)*20+15?'current':''}`} key={stage}><i><span>{String(index+1).padStart(2,'0')}</span></i><small>{stage}</small></div>)}</div>
    <div className="scene-loading-status"><span className="loading-pulse"/><span>{status}</span><b>{String(progress).padStart(2,'0')}%</b></div>
-   <div className="scene-loading-progress" role="progressbar" aria-label={rtl?'پیشرفت آماده‌سازی صحنه':'Scene preparation progress'} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><div style={{width:`${progress}%`}}/></div>
-   <div className="scene-loading-meta"><span>{rtl?'۰':'0'}</span><span>{rtl?'پیشرفت آماده‌سازی':'SCENE INITIALIZATION'}</span><span>{rtl?'۱۰۰٪':'100%'}</span></div>
-   <div className="scene-loading-foot"><i/>{rtl?'داده‌ها و وضعیت‌ها نمایشی‌اند · بدون اتصال به کنترل واقعی':'Illustrative data · no live control connection'}</div>
+   <div className="scene-loading-progress" role="progressbar" aria-label="Scene preparation progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><div style={{width:`${progress}%`}}/></div>
+   <div className="scene-loading-meta"><span>0</span><span>SCENE INITIALIZATION</span><span>100%</span></div>
+   <div className="scene-loading-foot"><i/>Illustrative data · no live control connection</div>
   </div>
  </motion.div>;
 }

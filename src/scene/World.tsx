@@ -27,6 +27,7 @@ function makeLandscapeInstances(geometry:THREE.BufferGeometry,entries:LandscapeI
  entries.forEach((entry,index)=>{object.position.set(...entry.position);if(entry.euler)object.rotation.set(...entry.euler);else object.rotation.set(0,entry.rotation??0,0);object.scale.set(...entry.scale);object.updateMatrix();mesh.setMatrixAt(index,object.matrix);mesh.setColorAt(index,new THREE.Color(entry.color))});
  mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;mesh.computeBoundingSphere();return mesh;
 }
+function isInsideLandscapePolygon(x:number,z:number,points:[number,number][]){let inside=false;for(let i=0,j=points.length-1;i<points.length;j=i++){const [xi,zi]=points[i],[xj,zj]=points[j];const intersects=(zi>z)!==(zj>z)&&x<(xj-xi)*(z-zi)/(zj-zi)+xi;if(intersects)inside=!inside}return inside}
 function makeMeadow(points:[number,number][],color:string){
  const curve=new THREE.CatmullRomCurve3(points.map(([x,z])=>new THREE.Vector3(x,-z,0)),true,'catmullrom',.28);
  const boundary=curve.getPoints(Math.max(48,points.length*8));const shape=new THREE.Shape();shape.moveTo(boundary[0].x,boundary[0].y);boundary.slice(1).forEach(point=>shape.lineTo(point.x,point.y));shape.closePath();
@@ -38,7 +39,9 @@ function RefineryLandscapeBuffers(){
   // Tree islands remain outside the secured process plot and clear of roads, hydrants, the H2 compound, marine apron and loading-yard sweep.
   const treePoints:[number,number][]=[
    [-58,-19],[-58,-5],[-58,9],[-58,23],[-57,-44],[-43,-45],[-30,-44],[22,-45],[36,-44],[50,-43],[-57,43],[-44,44],[-31,42],[-6,44],[5,43],
-   [-51,-22],[-51,-5],[-51,11],[-51,25],[-62,-44],[-49,-45],[-37,-44],[-25,-44],[14,-45],[28,-44],[42,-44],[56,-44],[-62,43],[-49,44],[-36,44],[-23,46],[-16,47],[8,45],
+   [-51,-22],[-51,-5],[-51,11],[-51,25],[-62,-44],[-49,-45],[-37,-44],[-25,-44],[14,-45],[28,-44],[42,-44],[56,-44],[-62,43],[-49,44],[-36,44],[-23,46],[-16,47],[8,45],[-57,31],[-43,32],[68,-44],[79,-44],[49,44],[63,44],[77,44],
+   // Additional trees occupy only the previously bare north buffer and broad south campus verge, outside all fenced and traffic areas.
+   [-20,-44],[-10,-46],[1,-44],[11,-45],[15,43],[22,45],[38,43],
   ];
   const beds:[number,number][]=[[-55,-19],[-55,-5],[-55,9],[-54,23],[-55,-44],[-42,-44],[-29,-43],[23,-44],[37,-43],[51,-42],[-54,43],[-42,43],[-29,41],[-6,42],[5,42],...treePoints.slice(15).map(([x,z],i)=>[x+(i%2?.15:-.15),z+(i%3===0?.25:-.2)] as [number,number])];
   const trunks:LandscapeInstance[]=treePoints.map(([,z],i)=>({position:[treePoints[i][0],1.12,z],scale:[.88+(i%4)*.08,1, .88+(i%3)*.07],color:['#604d3b','#70563f','#66513c','#775b42'][i%4]}));
@@ -68,24 +71,41 @@ function RefineryLandscapeBuffers(){
    }
    for(let i=0;i<2;i++){const a=bed*1.77+i*2.75;stones.push({position:[cx+Math.cos(a)*1.75,.04,cz+Math.sin(a)*1.32],scale:[.3+(i%2)*.12,.16,.22],color:i?'#978f78':'#aaa18a',rotation:a})}
   });
-  const meadows=[
-   makeMeadow([[-70,-28],[-62,-31],[-49,-29],[-45,-20],[-46,18],[-52,28],[-63,31],[-70,29]],'#8fa36d'),
-   makeMeadow([[-70,-49],[-58,-50],[-25,-49],[-22,-43],[-26,-39],[-52,-38],[-68,-39]],'#91a66f'),
-   makeMeadow([[13,-49],[22,-50],[67,-49],[66,-40],[51,-38],[16,-39]],'#91a66f'),
-   makeMeadow([[-70,36],[-58,35],[-43,35],[-32,37],[-24,43],[-28,49],[-43,50],[-70,49]],'#8ca16a'),
-   makeMeadow([[-10,36],[-3,35],[8,36],[10,42],[8,47],[5,49],[-5,49],[-10,48]],'#91a66f'),
+  const meadowPolygons:[number,number][][]=[
+   [[-70,-28],[-62,-31],[-49,-29],[-45,-20],[-46,18],[-52,28],[-63,31],[-70,29]],
+   [[-70,-49],[-58,-50],[-25,-49],[-22,-43],[-26,-39],[-52,-38],[-68,-39]],
+   [[13,-49],[22,-50],[68,-49],[82,-47],[84,-44],[82,-40],[66,-38],[51,-38],[16,-39]],
+   [[-70,36],[-58,35],[-43,35],[-32,37],[-24,43],[-28,49],[-43,50],[-70,49]],
+   [[-10,36],[-3,35],[8,36],[10,42],[8,47],[5,49],[-5,49],[-10,48]],
+   // Small additional lawn pockets complete the south buffer but leave the visitor-gate drive open.
+   [[-23,37],[-20.6,36.6],[-20.2,43],[-22.8,45.5],[-24.2,42]],
+   [[28.2,39.2],[35.2,39.2],[35.2,48.5],[32,49.4],[28.2,47]],
+   [[41,40],[50,39.5],[68,40],[82,42],[84,47],[75,49],[54,49],[43,47]],
+   [[-70,29],[-59,29.3],[-45,29.2],[-38.4,30.5],[-38.5,33.3],[-44,35],[-59,35],[-68,35.5]],
+   // Fill the north-side landscape gap with a planted buffer, staying at least two metres beyond the H2 perimeter fence.
+   [[-25,-49],[-16,-50],[11.5,-49],[14,-45],[11.5,-39.2],[-20,-39.2],[-27,-43]],
+   // Complete the south-campus buffer between the existing lawn islands; all planting remains beyond the loading-yard fence.
+   [[11.8,37.6],[17,36.8],[27.4,38.1],[29.2,42],[28.5,48],[21,49.4],[14,48.5]],
+   [[35.4,39.4],[40.2,39.2],[42.2,42],[42,47.8],[38.7,49],[35.2,47]],
   ];
+  const meadows=meadowPolygons.map((polygon,index)=>makeMeadow(polygon,index%2?'#91a66f':'#8fa36d'));
+  // Fine-scale native groundcover fills the wide lawn panels in the references. The clusters are instanced, kept low, and exist only inside the planted buffers.
+  const meadowCover:LandscapeInstance[]=[];let coverSeed=7741;const coverRandom=()=>{coverSeed=(coverSeed*1664525+1013904223)>>>0;return coverSeed/4294967296};
+  meadowPolygons.forEach((polygon,zone)=>{
+   const xs=polygon.map(point=>point[0]),zs=polygon.map(point=>point[1]);const minX=Math.min(...xs),maxX=Math.max(...xs),minZ=Math.min(...zs),maxZ=Math.max(...zs),spacing=zone===0?1.55:1.4;
+   let row=0;for(let z=minZ+.35;z<maxZ;z+=spacing,row++)for(let x=minX+.35+(row%2)*spacing*.5;x<maxX;x+=spacing){const px=x+(coverRandom()-.5)*.6,pz=z+(coverRandom()-.5)*.6;if(!isInsideLandscapePolygon(px,pz,polygon))continue;const index=Math.floor(coverRandom()*6);meadowCover.push({position:[px,-.012,pz],scale:[.8+coverRandom()*.65,.75+coverRandom()*.9,.8+coverRandom()*.65],color:['#738a59','#7d905f','#89996b','#697f53','#92a06c','#708357'][(index+zone)%6],rotation:coverRandom()*Math.PI*2});if(coverRandom()<.08)flowers.push({position:[px,.1,pz],scale:[1,1,1],color:flowerColors[(index+zone)%flowerColors.length],rotation:coverRandom()*Math.PI*2})}
+  });
   const treeTrunkGeometry=new THREE.CylinderGeometry(.13,.2,2.24,7);
   const branchGeometry=new THREE.CylinderGeometry(.045,.09,1.18,6);
   const leafGeometry=new THREE.IcosahedronGeometry(1,1);
   const mulchGeometry=new THREE.CircleGeometry(1,18);
-  return {meadows,
+  return {meadows,meadowCoverMesh:makeLandscapeInstances(new THREE.ConeGeometry(.15,.32,5),meadowCover),
    trunkMesh:makeLandscapeInstances(treeTrunkGeometry,trunks),branchMesh:makeLandscapeInstances(branchGeometry,branches),canopyMesh:makeLandscapeInstances(leafGeometry,canopy),
    mulchMesh:makeLandscapeInstances(mulchGeometry,mulch),shrubMesh:makeLandscapeInstances(leafGeometry,shrubs),grassMesh:makeLandscapeInstances(new THREE.ConeGeometry(.21,.72,5),grass),
    flowerMesh:makeLandscapeInstances(new THREE.IcosahedronGeometry(.1,0),flowers),stoneMesh:makeLandscapeInstances(new THREE.DodecahedronGeometry(1,0),stones),
   };
  },[]);
- return <group>{landscape.meadows.map((mesh,i)=><primitive key={`green-buffer-meadow-${i}`} object={mesh} dispose={null}/>)}<primitive object={landscape.mulchMesh} dispose={null}/><primitive object={landscape.trunkMesh} dispose={null}/><primitive object={landscape.branchMesh} dispose={null}/><primitive object={landscape.canopyMesh} dispose={null}/><primitive object={landscape.shrubMesh} dispose={null}/><primitive object={landscape.grassMesh} dispose={null}/><primitive object={landscape.flowerMesh} dispose={null}/><primitive object={landscape.stoneMesh} dispose={null}/></group>;
+ return <group>{landscape.meadows.map((mesh,i)=><primitive key={`green-buffer-meadow-${i}`} object={mesh} dispose={null}/>)}<primitive object={landscape.meadowCoverMesh} dispose={null}/><primitive object={landscape.mulchMesh} dispose={null}/><primitive object={landscape.trunkMesh} dispose={null}/><primitive object={landscape.branchMesh} dispose={null}/><primitive object={landscape.canopyMesh} dispose={null}/><primitive object={landscape.shrubMesh} dispose={null}/><primitive object={landscape.grassMesh} dispose={null}/><primitive object={landscape.flowerMesh} dispose={null}/><primitive object={landscape.stoneMesh} dispose={null}/></group>;
 }
 function TankFarmBundAccess(){return <group>
  {/* Staggered concrete treads and paired handrails cross the east containment berm. */}
@@ -575,6 +595,30 @@ function CampusTree({position}:{position:[number,number,number]}){
   <mesh position={[-.08,2.95,.1]} scale={[.54,.55,.52]} rotation={[.16,-.3,.08]} castShadow><dodecahedronGeometry args={[1,1]}/><meshStandardMaterial color="#6b835c" roughness={1}/></mesh>
  </group>;
 }
+function QuayLight({position}:{position:[number,number,number]}){
+ const night=useStore(s=>s.night);
+ return <group position={position}>
+  <Box position={[0,2.55,0]} scale={[.11,5.1,.11]} color="#59675f"/>
+  <Box position={[0,5.12,0]} scale={[.42,.1,.16]} color="#77847a"/>
+  <mesh position={[0,5.02,.08]} rotation={[.18,0,0]}><boxGeometry args={[.28,.08,.22]}/><meshStandardMaterial color="#d7c990" emissive={night?'#e8d58a':'#000000'} emissiveIntensity={night?.35:0}/></mesh>
+  {night&&<pointLight position={[0,4.85,.12]} color="#f4dda0" intensity={1.05} distance={8} decay={2}/ >}
+ </group>;
+}
+function BerthWayfinding(){
+ const night=useStore(s=>s.night);
+ return <group position={[29.25,0,-5.2]}>
+  <Box position={[0,.12,0]} scale={[.72,.24,.72]} color="#69756c"/>
+  <Box position={[0,1.18,0]} scale={[.1,2.05,.1]} color="#66756b"/>
+  <Box position={[0,2.0,.06]} scale={[1.28,.72,.12]} color="#293d3b"/>
+  <Box position={[0,2.39,.13]} scale={[1.31,.06,.16]} color="#c8ae6c"/>
+  <Html center position={[0,2.02,.14]} distanceFactor={6} style={{pointerEvents:'none',whiteSpace:'nowrap'}}>
+   <div style={{fontFamily:'ui-monospace,monospace',fontSize:'7px',fontWeight:700,letterSpacing:'.7px',color:'#f0ead8',textAlign:'center',textShadow:'0 1px 3px #101718'}}>
+    BERTH 01<br/><span style={{fontSize:'5px',fontWeight:500}}>EXPORT TERMINAL</span>
+   </div>
+  </Html>
+  {night&&<pointLight position={[0,2.1,.4]} color="#f2d789" intensity={.35} distance={2.4} decay={2}/ >}
+ </group>;
+}
 function MarineLoadingArm({position,color}:{position:[number,number,number];color:string}){return <group position={position}>
  <Box position={[0,.24,0]} scale={[2.1,.34,2.8]} color="#6e786f"/>
  {[-.82,.82].map(x=><Box key={x} position={[x,1.65,-.72]} scale={[.14,3.05,.14]} color="#64736a"/>)}
@@ -900,6 +944,8 @@ function SteamUtilityNetwork(){
   </group>)}
   <PipelinePath points={makeup} color={feed} radius={.075}/>
   <PipelinePath points={steamTrunk} color={steam} radius={.105}/>
+  <PipewayLabel position={[-20,6.28,2.72]} label="STEAM HEADER" color={steam}/>
+  <PipeBlindFlange position={[30,5.85,2.72]} direction={[1,0,0]} color={steam} radius={.105}/>
   <PipelinePath points={[[-6,5.85,2.72],[-12,5.85,2.72]]} color={steam} radius={.075}/>
   {steamBranches.map((points,i)=><PipelinePath key={`steam-consumer-${i}`} points={points} color={steam} radius={.075}/>)}
   <PipelinePath points={condensateMain} color={condensate} radius={.085}/>
@@ -1018,8 +1064,14 @@ function AirNitrogenNetwork(){
   {/* Separate color-coded headers follow the existing rack and its high-level crossover. */}
   <PipelinePath points={airHeader} color={air} radius={.085}/>
   <PipelinePath points={[[10,6.65,2.72],[30,6.65,2.72]]} color={air} radius={.085}/>
+  <PipeBlindFlange position={[-31,6.65,2.72]} direction={[-1,0,0]} color={air} radius={.085}/>
+  <PipeBlindFlange position={[30,6.65,2.72]} direction={[1,0,0]} color={air} radius={.085}/>
+  <PipewayLabel position={[-25,7.15,2.72]} label="INSTRUMENT AIR" color={air}/>
   <PipelinePath points={nitrogenHeader} color={nitrogen} radius={.085}/>
   <PipelinePath points={[[10,7.2,2.72],[30,7.2,2.72]]} color={nitrogen} radius={.085}/>
+  <PipeBlindFlange position={[-31,7.2,2.72]} direction={[-1,0,0]} color={nitrogen} radius={.085}/>
+  <PipeBlindFlange position={[30,7.2,2.72]} direction={[1,0,0]} color={nitrogen} radius={.085}/>
+  <PipewayLabel position={[-25,7.7,2.72]} label="NITROGEN" color={nitrogen}/>
   {/* Trapeze bridges attach the two added tiers above existing steelwork, clear of the fin-fan deck. */}
   {[-31,-26,-21,-16,-11,-6].map(x=><group key={`west-utility-pipe-support-${x}`}>
    <Box position={[x,6.18,3.1]} scale={[.12,.1,3.5]} color="#849087"/>
@@ -1132,6 +1184,9 @@ function SourWaterProcessNetwork(){
   {sourWaterFeeds.map((points,i)=><PipelinePath key={`sws-feed-${i}`} points={points} color="#9a8056" radius={.07}/>)}
   <PipelinePath points={strippedWater} color="#6d9790" radius={.075}/>
   <PipelinePath points={sourGas} color="#b57857" radius={.075}/>
+  <PipeFlowArrow position={[-29,3.5,-23.5]} direction={[-1,0,0]}/>
+  <PipeFlowArrow position={[-33.45,3.5,-19.5]} direction={[0,0,1]}/>
+  <PipewayLabel position={[-29.5,4.05,-23.5]} label="SOUR GAS → SRU" color="#b57857"/>
   {gasSupports.map(([x,z],i)=><group key={`swag-support-${i}`}>
    <Box position={[x,1.72,z]} scale={[.1,3.44,.1]} color="#66736b"/>
    <Box position={[x,.15,z]} scale={[.42,.12,.42]} color="#838b80"/>
@@ -1893,8 +1948,7 @@ function DrumLoadingForklift({item}:{item:SiteItem}){
 function sideValue(index:number){return index===0?-.75:.75}
 const shipModelUrl=`${import.meta.env.BASE_URL}models/ships/oil-tanker.glb`;
 const workerModelUrl=`${import.meta.env.BASE_URL}models/workers/cesium-man.glb`;
-useGLTF.preload(shipModelUrl);
-useGLTF.preload(workerModelUrl);
+// GLB models load lazily inside their Suspense boundaries; the initial site frame uses lightweight local fallbacks.
 function Ship({item}:{item:SiteItem}) {
  const ref=useRef<THREE.Group>(null); const playing=useStore(s=>s.playing);const phase=useRef(0);const gltf=useGLTF(shipModelUrl);
  const model=useMemo(()=>gltf.scene.clone(true),[gltf.scene]);
@@ -2006,6 +2060,26 @@ function PipelinePath({points,color,radius=.1,emissive}:{points:[number,number,n
  {points.slice(0,-1).map((point,i)=><Pipe key={`pipe-segment-${i}`} a={point} b={points[i+1]} color={color} radius={radius} emissive={emissive?color:undefined}/>)}
  {points.slice(1,-1).map((point,i)=><mesh key={`pipe-elbow-${i}`} position={point} castShadow><sphereGeometry args={[radius*1.04,10,8]}/><meshStandardMaterial color={color} emissive={emissive?color:'#000000'} emissiveIntensity={emissive?1.8:0} metalness={.46} roughness={.42}/></mesh>)}
  </>}
+function PipeBlindFlange({position,direction,color,radius}:{position:[number,number,number];direction:[number,number,number];color:string;radius:number}){
+ const orientation=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(...direction).normalize());
+ return <group position={position} quaternion={orientation}>
+  <mesh position={[0,radius*.42,0]} castShadow><cylinderGeometry args={[radius*1.55,radius*1.55,radius*.62,16]}/><meshStandardMaterial color="#aeb5a9" metalness={.62} roughness={.4}/></mesh>
+  <mesh position={[0,radius*.78,0]}><torusGeometry args={[radius*1.42,radius*.12,7,20]}/><meshStandardMaterial color="#d0bc83" metalness={.58} roughness={.42}/></mesh>
+  {Array.from({length:8},(_,i)=>{const a=i*Math.PI/4;return <mesh key={i} position={[Math.cos(a)*radius*1.28,radius*.8,Math.sin(a)*radius*1.28]}><cylinderGeometry args={[radius*.13,radius*.13,radius*.18,6]}/><meshStandardMaterial color="#e0d5b6" metalness={.68} roughness={.34}/></mesh>})}
+  <mesh position={[0,radius*.85,0]}><cylinderGeometry args={[radius*.98,radius*.98,radius*.22,16]}/><meshStandardMaterial color={color} metalness={.52} roughness={.45}/></mesh>
+ </group>;
+}
+function PipeFlowArrow({position,direction}:{position:[number,number,number];direction:[number,number,number]}){
+ const orientation=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(...direction).normalize());
+ return <mesh position={[position[0],position[1]+.065,position[2]]} quaternion={orientation}>
+  <coneGeometry args={[.115,.24,3]}/><meshBasicMaterial color="#f0cf7d" side={THREE.DoubleSide}/>
+ </mesh>;
+}
+function PipewayLabel({position,label,color}:{position:[number,number,number];label:string;color:string}){
+ return <Html center position={position} distanceFactor={9} style={{pointerEvents:'none',whiteSpace:'nowrap'}}>
+  <span style={{display:'inline-block',padding:'2px 4px',border:`1px solid ${color}`,borderRadius:'3px',background:'rgba(17,27,29,.9)',color:'#e7eee5',fontFamily:'ui-monospace,monospace',fontSize:'7px',fontWeight:700,letterSpacing:'.25px',textShadow:'0 1px 2px #000'}}>{label}</span>
+ </Html>;
+}
 function ValveWheel({position,color}:{position:[number,number,number];color:string}){return <group position={position}>
  <mesh position={[0,.14,0]} castShadow><cylinderGeometry args={[.18,.18,.28,12]}/><meshStandardMaterial color={color} metalness={.55} roughness={.4}/></mesh>
  <mesh position={[0,.42,0]}><cylinderGeometry args={[.035,.035,.32,8]}/><meshStandardMaterial color="#a7aaa0" metalness={.6}/></mesh>
@@ -2164,6 +2238,8 @@ function MainPipeway(){
    <mesh rotation={[-Math.PI/2,0,0]} position={[x,2.96,5.35]}><planeGeometry args={[i?20:25,.82]}/><meshStandardMaterial color="#667279" metalness={.28} roughness={.74} side={THREE.DoubleSide}/></mesh>
    {Array.from({length:i?11:13},(_,n)=>{const px=(i?10: -31)+n*2;return <group key={n}><Box position={[px,3.52,4.93]} scale={[.07,1.1,.07]} color="#d1b777"/><Box position={[px,3.52,5.77]} scale={[.07,1.1,.07]} color="#d1b777"/></group>})}
    <Box position={[x,4.03,4.93]} scale={[i?20:25,.08,.08]} color="#d1b777"/><Box position={[x,4.03,5.77]} scale={[i?20:25,.08,.08]} color="#d1b777"/>
+   <Box position={[x,3.51,4.93]} scale={[i?20:25,.055,.055]} color="#b8aa7b"/><Box position={[x,3.51,5.77]} scale={[i?20:25,.055,.055]} color="#b8aa7b"/>
+   <Box position={[x,3.05,4.93]} scale={[i?20:25,.13,.06]} color="#a79c7d"/><Box position={[x,3.05,5.77]} scale={[i?20:25,.13,.06]} color="#a79c7d"/>
   </group>)}
   {sections.map((section,i)=><group key={`rack-electrical-${i}`}>
    <CableTrayRun x1={section[0]} x2={section[section.length-1]} y={6.1} z={4} width={.62}/>
@@ -2176,8 +2252,12 @@ function FacilityInterconnects(){return <group>
  <PipelinePath points={[[-31,1.7,-7],[-31,3.45,-7],[-31,3.45,2.03],[-23,3.45,2.03]]} color="#96764e" radius={.14}/>
  <PipelinePath points={[[-23,3.45,2.03],[-23,3.45,-3],[-23,1.55,-3]]} color="#96764e" radius={.12}/>
  <PipelinePath points={[[-23,3.45,2.03],[-12,3.45,2.03],[-12,3.45,-8],[-12,1.8,-9]]} color="#96764e" radius={.12}/>
+ <PipeFlowArrow position={[-27,3.45,2.03]} direction={[1,0,0]}/>
+ <PipewayLabel position={[-27,5.95,2.03]} label="CRUDE FEED" color="#c5a66d"/>
  {/* Atmospheric residue and conversion charge, raised to the middle rack tier before dropping to FCC and HDS. */}
  <PipelinePath points={[[-12,3.45,-8],[-12,3.45,2.03],[-12,4.4,2.03],[-6,4.4,2.03],[-6,13.25,2.03],[2,13.25,2.03],[2,13.25,-13],[2,2,-14]]} color="#9b644c" radius={.13}/>
+ <PipeFlowArrow position={[-9,4.4,2.03]} direction={[1,0,0]}/>
+ <PipewayLabel position={[-8.4,6.05,2.03]} label="RESIDUE → CONVERSION" color="#9b644c"/>
  <PipelinePath points={[[2.5,13.25,2.03],[2.5,13.25,.5],[2.5,4.4,.5],[2.5,1.8,.5]]} color="#877254" radius={.1}/>
  {/* Cooling-water supply/return, elevated on the outer utility bay with risers into HDS. */}
  <PipelinePath points={[[-19,1.15,13],[-19,2.95,13],[-19,2.95,6.25],[2.5,2.95,6.25],[2.5,2.95,.5],[2.5,1.55,.5]]} color="#688ca2" radius={.105}/>
@@ -2188,8 +2268,12 @@ function FacilityInterconnects(){return <group>
  {Array.from({length:8},(_,i)=>{const x=12+(i%4)*5,z=i<4?-10.85:-7.15;return <group key={`tank-branch-${i}`}><PipelinePath points={[[x,1.25,-9],[x,1.25,z],[x,1.65,z]]} color="#ae8651" radius={.075}/><ValveWheel position={[x,1.1,-9]} color="#777e7a"/></group>})}
  {/* Independent road-tanker loading header carried above the three truck bays; separate from marine export. */}
  <PipelinePath points={[[10,1.25,-9],[9.1,1.25,-9],[9.1,4.15,-9],[9.1,4.15,9],[10,4.15,9],[10,4.15,15],[20,4.15,15]]} color="#8d7053" radius={.105}/>
+ <PipeFlowArrow position={[15,4.15,15]} direction={[1,0,0]}/>
+ <PipewayLabel position={[15,4.72,15]} label="ROAD LOADING" color="#8d7053"/>
  {/* Separate marine export lines run along the quay to both articulated loading arms. */}
  <PipelinePath points={[[29,1.25,-9],[32.2,1.25,-9],[32.2,1.25,18]]} color="#a87848" radius={.13}/>
+ <PipeFlowArrow position={[32.2,1.25,1]} direction={[0,0,1]}/>
+ <PipewayLabel position={[30.4,2.5,10.5]} label="MARINE EXPORT" color="#a87848"/>
  <PipelinePath points={[[29,1.95,-9],[32.65,1.95,-9],[32.65,1.95,18]]} color="#94a1a2" radius={.085}/>
  {Array.from({length:8},(_,i)=>{const z=-8+i*3.7;return <group key={`berth-pipe-support-${i}`}><Box position={[31.86,.95,z]} scale={[.12,1.9,.12]} color="#69767c"/><Box position={[33.02,.95,z]} scale={[.12,1.9,.12]} color="#69767c"/><Box position={[32.44,1.1,z]} scale={[1.25,.12,.16]} color="#89928d"/><Box position={[32.44,1.8,z]} scale={[1.25,.1,.14]} color="#89928d"/></group>})}
  {[4,18].map(z=><group key={`marine-drop-${z}`}><PipelinePath points={[[32.2,1.25,z],[32.2,1.25,z-.72],[32.2,1.35,z-.72]]} color="#a87848" radius={.12}/><PipelinePath points={[[32.65,1.95,z],[32.65,1.95,z-.72]]} color="#94a1a2" radius={.08}/><ValveWheel position={[32.2,1.65,z-.72]} color="#777f80"/></group>)}
@@ -2238,7 +2322,7 @@ function FlowPulse({points,color,delay}:{points:[number,number,number][];color:s
 function FocusCamera({controlsRef}:{controlsRef:React.RefObject<any>}){const focus=useStore(s=>s.focus);const {camera}=useThree();const previous=useRef<[number,number,number]|null>(null);const desired=useRef<THREE.Vector3|null>(null);const desiredCamera=useRef<THREE.Vector3|null>(null);useFrame(()=>{if(focus&&focus!==previous.current){const controls=controlsRef.current;const current=controls?.target||new THREE.Vector3(0,0,0);const delta=new THREE.Vector3(...focus).sub(current);desired.current=new THREE.Vector3(...focus);desiredCamera.current=camera.position.clone().add(delta);previous.current=focus;}if(desired.current&&controlsRef.current){controlsRef.current.target.lerp(desired.current,.12);if(desiredCamera.current)camera.position.lerp(desiredCamera.current,.12);controlsRef.current.update();if(controlsRef.current.target.distanceTo(desired.current)<.08){desired.current=null;desiredCamera.current=null;}}});return null;}
 export function SceneReadySignal({onReady}:{onReady:()=>void}){const sent=useRef(false);useFrame(()=>{if(!sent.current){sent.current=true;onReady()}});return null;}
 
-export function World(){
+export function World({loadHighDetail=false}:{loadHighDetail?:boolean}){
  const controlsRef=useRef<any>(null);const night=useStore(s=>s.night);const quality=useStore(s=>s.quality); const mode=useStore(s=>s.mode); const filtered=useMemo(()=>items.filter(x=>mode==='overview'||mode==='all'||x.zone===mode||(mode==='storage'&&['tank','sphere-tank'].includes(x.kind))||(mode==='refinery'&&['process','furnace','flare'].includes(x.kind))),[mode]);
  return <>
   <color attach="background" args={[night?'#09121d':'#d6e0d5']}/><fog attach="fog" args={[night?'#09121d':'#d6e0d5',80,145]}/>
@@ -2320,9 +2404,10 @@ export function World(){
   {items.filter(x=>x.kind==='truck').map((t,i)=><Truck key={t.id} item={t} index={i}/>)}
   <DrumLoadingForklift item={items.find(x=>x.id==='FL-027')!}/>
   {/* ship, loading arm connecting to jetty */}
-  <AssetBoundary fallback={(_error)=> <ShipFallback item={items.find(x=>x.id==='VES-08')!}/>}><Suspense fallback={<ShipFallback item={items.find(x=>x.id==='VES-08')!}/>}><Ship item={items.find(x=>x.id==='VES-08')!}/></Suspense></AssetBoundary>
+  {loadHighDetail?<AssetBoundary fallback={(_error)=> <ShipFallback item={items.find(x=>x.id==='VES-08')!}/>}><Suspense fallback={<ShipFallback item={items.find(x=>x.id==='VES-08')!}/>}><Ship item={items.find(x=>x.id==='VES-08')!}/></Suspense></AssetBoundary>:<ShipFallback item={items.find(x=>x.id==='VES-08')!}/> }
+  <QuayLight position={[29.4,0,-1.5]}/><QuayLight position={[29.4,0,11]}/><QuayLight position={[29.4,0,24.5]}/><BerthWayfinding/>
   <MarineLoadingArm position={[32.2,0,4]} color="#c69d5d"/><MarineLoadingArm position={[32.2,0,18]} color="#d6d0bc"/>
-  {items.filter(x=>x.kind==='worker').map((person,i)=><AssetBoundary key={person.id} fallback={()=> <WorkerFallback item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>}><Suspense fallback={<WorkerFallback item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>}><Worker item={person} index={i} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/></Suspense></AssetBoundary>)}
+  {items.filter(x=>x.kind==='worker').map((person,i)=>loadHighDetail?<AssetBoundary key={person.id} fallback={()=> <WorkerFallback item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>}><Suspense fallback={<WorkerFallback item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>}><Worker item={person} index={i} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/></Suspense></AssetBoundary>:<WorkerFallback key={`fallback-${person.id}`} item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>)}
   {mode==='personnel'&&items.map((it)=><mesh key={'pin'+it.id} position={[it.position[0],4,it.position[2]]}><sphereGeometry args={[.35,10,10]}/><meshBasicMaterial color="#f4cb79"/></mesh>)}
   <AdaptiveDpr pixelated/><AdaptiveEvents/><OrbitControls ref={controlsRef} regress makeDefault target={[0,0,0]} minPolarAngle={.25} maxPolarAngle={Math.PI/2.12} minDistance={24} maxDistance={100} enableDamping dampingFactor={.08} />
   <FocusCamera controlsRef={controlsRef}/>

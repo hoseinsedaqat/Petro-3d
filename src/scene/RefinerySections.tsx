@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import type { SiteItem } from '../data/site';
 import { useStore } from '../store';
-import { getWeatheredSteelMap } from './materials';
+import { getWeatheredSteelMap, getYardSurfaceMap } from './materials';
 
 const steel='#65766d', paleSteel='#aeb8ae', safety='#d5bd83', pipe='#a97e49';
 function Beam({position,size,color=steel,rotation}:{position:[number,number,number];size:[number,number,number];color?:string;rotation?:[number,number,number]}){
@@ -87,9 +87,10 @@ function PipeBridge(){
  {[-5,0,5].map(x=><group key={x}><Beam position={[x,3.2,-2.9]} size={[.22,6.4,.22]}/><Beam position={[x,3.25,-2.9]} size={[1.35,.13,.18]} color="#87958b"/></group>)}</>;
 }
 export function RefineryUnit({item}:{item:SiteItem}){
+ const night=useStore(s=>s.night);
  const fcc=item.id==='FCC-01';
  return <Selectable item={item}>
-  <mesh position={[0,.06,0]} receiveShadow><boxGeometry args={[12,.12,9]}/><meshStandardMaterial color="#858b80" roughness={.88}/></mesh>
+  <mesh position={[0,.06,0]} receiveShadow><boxGeometry args={[12,.12,9]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',12/9,9/9)} color={night?'#4b554f':'#c0c1b5'} roughness={.94}/></mesh>
   {[-5,5].map(x=>[-3.55,3.55].map(z=><group key={`${x}-${z}`}><Beam position={[x,3.8,z]} size={[.2,7.6,.2]}/><Beam position={[x,1.4,z]} size={[.36,.14,.36]} color="#a18d64"/></group>))}
   <PlatformLevels levels={fcc?[2.7,5.5,8.2]:[2.5,5,7.5]} halfX={4.8} halfZ={3.45}/>
   {fcc?<>
@@ -132,7 +133,7 @@ export function HydrogenPlant({item}:{item:SiteItem}){
  const night=useStore(s=>s.night);
  const adsorberZ=[-2.05,-.68,.68,2.05];
  return <Selectable item={item}>
-  <mesh position={[0,.08,0]} receiveShadow><boxGeometry args={[16,.16,11.6]}/><meshStandardMaterial color="#81877e" roughness={.91}/></mesh>
+  <mesh position={[0,.08,0]} receiveShadow><boxGeometry args={[16,.16,11.6]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',16/9,11.6/9)} color={night?'#4b554f':'#c1c2b7'} roughness={.95}/></mesh>
   <mesh position={[0,.18,0]}><boxGeometry args={[15.72,.08,11.32]}/><meshStandardMaterial color="#4d5952" roughness={.82}/></mesh>
   {/* Feed desulfurization: two guard vessels with a shared isolation manifold. */}
   <Vessel x={-6.05} z={-1.15} r={.47} h={2.9} color="#a7b1a6"/>
@@ -220,7 +221,7 @@ export function HydrogenPlant({item}:{item:SiteItem}){
 export function SourWaterStripper({item}:{item:SiteItem}){
  const night=useStore(s=>s.night);
  return <Selectable item={item}>
-  <mesh position={[0,.08,0]} receiveShadow><boxGeometry args={[6.8,.16,6]}/><meshStandardMaterial color="#81877e" roughness={.92}/></mesh>
+  <mesh position={[0,.08,0]} receiveShadow><boxGeometry args={[6.8,.16,6]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',6.8/9,6/9)} color={night?'#4b554f':'#bdbeb2'} roughness={.95}/></mesh>
   <mesh position={[0,.18,0]}><boxGeometry args={[6.55,.08,5.76]}/><meshStandardMaterial color="#4c5952" roughness={.82}/></mesh>
   {/* Compact steam-reboiled sour-water stripper package; open steel keeps the process train inspectable. */}
   {[-3.02,3.02].flatMap(x=>[-2.55,2.55].map(z=><group key={`sws-frame-${x}-${z}`}>
@@ -272,8 +273,9 @@ export function SourWaterStripper({item}:{item:SiteItem}){
  </Selectable>;
 }
 export function DesalterUnit({item}:{item:SiteItem}){
+ const night=useStore(s=>s.night);
  return <Selectable item={item}>
-  <mesh position={[0,.07,0]} receiveShadow><boxGeometry args={[11,.14,9.5]}/><meshStandardMaterial color="#85897f" roughness={.9}/></mesh>
+  <mesh position={[0,.07,0]} receiveShadow><boxGeometry args={[11,.14,9.5]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',11/9,9.5/9)} color={night?'#4b554f':'#c0c1b6'} roughness={.95}/></mesh>
   {/* Access frame and open grating service deck */}
   {[-4.6,4.6].flatMap(x=>[-3.7,3.7].map(z=><group key={`${x}-${z}`}><Beam position={[x,2.15,z]} size={[.2,4.3,.2]}/><Beam position={[x,.16,z]} size={[.42,.2,.42]} color="#a18d64"/></group>))}
   {[-3.2,-2.9,-2.6].map((y,i)=><Run key={i} a={[-4.3,y,-3.2]} b={[4.3,y,-3.2]} color={['#9a8057','#658f90','#b66c51'][i]} r={.085}/>)}
@@ -295,8 +297,9 @@ export function DesalterUnit({item}:{item:SiteItem}){
  </Selectable>;
 }
 export function CrudeReceiving({item}:{item:SiteItem}){
+ const night=useStore(s=>s.night);
  return <Selectable item={item}>
-  <mesh position={[0,.06,0]} receiveShadow><boxGeometry args={[5.6,.12,4.8]}/><meshStandardMaterial color="#81847a" roughness={.9}/></mesh>
+  <mesh position={[0,.06,0]} receiveShadow><boxGeometry args={[5.6,.12,4.8]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',5.6/9,4.8/9)} color={night?'#4b554f':'#bcbdb1'} roughness={.95}/></mesh>
   {/* Duplex basket strainers */}
   {[-1.55,1.55].map((x,i)=><group key={`strainer-${i}`} position={[x,0,-.8]}>
     <mesh position={[0,1.32,0]} castShadow><cylinderGeometry args={[.48,.55,2.25,18]}/><meshStandardMaterial color="#9ca79d" map={getWeatheredSteelMap()} metalness={.45} roughness={.62}/></mesh>
@@ -318,8 +321,9 @@ export function CrudeReceiving({item}:{item:SiteItem}){
  </Selectable>;
 }
 export function SulfurRecovery({item}:{item:SiteItem}){
+ const night=useStore(s=>s.night);
  return <Selectable item={item}>
-  <mesh position={[0,.06,0]} receiveShadow><boxGeometry args={[9,.12,7.4]}/><meshStandardMaterial color="#777e74" roughness={.9}/></mesh>
+  <mesh position={[0,.06,0]} receiveShadow><boxGeometry args={[9,.12,7.4]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',9/9,7.4/9)} color={night?'#4b554f':'#b7b8ac'} roughness={.95}/></mesh>
   {/* Claus reaction furnace and refractory combustion chamber */}
   <Beam position={[-3.05,1.45,1.65]} size={[2.15,2.9,1.8]} color="#606960"/>
   <mesh position={[-3.05,1.5,2.58]}><planeGeometry args={[1.08,1.26]}/><meshBasicMaterial color="#f18a3d" transparent opacity={.65}/></mesh>
@@ -364,8 +368,9 @@ function SwitchyardFence(){
  </group>;
 }
 export function ElectricalSubstation({item}:{item:SiteItem}){
+ const night=useStore(s=>s.night);
  return <Selectable item={item}>
-  <mesh position={[0,.06,0]} receiveShadow><boxGeometry args={[12,.12,9]}/><meshStandardMaterial color="#7e8278" roughness={.9}/></mesh>
+  <mesh position={[0,.06,0]} receiveShadow><boxGeometry args={[12,.12,9]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',12/9,9/9)} color={night?'#4b554f':'#bdbeb2'} roughness={.95}/></mesh>
   <SwitchyardFence/>
   {/* Two oil-filled power transformers, cooling banks and porcelain bushings */}
   {[-2.5,1.25].map((x,i)=><group key={`tx-${i}`} position={[x,0,-.8]}>
@@ -395,8 +400,9 @@ function Fan({position,index}:{position:[number,number,number];index:number}){
  </group>;
 }
 export function CoolingBattery({item}:{item:SiteItem}){
+ const night=useStore(s=>s.night);
  return <Selectable item={item}>
-  <mesh position={[0,.08,0]} receiveShadow><boxGeometry args={[11,.16,8.5]}/><meshStandardMaterial color="#777d73"/></mesh>
+  <mesh position={[0,.08,0]} receiveShadow><boxGeometry args={[11,.16,8.5]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',11/9,8.5/9)} color={night?'#4b554f':'#b9bbb0'} roughness={.95}/></mesh>
   {/* Elevated utility platform and open steel substructure, following modular refinery cooling-station references */}
   {[-4.4,0,4.4].map(x=>[-3,3].map(z=><group key={`${x}-${z}`}><Beam position={[x,1.35,z]} size={[.24,2.7,.24]}/><Beam position={[x,.16,z]} size={[.55,.22,.55]} color="#a39068"/></group>))}
   {[2.25,2.5].map((y,i)=><Beam key={y} position={[0,y,0]} size={[10,.16,7.2]} color={i?'#7b8880':'#68786e'}/>)}
@@ -419,8 +425,9 @@ export function CoolingBattery({item}:{item:SiteItem}){
  </Selectable>;
 }
 export function WastewaterPlant({item}:{item:SiteItem}){
+ const night=useStore(s=>s.night);
  return <Selectable item={item}>
-  <mesh position={[0,.07,0]} receiveShadow><boxGeometry args={[12,.14,9]}/><meshStandardMaterial color="#83877a"/></mesh>
+  <mesh position={[0,.07,0]} receiveShadow><boxGeometry args={[12,.14,9]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',12/9,9/9)} color={night?'#4b554f':'#bdbeb2'} roughness={.95}/></mesh>
   {/* Twin API gravity-separator channels: concrete raceways, baffles, oily water and travelling skimmer bridges */}
   {[-1.18,.82].map((z,lane)=><group key={`api-channel-${lane}`} position={[0,0,z]}>
     <Beam position={[0,.16,0]} size={[6.2,.24,1.72]} color="#69776e"/>

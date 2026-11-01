@@ -44,7 +44,7 @@ button, input { font: inherit; }
 
 /* The two persistent sidebars read like operator consoles, not generic settings drawers. */
 .left-rail, .inspector {
-  background: rgba(15, 23, 32, .97);
+  background: rgba(15, 23, 32, 1);
   border-color: #2a3947;
   box-shadow: 0 0 28px rgba(0, 0, 0, .15);
   overflow-x: hidden;

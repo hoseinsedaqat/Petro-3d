@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
 let weatheredSteel: THREE.CanvasTexture | undefined;
+let landscapeGrass: THREE.CanvasTexture | undefined;
 const yardSurfaceSources = new Map<string, THREE.CanvasTexture>();
 const yardSurfaceVariants = new Map<string, THREE.Texture>();
 let chainlinkSource: THREE.CanvasTexture | undefined;
@@ -35,6 +36,18 @@ export function getWeatheredSteelMap(){
  for(let y=128;y<canvas.height;y+=128){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
  weatheredSteel=new THREE.CanvasTexture(canvas);weatheredSteel.colorSpace=THREE.SRGBColorSpace;weatheredSteel.wrapS=THREE.RepeatWrapping;weatheredSteel.wrapT=THREE.RepeatWrapping;weatheredSteel.anisotropy=4;weatheredSteel.needsUpdate=true;
  return weatheredSteel;
+}
+
+/** Locally generated grass grain: muted color noise and tiny blade marks, tiled on all landscape islands. */
+export function getLandscapeGrassMap(){
+ if(landscapeGrass)return landscapeGrass;
+ const size=256,canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
+ const context=canvas.getContext('2d');if(!context)throw new Error('Canvas 2D context is required for local landscape material');
+ const image=context.createImageData(size,size),pixels=image.data;let seed=602214;const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+ for(let y=0;y<size;y++)for(let x=0;x<size;x++){const p=(y*size+x)*4,grain=(random()-.5)*30,broad=Math.sin(x*.055+Math.sin(y*.031)*1.4)*5+Math.cos(y*.043+Math.sin(x*.022))*4;pixels[p]=Math.max(0,Math.min(255,122+grain+broad));pixels[p+1]=Math.max(0,Math.min(255,143+grain+broad));pixels[p+2]=Math.max(0,Math.min(255,91+grain+broad));pixels[p+3]=255}
+ context.putImageData(image,0,0);
+ for(let i=0;i<1150;i++){const x=random()*size,y=random()*size,length=1.2+random()*4;context.strokeStyle=random()>.5?'rgba(205,207,142,.14)':'rgba(45,77,48,.16)';context.lineWidth=.35+random()*.55;context.beginPath();context.moveTo(x,y);context.lineTo(x+(random()-.5)*1.7,y-length);context.stroke()}
+ landscapeGrass=new THREE.CanvasTexture(canvas);landscapeGrass.colorSpace=THREE.SRGBColorSpace;landscapeGrass.wrapS=THREE.RepeatWrapping;landscapeGrass.wrapT=THREE.RepeatWrapping;landscapeGrass.repeat.set(3,3);landscapeGrass.anisotropy=4;landscapeGrass.needsUpdate=true;return landscapeGrass;
 }
 
 type YardSurface = 'soil' | 'concrete' | 'asphalt';

@@ -8,7 +8,7 @@ import { useStore } from '../store';
 import { ProcessRefinery } from './ProcessSteelwork';
 import { SphereTank } from './SphereTank';
 import { CoolingBattery, CrudeReceiving, DesalterUnit, ElectricalSubstation, EquipmentTag, HydrogenPlant, RefineryUnit, SourWaterStripper, SulfurRecovery, WastewaterPlant } from './RefinerySections';
-import { getChainlinkMap, getWeatheredSteelMap, getYardSurfaceMap } from './materials';
+import { getChainlinkMap, getLandscapeGrassMap, getWeatheredSteelMap, getYardSurfaceMap } from './materials';
 
 function ShorelineSeawall(){return <group>
  <Box position={[37.23,-.32,14]} scale={[.46,.72,48]} color="#626d69"/>
@@ -20,58 +20,72 @@ function SiteTerrain({night}:{night:boolean}){
  const geometry=useMemo(()=>{const land=new THREE.Shape();land.moveTo(-70,-50);land.lineTo(85,-50);land.lineTo(85,-38);land.lineTo(37,-38);land.lineTo(37,10);land.lineTo(85,10);land.lineTo(85,50);land.lineTo(-70,50);land.closePath();const surface=new THREE.ShapeGeometry(land,1);surface.rotateX(-Math.PI/2);surface.computeVertexNormals();return surface},[]);
  return <mesh geometry={geometry} position={[0,-.16,0]} receiveShadow><meshStandardMaterial map={getYardSurfaceMap('soil',1/18,1/18)} color={night?'#59635d':'#ffffff'} roughness={1} side={THREE.DoubleSide}/></mesh>;
 }
-type LandscapeInstance={position:[number,number,number];scale:[number,number,number];color:string;rotation?:number};
-function makeLandscapeInstances(geometry:THREE.BufferGeometry,entries:LandscapeInstance[]){
- const material=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1});
+type LandscapeInstance={position:[number,number,number];scale:[number,number,number];color:string;rotation?:number;euler?:[number,number,number]};
+function makeLandscapeInstances(geometry:THREE.BufferGeometry,entries:LandscapeInstance[],materialColor='#ffffff'){
+ const material=new THREE.MeshStandardMaterial({color:materialColor,roughness:1});
  const mesh=new THREE.InstancedMesh(geometry,material,entries.length);const object=new THREE.Object3D();
- entries.forEach((entry,index)=>{object.position.set(...entry.position);object.rotation.set(0,entry.rotation??0,0);object.scale.set(...entry.scale);object.updateMatrix();mesh.setMatrixAt(index,object.matrix);mesh.setColorAt(index,new THREE.Color(entry.color))});
+ entries.forEach((entry,index)=>{object.position.set(...entry.position);if(entry.euler)object.rotation.set(...entry.euler);else object.rotation.set(0,entry.rotation??0,0);object.scale.set(...entry.scale);object.updateMatrix();mesh.setMatrixAt(index,object.matrix);mesh.setColorAt(index,new THREE.Color(entry.color))});
  mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;mesh.computeBoundingSphere();return mesh;
 }
 function makeMeadow(points:[number,number][],color:string){
- const shape=new THREE.Shape();shape.moveTo(points[0][0],-points[0][1]);points.slice(1).forEach(([x,z])=>shape.lineTo(x,-z));shape.closePath();
- const geometry=new THREE.ShapeGeometry(shape,1);geometry.rotateX(-Math.PI/2);geometry.computeVertexNormals();
- const material=new THREE.MeshStandardMaterial({color,roughness:1,side:THREE.DoubleSide});const mesh=new THREE.Mesh(geometry,material);mesh.position.y=-.135;mesh.castShadow=false;mesh.receiveShadow=false;return mesh;
+ const curve=new THREE.CatmullRomCurve3(points.map(([x,z])=>new THREE.Vector3(x,-z,0)),true,'catmullrom',.28);
+ const boundary=curve.getPoints(Math.max(48,points.length*8));const shape=new THREE.Shape();shape.moveTo(boundary[0].x,boundary[0].y);boundary.slice(1).forEach(point=>shape.lineTo(point.x,point.y));shape.closePath();
+ const geometry=new THREE.ShapeGeometry(shape,2);geometry.rotateX(-Math.PI/2);geometry.computeVertexNormals();
+ const material=new THREE.MeshStandardMaterial({color,map:getLandscapeGrassMap(),roughness:1,side:THREE.DoubleSide});const mesh=new THREE.Mesh(geometry,material);mesh.position.y=-.135;mesh.castShadow=false;mesh.receiveShadow=false;return mesh;
 }
 function RefineryLandscapeBuffers(){
  const landscape=useMemo(()=>{
-  const treePoints:[number,number][]=[[-58,-19],[-58,-5],[-58,9],[-58,23],[-57,-44],[-43,-45],[-30,-44],[22,-45],[36,-44],[50,-43],[-57,43],[-44,44],[-31,42],[-6,44],[5,43]];
-  const beds:[number,number][]=[[-55,-19],[-55,-5],[-55,9],[-54,23],[-55,-44],[-42,-44],[-29,-43],[23,-44],[37,-43],[51,-42],[-54,43],[-42,43],[-29,41],[-6,42],[5,42]];
-  const trunks:LandscapeInstance[]=treePoints.map(([x,z],i)=>({position:[x,1.12,z],scale:[1,1,1],color:['#68513e','#735741','#5f4e3d'][i%3]}));
-  const canopy:LandscapeInstance[]=[];const treeColors=['#71895f','#82956b','#647d59','#91a170','#718b63'];
+  // Tree islands remain outside the secured process plot and clear of roads, hydrants, the H2 compound, marine apron and loading-yard sweep.
+  const treePoints:[number,number][]=[
+   [-58,-19],[-58,-5],[-58,9],[-58,23],[-57,-44],[-43,-45],[-30,-44],[22,-45],[36,-44],[50,-43],[-57,43],[-44,44],[-31,42],[-6,44],[5,43],
+   [-51,-22],[-51,-5],[-51,11],[-51,25],[-62,-44],[-49,-45],[-37,-44],[-25,-44],[14,-45],[28,-44],[42,-44],[56,-44],[-62,43],[-49,44],[-36,44],[-23,46],[-16,47],[8,45],
+  ];
+  const beds:[number,number][]=[[-55,-19],[-55,-5],[-55,9],[-54,23],[-55,-44],[-42,-44],[-29,-43],[23,-44],[37,-43],[51,-42],[-54,43],[-42,43],[-29,41],[-6,42],[5,42],...treePoints.slice(15).map(([x,z],i)=>[x+(i%2?.15:-.15),z+(i%3===0?.25:-.2)] as [number,number])];
+  const trunks:LandscapeInstance[]=treePoints.map(([,z],i)=>({position:[treePoints[i][0],1.12,z],scale:[.88+(i%4)*.08,1, .88+(i%3)*.07],color:['#604d3b','#70563f','#66513c','#775b42'][i%4]}));
+  const branches:LandscapeInstance[]=[],canopy:LandscapeInstance[]=[];const treeColors=['#647e58','#71885e','#809168','#617955','#8b976c','#6b845b'];
   treePoints.forEach(([x,z],i)=>{
-   canopy.push({position:[x,2.55,z],scale:[.94,1.04,.88],color:treeColors[i%treeColors.length]});
-   canopy.push({position:[x-.52,2.38,z+.12],scale:[.67,.66,.68],color:treeColors[(i+2)%treeColors.length]});
-   canopy.push({position:[x+.5,2.42,z-.16],scale:[.66,.7,.64],color:treeColors[(i+1)%treeColors.length]});
+   const size=.9+(i%5)*.075;const leaf=treeColors[i%treeColors.length];
+   canopy.push({position:[x,2.85,z],scale:[1.05*size,1.08*size,.98*size],color:leaf});
+   canopy.push({position:[x-.62*size,2.62,z+.12],scale:[.68*size,.72*size,.7*size],color:treeColors[(i+2)%treeColors.length]});
+   canopy.push({position:[x+.62*size,2.69,z-.18],scale:[.67*size,.74*size,.68*size],color:treeColors[(i+1)%treeColors.length]});
+   canopy.push({position:[x+.08,3.42*size,z+.42*size],scale:[.62*size,.64*size,.63*size],color:treeColors[(i+3)%treeColors.length]});
+   canopy.push({position:[x-.18,3.27*size,z-.48*size],scale:[.61*size,.64*size,.59*size],color:treeColors[(i+4)%treeColors.length]});
+   branches.push({position:[x-.39,1.82,z+.04],scale:[1,1,1],color:'#6a503a',euler:[0,0,.72]});
+   branches.push({position:[x+.4,1.8,z-.05],scale:[1,1,1],color:'#74563c',euler:[0,0,-.75]});
   });
-  const shrubs:LandscapeInstance[]=[],grass:LandscapeInstance[]=[],flowers:LandscapeInstance[]=[];
+  const mulch:LandscapeInstance[]=treePoints.map(([x,z],i)=>({position:[x,-.119,z],scale:[1.47,1,1.26],color:['#8b7554','#947d59','#81704f'][i%3],euler:[-Math.PI/2,0,(i%6)*.31]}));
+  const shrubs:LandscapeInstance[]=[],grass:LandscapeInstance[]=[],flowers:LandscapeInstance[]=[],stones:LandscapeInstance[]=[];
   const flowerColors=['#e2c66f','#d8d9c8','#bd8fa2','#d08f63','#c5b2d5'];
   beds.forEach(([cx,cz],bed)=>{
-   for(let i=0;i<9;i++){
-    const angle=(i*2.399+bed*.37),radius=.45+(i%4)*.36,x=cx+Math.cos(angle)*radius,z=cz+Math.sin(angle)*radius*.72;
-    shrubs.push({position:[x,.34,z],scale:[.36+(i%3)*.08,.3+(i%2)*.07,.34+(i%4)*.035],color:['#6e8560','#7f9168','#647b5b','#899a70'][(i+bed)%4],rotation:angle});
+   for(let i=0;i<8;i++){
+    const angle=(i*2.399+bed*.37),radius=.5+(i%4)*.34,x=cx+Math.cos(angle)*radius,z=cz+Math.sin(angle)*radius*.72;
+    shrubs.push({position:[x,.31,z],scale:[.33+(i%3)*.09,.26+(i%2)*.075,.32+(i%4)*.035],color:['#607951','#70875d','#647b54','#849367'][(i+bed)%4],rotation:angle});
    }
-   for(let i=0;i<12;i++){
-    const angle=(i*2.137+bed*.51),radius=.55+(i%5)*.29,x=cx+Math.cos(angle)*radius,z=cz+Math.sin(angle)*radius*.65;
-    grass.push({position:[x,.34,z],scale:[.8+(i%3)*.12, .78+(i%4)*.1,.8],color:['#788d61','#87966b','#6f855d'][(i+bed)%3],rotation:angle});
-    if(i%2===0)flowers.push({position:[x+.12,.49,z-.08],scale:[1,1,1],color:flowerColors[(i+bed)%flowerColors.length],rotation:angle});
+   for(let i=0;i<11;i++){
+    const angle=(i*2.137+bed*.51),radius=.62+(i%5)*.27,x=cx+Math.cos(angle)*radius,z=cz+Math.sin(angle)*radius*.67;
+    grass.push({position:[x,.31,z],scale:[.8+(i%3)*.12,.78+(i%4)*.1,.8],color:['#788d61','#87966b','#6f855d'][(i+bed)%3],rotation:angle});
+    if(i%2===0)flowers.push({position:[x+.12,.47,z-.08],scale:[1,1,1],color:flowerColors[(i+bed)%flowerColors.length],rotation:angle});
    }
+   for(let i=0;i<2;i++){const a=bed*1.77+i*2.75;stones.push({position:[cx+Math.cos(a)*1.75,.04,cz+Math.sin(a)*1.32],scale:[.3+(i%2)*.12,.16,.22],color:i?'#978f78':'#aaa18a',rotation:a})}
   });
   const meadows=[
-   makeMeadow([[-70,-28],[-48,-29],[-45,-20],[-46,18],[-52,28],[-70,29]],'#8fa36d'),
-   makeMeadow([[-70,-49],[-25,-49],[-22,-43],[-26,-39],[-68,-39]],'#91a66f'),
-   makeMeadow([[13,-49],[67,-49],[66,-40],[16,-39]],'#91a66f'),
-   makeMeadow([[-70,36],[-43,35],[-32,37],[-24,43],[-28,49],[-70,49]],'#8ca16a'),
-   makeMeadow([[-10,36],[8,36],[9,47],[5,49],[-10,48]],'#91a66f'),
+   makeMeadow([[-70,-28],[-62,-31],[-49,-29],[-45,-20],[-46,18],[-52,28],[-63,31],[-70,29]],'#8fa36d'),
+   makeMeadow([[-70,-49],[-58,-50],[-25,-49],[-22,-43],[-26,-39],[-52,-38],[-68,-39]],'#91a66f'),
+   makeMeadow([[13,-49],[22,-50],[67,-49],[66,-40],[51,-38],[16,-39]],'#91a66f'),
+   makeMeadow([[-70,36],[-58,35],[-43,35],[-32,37],[-24,43],[-28,49],[-43,50],[-70,49]],'#8ca16a'),
+   makeMeadow([[-10,36],[-3,35],[8,36],[10,42],[8,47],[5,49],[-5,49],[-10,48]],'#91a66f'),
   ];
-  return {meadows,trunks,canopy,shrubs,grass,flowers,
-   trunkMesh:makeLandscapeInstances(new THREE.CylinderGeometry(.13,.2,2.24,7),trunks),
-   canopyMesh:makeLandscapeInstances(new THREE.DodecahedronGeometry(1,1),canopy),
-   shrubMesh:makeLandscapeInstances(new THREE.DodecahedronGeometry(1,1),shrubs),
-   grassMesh:makeLandscapeInstances(new THREE.ConeGeometry(.21,.72,5),grass),
-   flowerMesh:makeLandscapeInstances(new THREE.DodecahedronGeometry(.1,0),flowers),
+  const treeTrunkGeometry=new THREE.CylinderGeometry(.13,.2,2.24,7);
+  const branchGeometry=new THREE.CylinderGeometry(.045,.09,1.18,6);
+  const leafGeometry=new THREE.IcosahedronGeometry(1,1);
+  const mulchGeometry=new THREE.CircleGeometry(1,18);
+  return {meadows,
+   trunkMesh:makeLandscapeInstances(treeTrunkGeometry,trunks),branchMesh:makeLandscapeInstances(branchGeometry,branches),canopyMesh:makeLandscapeInstances(leafGeometry,canopy),
+   mulchMesh:makeLandscapeInstances(mulchGeometry,mulch),shrubMesh:makeLandscapeInstances(leafGeometry,shrubs),grassMesh:makeLandscapeInstances(new THREE.ConeGeometry(.21,.72,5),grass),
+   flowerMesh:makeLandscapeInstances(new THREE.IcosahedronGeometry(.1,0),flowers),stoneMesh:makeLandscapeInstances(new THREE.DodecahedronGeometry(1,0),stones),
   };
  },[]);
- return <group>{landscape.meadows.map((mesh,i)=><primitive key={`green-buffer-meadow-${i}`} object={mesh} dispose={null}/>)}<primitive object={landscape.trunkMesh} dispose={null}/><primitive object={landscape.canopyMesh} dispose={null}/><primitive object={landscape.shrubMesh} dispose={null}/><primitive object={landscape.grassMesh} dispose={null}/><primitive object={landscape.flowerMesh} dispose={null}/></group>;
+ return <group>{landscape.meadows.map((mesh,i)=><primitive key={`green-buffer-meadow-${i}`} object={mesh} dispose={null}/>)}<primitive object={landscape.mulchMesh} dispose={null}/><primitive object={landscape.trunkMesh} dispose={null}/><primitive object={landscape.branchMesh} dispose={null}/><primitive object={landscape.canopyMesh} dispose={null}/><primitive object={landscape.shrubMesh} dispose={null}/><primitive object={landscape.grassMesh} dispose={null}/><primitive object={landscape.flowerMesh} dispose={null}/><primitive object={landscape.stoneMesh} dispose={null}/></group>;
 }
 function TankFarmBundAccess(){return <group>
  {/* Staggered concrete treads and paired handrails cross the east containment berm. */}

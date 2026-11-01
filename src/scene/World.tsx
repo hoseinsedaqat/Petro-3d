@@ -52,6 +52,9 @@ function RefineryLandscapeBuffers(){
    [-51,-22],[-51,-5],[-51,11],[-51,25],[-62,-44],[-49,-45],[-37,-44],[-25,-44],[14,-45],[28,-44],[42,-44],[56,-44],[-62,43],[-49,44],[-36,44],[-23,46],[-16,47],[8,45],[-57,31],[-43,32],[68,-44],[79,-44],[49,44],[63,44],[77,44],
    // Additional trees occupy only the previously bare north buffer and broad south campus verge, outside all fenced and traffic areas.
    [-20,-44],[-10,-46],[1,-44],[11,-45],[15,43],[22,45],[38,43],[-14,42],
+   // Densify the outer west and north-east green belts while keeping a broad, open buffer around hydrants and site access.
+   [-65,-27],[-65,-13],[-65,1],[-65,15],[-65,27],[-46,-25],[-46,-19],[-46,23],
+   [29,-43],[43,-44],[63,-43],
   ];
   const beds:[number,number][]=[[-55,-19],[-55,-5],[-55,9],[-54,23],[-55,-44],[-42,-44],[-29,-43],[23,-44],[37,-43],[51,-42],[-54,43],[-42,43],[-29,41],[-6,42],[5,42],...treePoints.slice(15).map(([x,z],i)=>[x+(i%2?.15:-.15),z+(i%3===0?.25:-.2)] as [number,number])];
   const trunks:LandscapeInstance[]=treePoints.map(([,z],i)=>({position:[treePoints[i][0],1.12,z],scale:[.88+(i%4)*.08,1, .88+(i%3)*.07],color:['#604d3b','#70563f','#66513c','#775b42'][i%4]}));

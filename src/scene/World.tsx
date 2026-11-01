@@ -50,7 +50,7 @@ function FireHydrantBody(){return <group>
  <mesh position={[0,.26,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.23,.035,6,16]}/><meshStandardMaterial color="#d4bd78" metalness={.48}/></mesh>
  </group>}
 const fireHydrantSites:[number,number,number][]=[[-41.5,0,-12],[-41.5,0,13],[0,0,-27],[32.4,0,-24],[32.4,0,22],[0,0,25]];
-const firewaterLoop:[number,number,number][]=[[-36.5,-.16,7.3],[-41.5,-.16,7.3],[-41.5,-.16,-24],[-38.5,-.16,-27],[29.4,-.16,-27],[32.4,-.16,-24],[32.4,-.16,22],[29.4,-.16,25],[-38.5,-.16,25],[-41.5,-.16,22],[-41.5,-.16,7.3],[-36.5,-.16,7.3]];
+const firewaterLoop:[number,number,number][]=[[-36.5,-.16,7.3],[-41.5,-.16,7.3],[-41.5,-.16,-24],[-38.5,-.16,-27],[29.4,-.16,-27],[32.4,-.16,-24],[32.4,-.16,22],[29.4,-.16,25],[24.5,-.16,25],[24.5,-.16,32.2],[11,-.16,32.2],[11,-.16,25],[-38.5,-.16,25],[-41.5,-.16,22],[-41.5,-.16,7.3],[-36.5,-.16,7.3]];
 function FirewaterRing(){return <group>
  <PipelinePath points={firewaterLoop} color="#a7473c" radius={.082}/>
  <Pipe a={[-36.5,-.16,7.3]} b={[-36.5,1.08,7.3]} color="#a7473c" radius={.12}/>
@@ -1270,7 +1270,8 @@ function SitePerimeterFence(){
   [-11.5,-36.75],[-9,-36.75],[-6.5,-36.75],[-4,-36.75],[-1.5,-36.75],[1,-36.75],[3.5,-36.75],[6,-36.75],
   [6,-34.05],[6,-31.35],[6,-28.65],
  ];
- const southPosts=northPosts.filter((_,i)=>i<=17&&i!==4&&i!==5);
+ const southPosts=northPosts.filter((x,i)=>i<=17&&i!==4&&i!==5&&(x<11||x>=25));
+ const loadingYardPosts:[number,number][]=[[11,28.65],[11,31],[11,33.4],[13.7,33.4],[16.4,33.4],[19.1,33.4],[21.8,33.4],[24.5,33.4],[24.5,31],[24.5,28.65]];
  const westPosts=Array.from({length:15},(_,i)=>-27+i*3.85);
  return <group>
   {/* Keep the established perimeter and gate; jog the north boundary around H2-01 so it is inside the secure plot, not cut by the fence. */}
@@ -1280,7 +1281,12 @@ function SitePerimeterFence(){
   <PerimeterFenceRun start={-14} end={6} axis="x" coordinate={-36.75}/>
   <PerimeterFenceRun start={-36.75} end={-28.65} axis="z" coordinate={6}/>
   <PerimeterFenceRun start={-33} end={-17} axis="x" coordinate={28.65}/>
-  <PerimeterFenceRun start={-13} end={35} axis="x" coordinate={28.65}/>
+  <PerimeterFenceRun start={-13} end={11} axis="x" coordinate={28.65}/>
+  {/* The south fence steps outward around the truck/forklift apron, keeping its swept and handling space inside the secure plot. */}
+  <PerimeterFenceRun start={28.65} end={33.4} axis="z" coordinate={11}/>
+  <PerimeterFenceRun start={11} end={24.5} axis="x" coordinate={33.4}/>
+  <PerimeterFenceRun start={28.65} end={33.4} axis="z" coordinate={24.5}/>
+  <PerimeterFenceRun start={24.5} end={35} axis="x" coordinate={28.65}/>
   <PerimeterFenceRun start={-27} end={26.9} axis="z" coordinate={-33.78}/>
   {originalNorthPosts.map(x=><group key={`north-fence-post-${x}`}>
    <Box position={[x,.98,-28.65]} scale={[.12,1.96,.12]} color="#69776e"/>
@@ -1293,6 +1299,10 @@ function SitePerimeterFence(){
   {southPosts.map(x=><group key={`south-fence-post-${x}`}>
    <Box position={[x,.98,28.65]} scale={[.12,1.96,.12]} color="#69776e"/>
    <mesh position={[x,1.99,28.65]}><cylinderGeometry args={[.085,.085,.08,8]}/><meshStandardMaterial color="#9ca69c" metalness={.42}/></mesh>
+  </group>)}
+  {loadingYardPosts.map(([x,z],i)=><group key={`loading-yard-fence-post-${i}`}>
+   <Box position={[x,.98,z]} scale={[.12,1.96,.12]} color="#69776e"/>
+   <mesh position={[x,1.99,z]}><cylinderGeometry args={[.085,.085,.08,8]}/><meshStandardMaterial color="#9ca69c" metalness={.42}/></mesh>
   </group>)}
   {westPosts.map(z=><group key={`west-fence-post-${z}`}>
    <Box position={[-33.78,.98,z]} scale={[.12,1.96,.12]} color="#69776e"/>
@@ -1723,13 +1733,13 @@ function Truck({item,index}:{item:SiteItem;index:number}) {
  </group>;
 }
 function DrumLoadingApron(){return <group>
- {/* Heavy-paved forklift apron with a marked shuttle lane and a clear holding pocket outside the truck swept path. */}
- <mesh rotation={[-Math.PI/2,0,0]} position={[17.75,-.04,27.15]}><planeGeometry args={[9,6.6]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',9/9,6.6/9)} color="#b6b9af" roughness={.96}/></mesh>
- {[-1,1].map(side=><Box key={`drum-apron-edge-${side}`} position={[17.75+side*4.32,-.005,27.15]} scale={[.11,.035,6.25]} color="#d3ae59"/>)}
- {[24.0,30.3].map(z=><Box key={`drum-apron-stop-${z}`} position={[17.75,-.005,z]} scale={[8.65,.035,.11]} color="#d3ae59"/>)}
- {[-1,1].map(side=><Box key={`fork-shuttle-lane-${side}`} position={[17.75+side*.92,.008,27.75]} scale={[.07,.02,4.25]} color="#d7d1bb"/>)}
- <Box position={[17.75,.01,29.75]} scale={[1.92,.025,.08]} color="#d7b45f"/>
- <Box position={[17.75,.012,25.3]} scale={[6.4,.025,.12]} color="#c78057"/>
+ {/* Widened heavy-duty pad and generous fenced clearance keep the forklift shuttle separate from the truck loop. */}
+ <mesh rotation={[-Math.PI/2,0,0]} position={[17.75,-.04,27.4]}><planeGeometry args={[11,8.4]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',11/9,8.4/9)} color="#b6b9af" roughness={.96}/></mesh>
+ {[-1,1].map(side=><Box key={`drum-apron-edge-${side}`} position={[17.75+side*5.32,-.005,27.4]} scale={[.11,.035,8.05]} color="#d3ae59"/>)}
+ {[23.3,31.5].map(z=><Box key={`drum-apron-stop-${z}`} position={[17.75,-.005,z]} scale={[10.65,.035,.11]} color="#d3ae59"/>)}
+ {[-1,1].map(side=><Box key={`fork-shuttle-lane-${side}`} position={[17.75+side*1.12,.008,27.7]} scale={[.07,.02,4.25]} color="#d7d1bb"/>)}
+ <Box position={[17.75,.01,30.8]} scale={[2.32,.025,.08]} color="#d7b45f"/>
+ <Box position={[17.75,.012,25.3]} scale={[10.4,.025,.12]} color="#c78057"/>
  </group>}
 function TruckDispatchSignal(){
  const red=useRef<THREE.MeshStandardMaterial>(null);const green=useRef<THREE.MeshStandardMaterial>(null);

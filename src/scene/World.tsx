@@ -20,7 +20,17 @@ function SiteTerrain({night}:{night:boolean}){
  const geometry=useMemo(()=>{const land=new THREE.Shape();land.moveTo(-70,-50);land.lineTo(85,-50);land.lineTo(85,-38);land.lineTo(37,-38);land.lineTo(37,10);land.lineTo(85,10);land.lineTo(85,50);land.lineTo(-70,50);land.closePath();const surface=new THREE.ShapeGeometry(land,1);surface.rotateX(-Math.PI/2);surface.computeVertexNormals();return surface},[]);
  return <mesh geometry={geometry} position={[0,-.16,0]} receiveShadow><meshStandardMaterial map={getYardSurfaceMap('soil',1/18,1/18)} color={night?'#59635d':'#ffffff'} roughness={1} side={THREE.DoubleSide}/></mesh>;
 }
+const fireHydrantSites:[number,number,number][]=[[-41.5,0,-12],[-41.5,0,13],[0,0,-27],[32.4,0,-24],[32.4,0,22],[0,0,25]];
 type LandscapeInstance={position:[number,number,number];scale:[number,number,number];color:string;rotation?:number;euler?:[number,number,number]};
+function isSafeLandscapePlacement(x:number,z:number){
+ // Conservative visual keep-outs: never scatter plants around hydrants or over vehicle/access corridors.
+ if(fireHydrantSites.some(([hx,,hz])=>Math.hypot(x-hx,z-hz)<3))return false;
+ if(x>-35&&x<28&&z>5&&z<9)return false; // Cross-plant emergency road.
+ if(x>9&&x<27&&z>19&&z<35)return false; // Truck and forklift working envelope.
+ if(x>-22&&x<-9&&z>28&&z<38)return false; // Visitor-gate drive and pedestrian approach.
+ if(x>-16&&x<8&&z>-39&&z<-27)return false; // H2 fence and separation strip.
+ return true;
+}
 function makeLandscapeInstances(geometry:THREE.BufferGeometry,entries:LandscapeInstance[],materialColor='#ffffff'){
  const material=new THREE.MeshStandardMaterial({color:materialColor,roughness:1});
  const mesh=new THREE.InstancedMesh(geometry,material,entries.length);const object=new THREE.Object3D();
@@ -41,7 +51,7 @@ function RefineryLandscapeBuffers(){
    [-58,-19],[-58,-5],[-58,9],[-58,23],[-57,-44],[-43,-45],[-30,-44],[22,-45],[36,-44],[50,-43],[-57,43],[-44,44],[-31,42],[-6,44],[5,43],
    [-51,-22],[-51,-5],[-51,11],[-51,25],[-62,-44],[-49,-45],[-37,-44],[-25,-44],[14,-45],[28,-44],[42,-44],[56,-44],[-62,43],[-49,44],[-36,44],[-23,46],[-16,47],[8,45],[-57,31],[-43,32],[68,-44],[79,-44],[49,44],[63,44],[77,44],
    // Additional trees occupy only the previously bare north buffer and broad south campus verge, outside all fenced and traffic areas.
-   [-20,-44],[-10,-46],[1,-44],[11,-45],[15,43],[22,45],[38,43],
+   [-20,-44],[-10,-46],[1,-44],[11,-45],[15,43],[22,45],[38,43],[-14,42],
   ];
   const beds:[number,number][]=[[-55,-19],[-55,-5],[-55,9],[-54,23],[-55,-44],[-42,-44],[-29,-43],[23,-44],[37,-43],[51,-42],[-54,43],[-42,43],[-29,41],[-6,42],[5,42],...treePoints.slice(15).map(([x,z],i)=>[x+(i%2?.15:-.15),z+(i%3===0?.25:-.2)] as [number,number])];
   const trunks:LandscapeInstance[]=treePoints.map(([,z],i)=>({position:[treePoints[i][0],1.12,z],scale:[.88+(i%4)*.08,1, .88+(i%3)*.07],color:['#604d3b','#70563f','#66513c','#775b42'][i%4]}));
@@ -87,13 +97,19 @@ function RefineryLandscapeBuffers(){
    // Complete the south-campus buffer between the existing lawn islands; all planting remains beyond the loading-yard fence.
    [[11.8,37.6],[17,36.8],[27.4,38.1],[29.2,42],[28.5,48],[21,49.4],[14,48.5]],
    [[35.4,39.4],[40.2,39.2],[42.2,42],[42,47.8],[38.7,49],[35.2,47]],
+   // Close the last south-west campus gap beyond the marked visitor approach; low planting preserves sightlines to the gate.
+   [[-21.2,38.4],[-15.5,37.8],[-9.5,38.4],[-9.5,44],[-11.2,49],[-17.8,49.4],[-21.5,45]],
+   // Low meadow pockets fill the bare west-side verge while keeping a clear strip around the exposed firewater main and hydrants.
+   [[-38.5,-27],[-35.7,-27],[-35.7,-16],[-38.5,-16]],
+   [[-38.5,-8],[-35.7,-8],[-35.7,4],[-38.5,4]],
+   [[-38.5,17.5],[-35.7,17.5],[-35.7,20.5],[-38.5,20.5]],
   ];
   const meadows=meadowPolygons.map((polygon,index)=>makeMeadow(polygon,index%2?'#91a66f':'#8fa36d'));
   // Fine-scale native groundcover fills the wide lawn panels in the references. The clusters are instanced, kept low, and exist only inside the planted buffers.
   const meadowCover:LandscapeInstance[]=[];let coverSeed=7741;const coverRandom=()=>{coverSeed=(coverSeed*1664525+1013904223)>>>0;return coverSeed/4294967296};
   meadowPolygons.forEach((polygon,zone)=>{
-   const xs=polygon.map(point=>point[0]),zs=polygon.map(point=>point[1]);const minX=Math.min(...xs),maxX=Math.max(...xs),minZ=Math.min(...zs),maxZ=Math.max(...zs),spacing=zone===0?1.55:1.4;
-   let row=0;for(let z=minZ+.35;z<maxZ;z+=spacing,row++)for(let x=minX+.35+(row%2)*spacing*.5;x<maxX;x+=spacing){const px=x+(coverRandom()-.5)*.6,pz=z+(coverRandom()-.5)*.6;if(!isInsideLandscapePolygon(px,pz,polygon))continue;const index=Math.floor(coverRandom()*6);meadowCover.push({position:[px,-.012,pz],scale:[.8+coverRandom()*.65,.75+coverRandom()*.9,.8+coverRandom()*.65],color:['#738a59','#7d905f','#89996b','#697f53','#92a06c','#708357'][(index+zone)%6],rotation:coverRandom()*Math.PI*2});if(coverRandom()<.08)flowers.push({position:[px,.1,pz],scale:[1,1,1],color:flowerColors[(index+zone)%flowerColors.length],rotation:coverRandom()*Math.PI*2})}
+   const xs=polygon.map(point=>point[0]),zs=polygon.map(point=>point[1]);const minX=Math.min(...xs),maxX=Math.max(...xs),minZ=Math.min(...zs),maxZ=Math.max(...zs),spacing=zone===0?1.05:.98;
+   let row=0;for(let z=minZ+.35;z<maxZ;z+=spacing,row++)for(let x=minX+.35+(row%2)*spacing*.5;x<maxX;x+=spacing){const px=x+(coverRandom()-.5)*.6,pz=z+(coverRandom()-.5)*.6;if(!isInsideLandscapePolygon(px,pz,polygon)||!isSafeLandscapePlacement(px,pz))continue;const index=Math.floor(coverRandom()*6);meadowCover.push({position:[px,-.012,pz],scale:[.8+coverRandom()*.65,.75+coverRandom()*.9,.8+coverRandom()*.65],color:['#738a59','#7d905f','#89996b','#697f53','#92a06c','#708357'][(index+zone)%6],rotation:coverRandom()*Math.PI*2});if(coverRandom()<.09)flowers.push({position:[px,.1,pz],scale:[1,1,1],color:flowerColors[(index+zone)%flowerColors.length],rotation:coverRandom()*Math.PI*2})}
   });
   const treeTrunkGeometry=new THREE.CylinderGeometry(.13,.2,2.24,7);
   const branchGeometry=new THREE.CylinderGeometry(.045,.09,1.18,6);
@@ -136,7 +152,6 @@ function FireHydrantBody(){return <group>
  </group>)}
  <mesh position={[0,.26,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.23,.035,6,16]}/><meshStandardMaterial color="#d4bd78" metalness={.48}/></mesh>
  </group>}
-const fireHydrantSites:[number,number,number][]=[[-41.5,0,-12],[-41.5,0,13],[0,0,-27],[32.4,0,-24],[32.4,0,22],[0,0,25]];
 const firewaterLoop:[number,number,number][]=[[-36.5,-.16,7.3],[-41.5,-.16,7.3],[-41.5,-.16,-24],[-38.5,-.16,-27],[29.4,-.16,-27],[32.4,-.16,-24],[32.4,-.16,22],[29.4,-.16,25],[24.5,-.16,25],[24.5,-.16,32.2],[11,-.16,32.2],[11,-.16,25],[-38.5,-.16,25],[-41.5,-.16,22],[-41.5,-.16,7.3],[-36.5,-.16,7.3]];
 function FirewaterRing(){return <group>
  <PipelinePath points={firewaterLoop} color="#a7473c" radius={.082}/>
@@ -215,7 +230,7 @@ export class AssetBoundary extends Component<{fallback:(error:string)=>ReactNode
  render(){return this.state.failed?this.props.fallback(this.state.message):this.props.children}
 }
 export function SceneFallback({message}:{message:string}){const fa=typeof document!=='undefined'&&document.documentElement.lang==='fa';const night=useStore(s=>s.night);return <>
- <color attach="background" args={[night?'#09121d':'#d6e0d5']}/><fog attach="fog" args={[night?'#09121d':'#d6e0d5',80,145]}/><ambientLight intensity={night?.2:1.25}/><directionalLight position={[-25,45,20]} intensity={night?.3:2} castShadow/>
+ <color attach="background" args={[night?'#09121d':'#d6e0d5']}/><fog attach="fog" args={[night?'#09121d':'#d6e0d5',80,145]}/><ambientLight color={night?'#a9b8cf':'#ffffff'} intensity={night?.24:1.25}/><directionalLight position={[-25,45,20]} color={night?'#9ab7df':'#ffffff'} intensity={night?.42:2} castShadow/>
  <NightLighting night={night}/>
  <SiteTerrain night={night}/><RefineryLandscapeBuffers/>
  <SitePerimeterFence/><CompanyArrivalLandscape/><CompanyMonumentSign/><RoadDrainageAndEmergencyAccess/><OilyWaterSewerNetwork/><SourWaterProcessNetwork/>
@@ -257,7 +272,7 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  {items.filter(x=>x.kind==='truck').map((t,i)=><Truck key={`fallback-${t.id}`} item={t} index={i}/>)}
  <DrumLoadingForklift item={items.find(x=>x.id==='FL-027')!}/>
  <AdaptiveDpr pixelated/><AdaptiveEvents/><OrbitControls regress makeDefault target={[0,0,0]} minPolarAngle={.25} maxPolarAngle={Math.PI/2.12} minDistance={24} maxDistance={100}/>
- <Html center><div className="scene-crash-card"><strong>{fa?'حالت بازیابی صحنه':'Scene recovery mode'}</strong><span>{fa?'نمای ساده فعال است؛ خطای اصلی برای عیب‌یابی:':'Showing a lightweight fallback. Runtime error:'}</span><code>{message}</code></div></Html>
+ <Html center zIndexRange={[1,0]}><div className="scene-crash-card"><strong>{fa?'حالت بازیابی صحنه':'Scene recovery mode'}</strong><span>{fa?'نمای ساده فعال است؛ خطای اصلی برای عیب‌یابی:':'Showing a lightweight fallback. Runtime error:'}</span><code>{message}</code></div></Html>
  </>}
 function ClickGroup({item,children,position}: {item?:SiteItem;children:React.ReactNode;position?:[number,number,number]}) {
  const selected=useStore(s=>s.selected); const select=useStore(s=>s.select); const hot=selected?.id===item?.id;
@@ -611,7 +626,7 @@ function BerthWayfinding(){
   <Box position={[0,1.18,0]} scale={[.1,2.05,.1]} color="#66756b"/>
   <Box position={[0,2.0,.06]} scale={[1.28,.72,.12]} color="#293d3b"/>
   <Box position={[0,2.39,.13]} scale={[1.31,.06,.16]} color="#c8ae6c"/>
-  <Html center position={[0,2.02,.14]} distanceFactor={6} style={{pointerEvents:'none',whiteSpace:'nowrap'}}>
+  <Html center position={[0,2.02,.14]} zIndexRange={[1,0]} distanceFactor={6} style={{pointerEvents:'none',whiteSpace:'nowrap'}}>
    <div style={{fontFamily:'ui-monospace,monospace',fontSize:'7px',fontWeight:700,letterSpacing:'.7px',color:'#f0ead8',textAlign:'center',textShadow:'0 1px 3px #101718'}}>
     BERTH 01<br/><span style={{fontSize:'5px',fontWeight:500}}>EXPORT TERMINAL</span>
    </div>
@@ -1202,7 +1217,7 @@ function CompanyMonumentSign(){
   <Box position={[0,1.76,.055]} scale={[.94,.055,.17]} color="#b69a61"/>
   <Box position={[-.3,1.36,.055]} scale={[.09,.38,.17]} color="#77928f"/>
   <Box position={[.06,1.36,.055]} scale={[.09,.38,.17]} color="#77928f"/>
-  <Html center position={[.1,1.39,.15]} distanceFactor={7} style={{pointerEvents:'none',whiteSpace:'nowrap'}}>
+  <Html center position={[.1,1.39,.15]} zIndexRange={[1,0]} distanceFactor={7} style={{pointerEvents:'none',whiteSpace:'nowrap'}}>
    <div style={{fontFamily:'Inter, sans-serif',fontSize:'8px',fontWeight:700,letterSpacing:'1.2px',color:'#f3ead3',textShadow:'0 1px 3px #101718',textAlign:'left'}}>
     PETROVISTA<br/><span style={{fontSize:'5px',letterSpacing:'1px',fontWeight:500}}>{fa?'ورودی مجتمع صنعتی':'INDUSTRIAL CAMPUS'}</span>
    </div>
@@ -1691,14 +1706,12 @@ function TruckTrafficSafety(){const night=useStore(s=>s.night);return <group>
  {Array.from({length:4},(_,i)=><Box key={`outer-loop-dash-${i}`} position={[9+i*4.1,.006,20.5]} scale={[1.7,.02,.1]} color="#d8cf9d"/>)}
  <RoadArrow position={[12.5,.014,23]} direction="west"/><RoadArrow position={[15.1,.014,20.5]} direction="east"/>
  <RoadArrow position={[6,.014,21.7]} direction="north"/><RoadArrow position={[23,.014,21.7]} direction="south"/>
- {/* Continuous marked pedestrian route, physically guarded from the one-way truck loop. */}
+ {/* Marked pedestrian route and driver refuge, kept flush with the apron so vehicle handling remains unobstructed. */}
  <mesh rotation={[-Math.PI/2,0,0]} position={[15,-.008,9.8]}><planeGeometry args={[20,1.8]}/><meshStandardMaterial color="#747d73" roughness={.9}/></mesh>
  {[8.95,10.65].map(z=><Box key={`walk-edge-${z}`} position={[15,.018,z]} scale={[20,.035,.07]} color="#dfd4a6"/>)}
  <Box position={[21.5,.004,9.8]} scale={[2.0,.015,1.35]} color="#6b7e70"/>
  {[20.5,22.5].map(x=><Box key={`driver-refuge-edge-${x}`} position={[x,.018,9.8]} scale={[.055,.03,1.38]} color="#d7b45f"/>)}
  <Box position={[21.5,.018,9.12]} scale={[2.0,.03,.055]} color="#d7b45f"/>
- <Box position={[15,.38,11.65]} scale={[17.6,.76,.24]} color="#5e6965"/><Box position={[15,.81,11.65]} scale={[17.6,.1,.1]} color="#d4b878"/>
- {Array.from({length:10},(_,i)=>{const x=6.5+i*1.9;return <Box key={`walk-post-${i}`} position={[x,.47,11.65]} scale={[.12,.94,.32]} color="#68746f"/>})}
  {[4.2,25.8].map(x=><group key={`walk-lamp-${x}`}><Box position={[x,1.7,9.8]} scale={[.12,3.4,.12]} color="#596862"/><Box position={[x,3.42,9.8]} scale={[.7,.12,.18]} color="#b6a06d"/><mesh position={[x,3.34,9.8]}><sphereGeometry args={[.11,8,8]}/><meshStandardMaterial color={night?'#fff1c8':'#a8ad9c'} emissive={night?'#ffca76':'#000000'} emissiveIntensity={night?1.8:0}/></mesh>{night&&<pointLight position={[x,3.1,9.8]} color="#ffe0ac" intensity={3.2} distance={10} decay={2}/>}</group>)}
  {[11.5,12.5,13.5].map(z=><Box key={`bay-guide-${z}`} position={[16.5,.007,z]} scale={[13,.02,.07]} color={z===12.5?'#d6bb71':'#d3d0b9'}/>)}
  {[10,15,20].map(x=><group key={`truck-stop-mark-${x}`}><Box position={[x,.012,14]} scale={[.14,.025,3.25]} color="#e5dfcb"/><Box position={[x,.018,11.98]} scale={[1.15,.035,.15]} color="#d6b875"/></group>)}
@@ -2076,7 +2089,7 @@ function PipeFlowArrow({position,direction}:{position:[number,number,number];dir
  </mesh>;
 }
 function PipewayLabel({position,label,color}:{position:[number,number,number];label:string;color:string}){
- return <Html center position={position} distanceFactor={9} style={{pointerEvents:'none',whiteSpace:'nowrap'}}>
+ return <Html center position={position} zIndexRange={[1,0]} distanceFactor={9} style={{pointerEvents:'none',whiteSpace:'nowrap'}}>
   <span style={{display:'inline-block',padding:'2px 4px',border:`1px solid ${color}`,borderRadius:'3px',background:'rgba(17,27,29,.9)',color:'#e7eee5',fontFamily:'ui-monospace,monospace',fontSize:'7px',fontWeight:700,letterSpacing:'.25px',textShadow:'0 1px 2px #000'}}>{label}</span>
  </Html>;
 }
@@ -2326,7 +2339,7 @@ export function World({loadHighDetail=false}:{loadHighDetail?:boolean}){
  const controlsRef=useRef<any>(null);const night=useStore(s=>s.night);const quality=useStore(s=>s.quality); const mode=useStore(s=>s.mode); const filtered=useMemo(()=>items.filter(x=>mode==='overview'||mode==='all'||x.zone===mode||(mode==='storage'&&['tank','sphere-tank'].includes(x.kind))||(mode==='refinery'&&['process','furnace','flare'].includes(x.kind))),[mode]);
  return <>
   <color attach="background" args={[night?'#09121d':'#d6e0d5']}/><fog attach="fog" args={[night?'#09121d':'#d6e0d5',80,145]}/>
-  <ambientLight intensity={night?.2:1.15}/><directionalLight position={[-30,55,22]} intensity={night?.32:2.3} castShadow={quality!=='low'} shadow-mapSize={quality==='high'?[2048,2048]:[1024,1024]} shadow-camera-left={-60} shadow-camera-right={60} shadow-camera-top={60} shadow-camera-bottom={-60}/><NightLighting night={night}/>
+  <ambientLight color={night?'#a9b8cf':'#ffffff'} intensity={night?.24:1.15}/><directionalLight position={[-30,55,22]} color={night?'#9ab7df':'#ffffff'} intensity={night?.42:2.3} castShadow={quality!=='low'} shadow-mapSize={quality==='high'?[2048,2048]:[1024,1024]} shadow-camera-left={-60} shadow-camera-right={60} shadow-camera-top={60} shadow-camera-bottom={-60}/><NightLighting night={night}/>
   <SiteTerrain night={night}/><RefineryLandscapeBuffers/>
   {/* Raised, fenced industrial plot like a miniature engineering diorama */}
   <Box position={[8,.015,-29]} scale={[84,.24,.42]} color="#48534e"/><Box position={[1,.015,29]} scale={[70,.24,.42]} color="#48534e"/>

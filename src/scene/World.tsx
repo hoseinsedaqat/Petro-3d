@@ -1,6 +1,6 @@
 import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, useGLTF, useAnimations, Center, Html } from '@react-three/drei';
+import { AdaptiveDpr, AdaptiveEvents, OrbitControls, useGLTF, useAnimations, Center, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { items, type SiteItem } from '../data/site';
@@ -19,6 +19,59 @@ function ShorelineSeawall(){return <group>
 function SiteTerrain({night}:{night:boolean}){
  const geometry=useMemo(()=>{const land=new THREE.Shape();land.moveTo(-70,-50);land.lineTo(85,-50);land.lineTo(85,-38);land.lineTo(37,-38);land.lineTo(37,10);land.lineTo(85,10);land.lineTo(85,50);land.lineTo(-70,50);land.closePath();const surface=new THREE.ShapeGeometry(land,1);surface.rotateX(-Math.PI/2);surface.computeVertexNormals();return surface},[]);
  return <mesh geometry={geometry} position={[0,-.16,0]} receiveShadow><meshStandardMaterial map={getYardSurfaceMap('soil',1/18,1/18)} color={night?'#59635d':'#ffffff'} roughness={1} side={THREE.DoubleSide}/></mesh>;
+}
+type LandscapeInstance={position:[number,number,number];scale:[number,number,number];color:string;rotation?:number};
+function makeLandscapeInstances(geometry:THREE.BufferGeometry,entries:LandscapeInstance[]){
+ const material=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:1});
+ const mesh=new THREE.InstancedMesh(geometry,material,entries.length);const object=new THREE.Object3D();
+ entries.forEach((entry,index)=>{object.position.set(...entry.position);object.rotation.set(0,entry.rotation??0,0);object.scale.set(...entry.scale);object.updateMatrix();mesh.setMatrixAt(index,object.matrix);mesh.setColorAt(index,new THREE.Color(entry.color))});
+ mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;mesh.computeBoundingSphere();return mesh;
+}
+function makeMeadow(points:[number,number][],color:string){
+ const shape=new THREE.Shape();shape.moveTo(points[0][0],-points[0][1]);points.slice(1).forEach(([x,z])=>shape.lineTo(x,-z));shape.closePath();
+ const geometry=new THREE.ShapeGeometry(shape,1);geometry.rotateX(-Math.PI/2);geometry.computeVertexNormals();
+ const material=new THREE.MeshStandardMaterial({color,roughness:1,side:THREE.DoubleSide});const mesh=new THREE.Mesh(geometry,material);mesh.position.y=-.135;mesh.castShadow=false;mesh.receiveShadow=false;return mesh;
+}
+function RefineryLandscapeBuffers(){
+ const landscape=useMemo(()=>{
+  const treePoints:[number,number][]=[[-58,-19],[-58,-5],[-58,9],[-58,23],[-57,-44],[-43,-45],[-30,-44],[22,-45],[36,-44],[50,-43],[-57,43],[-44,44],[-31,42],[-6,44],[5,43]];
+  const beds:[number,number][]=[[-55,-19],[-55,-5],[-55,9],[-54,23],[-55,-44],[-42,-44],[-29,-43],[23,-44],[37,-43],[51,-42],[-54,43],[-42,43],[-29,41],[-6,42],[5,42]];
+  const trunks:LandscapeInstance[]=treePoints.map(([x,z],i)=>({position:[x,1.12,z],scale:[1,1,1],color:['#68513e','#735741','#5f4e3d'][i%3]}));
+  const canopy:LandscapeInstance[]=[];const treeColors=['#71895f','#82956b','#647d59','#91a170','#718b63'];
+  treePoints.forEach(([x,z],i)=>{
+   canopy.push({position:[x,2.55,z],scale:[.94,1.04,.88],color:treeColors[i%treeColors.length]});
+   canopy.push({position:[x-.52,2.38,z+.12],scale:[.67,.66,.68],color:treeColors[(i+2)%treeColors.length]});
+   canopy.push({position:[x+.5,2.42,z-.16],scale:[.66,.7,.64],color:treeColors[(i+1)%treeColors.length]});
+  });
+  const shrubs:LandscapeInstance[]=[],grass:LandscapeInstance[]=[],flowers:LandscapeInstance[]=[];
+  const flowerColors=['#e2c66f','#d8d9c8','#bd8fa2','#d08f63','#c5b2d5'];
+  beds.forEach(([cx,cz],bed)=>{
+   for(let i=0;i<9;i++){
+    const angle=(i*2.399+bed*.37),radius=.45+(i%4)*.36,x=cx+Math.cos(angle)*radius,z=cz+Math.sin(angle)*radius*.72;
+    shrubs.push({position:[x,.34,z],scale:[.36+(i%3)*.08,.3+(i%2)*.07,.34+(i%4)*.035],color:['#6e8560','#7f9168','#647b5b','#899a70'][(i+bed)%4],rotation:angle});
+   }
+   for(let i=0;i<12;i++){
+    const angle=(i*2.137+bed*.51),radius=.55+(i%5)*.29,x=cx+Math.cos(angle)*radius,z=cz+Math.sin(angle)*radius*.65;
+    grass.push({position:[x,.34,z],scale:[.8+(i%3)*.12, .78+(i%4)*.1,.8],color:['#788d61','#87966b','#6f855d'][(i+bed)%3],rotation:angle});
+    if(i%2===0)flowers.push({position:[x+.12,.49,z-.08],scale:[1,1,1],color:flowerColors[(i+bed)%flowerColors.length],rotation:angle});
+   }
+  });
+  const meadows=[
+   makeMeadow([[-70,-28],[-48,-29],[-45,-20],[-46,18],[-52,28],[-70,29]],'#8fa36d'),
+   makeMeadow([[-70,-49],[-25,-49],[-22,-43],[-26,-39],[-68,-39]],'#91a66f'),
+   makeMeadow([[13,-49],[67,-49],[66,-40],[16,-39]],'#91a66f'),
+   makeMeadow([[-70,36],[-43,35],[-32,37],[-24,43],[-28,49],[-70,49]],'#8ca16a'),
+   makeMeadow([[-10,36],[8,36],[9,47],[5,49],[-10,48]],'#91a66f'),
+  ];
+  return {meadows,trunks,canopy,shrubs,grass,flowers,
+   trunkMesh:makeLandscapeInstances(new THREE.CylinderGeometry(.13,.2,2.24,7),trunks),
+   canopyMesh:makeLandscapeInstances(new THREE.DodecahedronGeometry(1,1),canopy),
+   shrubMesh:makeLandscapeInstances(new THREE.DodecahedronGeometry(1,1),shrubs),
+   grassMesh:makeLandscapeInstances(new THREE.ConeGeometry(.21,.72,5),grass),
+   flowerMesh:makeLandscapeInstances(new THREE.DodecahedronGeometry(.1,0),flowers),
+  };
+ },[]);
+ return <group>{landscape.meadows.map((mesh,i)=><primitive key={`green-buffer-meadow-${i}`} object={mesh} dispose={null}/>)}<primitive object={landscape.trunkMesh} dispose={null}/><primitive object={landscape.canopyMesh} dispose={null}/><primitive object={landscape.shrubMesh} dispose={null}/><primitive object={landscape.grassMesh} dispose={null}/><primitive object={landscape.flowerMesh} dispose={null}/></group>;
 }
 function TankFarmBundAccess(){return <group>
  {/* Staggered concrete treads and paired handrails cross the east containment berm. */}
@@ -130,7 +183,7 @@ export class AssetBoundary extends Component<{fallback:(error:string)=>ReactNode
 export function SceneFallback({message}:{message:string}){const fa=typeof document!=='undefined'&&document.documentElement.lang==='fa';const night=useStore(s=>s.night);return <>
  <color attach="background" args={[night?'#09121d':'#d6e0d5']}/><fog attach="fog" args={[night?'#09121d':'#d6e0d5',80,145]}/><ambientLight intensity={night?.2:1.25}/><directionalLight position={[-25,45,20]} intensity={night?.3:2} castShadow/>
  <NightLighting night={night}/>
- <SiteTerrain night={night}/>
+ <SiteTerrain night={night}/><RefineryLandscapeBuffers/>
  <SitePerimeterFence/><CompanyArrivalLandscape/><CompanyMonumentSign/><RoadDrainageAndEmergencyAccess/><OilyWaterSewerNetwork/><SourWaterProcessNetwork/>
  <mesh rotation={[-Math.PI/2,0,0]} position={[-10,-.05,-8]}><planeGeometry args={[40,32]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',40/9,32/9)} color={night?'#59635d':'#cdd1c8'} roughness={.96}/></mesh>
  <mesh rotation={[-Math.PI/2,0,0]} position={[16,-.05,-8]}><planeGeometry args={[24,22]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',24/9,22/9)} color={night?'#59635d':'#d1cebc'} roughness={.96}/></mesh>
@@ -169,7 +222,7 @@ export function SceneFallback({message}:{message:string}){const fa=typeof docume
  <VehicleTrafficClock/><TruckTrafficSafety/><TruckLoadingRack/><DrumLoadingApron/><TruckDispatchSignal/>
  {items.filter(x=>x.kind==='truck').map((t,i)=><Truck key={`fallback-${t.id}`} item={t} index={i}/>)}
  <DrumLoadingForklift item={items.find(x=>x.id==='FL-027')!}/>
- <OrbitControls makeDefault target={[0,0,0]} minPolarAngle={.25} maxPolarAngle={Math.PI/2.12} minDistance={24} maxDistance={100}/>
+ <AdaptiveDpr pixelated/><AdaptiveEvents/><OrbitControls regress makeDefault target={[0,0,0]} minPolarAngle={.25} maxPolarAngle={Math.PI/2.12} minDistance={24} maxDistance={100}/>
  <Html center><div className="scene-crash-card"><strong>{fa?'حالت بازیابی صحنه':'Scene recovery mode'}</strong><span>{fa?'نمای ساده فعال است؛ خطای اصلی برای عیب‌یابی:':'Showing a lightweight fallback. Runtime error:'}</span><code>{message}</code></div></Html>
  </>}
 function ClickGroup({item,children,position}: {item?:SiteItem;children:React.ReactNode;position?:[number,number,number]}) {
@@ -179,7 +232,10 @@ function ClickGroup({item,children,position}: {item?:SiteItem;children:React.Rea
   {hot&&<mesh position={[0,.07,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[2.2,2.38,48]}/><meshBasicMaterial color="#e4b66e" transparent opacity={.9}/></mesh>}
  </group>;
 }
-function Box({position,scale,color='#74857b',...props}:any){return <mesh position={position} scale={scale} castShadow receiveShadow {...props}><boxGeometry/><meshStandardMaterial color={color} roughness={.78}/></mesh>}
+const sharedBoxGeometry=new THREE.BoxGeometry(1,1,1);
+const sharedBoxMaterials=new Map<string,THREE.MeshStandardMaterial>();
+function getSharedBoxMaterial(color:THREE.ColorRepresentation){const key=String(color);let material=sharedBoxMaterials.get(key);if(!material){material=new THREE.MeshStandardMaterial({color,roughness:.78});sharedBoxMaterials.set(key,material)}return material}
+function Box({position,scale,color='#74857b',castShadow=false,receiveShadow=true,...props}:any){return <mesh position={position} scale={scale} castShadow={castShadow} receiveShadow={receiveShadow} {...props}><primitive object={sharedBoxGeometry} attach="geometry" dispose={null}/><primitive object={getSharedBoxMaterial(color)} attach="material" dispose={null}/></mesh>}
 function Pipe({a,b,color='#b1844e',radius=.12,emissive}: {a:[number,number,number];b:[number,number,number];color?:string;radius?:number;emissive?:string}) {
  const [ax,ay,az]=a,[bx,by,bz]=b;
  const pose=useMemo(()=>{const start=new THREE.Vector3(ax,ay,az),end=new THREE.Vector3(bx,by,bz),direction=end.clone().sub(start),length=direction.length();return {position:start.add(end).multiplyScalar(.5),orientation:new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),direction.normalize()),length}},[ax,ay,az,bx,by,bz]);
@@ -2166,13 +2222,14 @@ function FlowPulse({points,color,delay}:{points:[number,number,number][];color:s
 }
 
 function FocusCamera({controlsRef}:{controlsRef:React.RefObject<any>}){const focus=useStore(s=>s.focus);const {camera}=useThree();const previous=useRef<[number,number,number]|null>(null);const desired=useRef<THREE.Vector3|null>(null);const desiredCamera=useRef<THREE.Vector3|null>(null);useFrame(()=>{if(focus&&focus!==previous.current){const controls=controlsRef.current;const current=controls?.target||new THREE.Vector3(0,0,0);const delta=new THREE.Vector3(...focus).sub(current);desired.current=new THREE.Vector3(...focus);desiredCamera.current=camera.position.clone().add(delta);previous.current=focus;}if(desired.current&&controlsRef.current){controlsRef.current.target.lerp(desired.current,.12);if(desiredCamera.current)camera.position.lerp(desiredCamera.current,.12);controlsRef.current.update();if(controlsRef.current.target.distanceTo(desired.current)<.08){desired.current=null;desiredCamera.current=null;}}});return null;}
+export function SceneReadySignal({onReady}:{onReady:()=>void}){const sent=useRef(false);useFrame(()=>{if(!sent.current){sent.current=true;onReady()}});return null;}
 
 export function World(){
  const controlsRef=useRef<any>(null);const night=useStore(s=>s.night);const quality=useStore(s=>s.quality); const mode=useStore(s=>s.mode); const filtered=useMemo(()=>items.filter(x=>mode==='overview'||mode==='all'||x.zone===mode||(mode==='storage'&&['tank','sphere-tank'].includes(x.kind))||(mode==='refinery'&&['process','furnace','flare'].includes(x.kind))),[mode]);
  return <>
   <color attach="background" args={[night?'#09121d':'#d6e0d5']}/><fog attach="fog" args={[night?'#09121d':'#d6e0d5',80,145]}/>
   <ambientLight intensity={night?.2:1.15}/><directionalLight position={[-30,55,22]} intensity={night?.32:2.3} castShadow={quality!=='low'} shadow-mapSize={quality==='high'?[2048,2048]:[1024,1024]} shadow-camera-left={-60} shadow-camera-right={60} shadow-camera-top={60} shadow-camera-bottom={-60}/><NightLighting night={night}/>
-  <SiteTerrain night={night}/>
+  <SiteTerrain night={night}/><RefineryLandscapeBuffers/>
   {/* Raised, fenced industrial plot like a miniature engineering diorama */}
   <Box position={[8,.015,-29]} scale={[84,.24,.42]} color="#48534e"/><Box position={[1,.015,29]} scale={[70,.24,.42]} color="#48534e"/>
   <Box position={[-34,.015,0]} scale={[.42,.24,58]} color="#48534e"/>
@@ -2253,7 +2310,7 @@ export function World(){
   <MarineLoadingArm position={[32.2,0,4]} color="#c69d5d"/><MarineLoadingArm position={[32.2,0,18]} color="#d6d0bc"/>
   {items.filter(x=>x.kind==='worker').map((person,i)=><AssetBoundary key={person.id} fallback={()=> <WorkerFallback item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>}><Suspense fallback={<WorkerFallback item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>}><Worker item={person} index={i} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/></Suspense></AssetBoundary>)}
   {mode==='personnel'&&items.map((it)=><mesh key={'pin'+it.id} position={[it.position[0],4,it.position[2]]}><sphereGeometry args={[.35,10,10]}/><meshBasicMaterial color="#f4cb79"/></mesh>)}
-  <OrbitControls ref={controlsRef} makeDefault target={[0,0,0]} minPolarAngle={.25} maxPolarAngle={Math.PI/2.12} minDistance={24} maxDistance={100} enableDamping dampingFactor={.08} />
+  <AdaptiveDpr pixelated/><AdaptiveEvents/><OrbitControls ref={controlsRef} regress makeDefault target={[0,0,0]} minPolarAngle={.25} maxPolarAngle={Math.PI/2.12} minDistance={24} maxDistance={100} enableDamping dampingFactor={.08} />
   <FocusCamera controlsRef={controlsRef}/>
  </>;
 }

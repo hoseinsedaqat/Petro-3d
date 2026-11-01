@@ -6,6 +6,15 @@
     <meta name="theme-color" content="#101918" />
     <meta name="description" content="PetroVista 3D — Explore. Understand. Simulate." />
     <title>PetroVista 3D | پالایشگاه هوشمند</title>
+    <style>
+      .pv-boot-loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:20px;background:radial-gradient(ellipse at 50% 38%,#263b30,#0e1714 72%);color:#e4ece4;font:12px Tahoma,Arial,sans-serif}
+      .pv-boot-card{width:min(410px,100%);padding:28px;border:1px solid #52695766;border-radius:14px;background:linear-gradient(145deg,#1b2a22,#111b17);box-shadow:0 24px 80px #0007;text-align:center}
+      .pv-boot-mark{width:46px;height:46px;margin:0 auto 12px;display:grid;place-items:center;border:1px solid #62846c;border-radius:12px;background:#294335;color:#c3dfbd;font-weight:700;letter-spacing:.5px}
+      .pv-boot-card strong,.pv-boot-card span,.pv-boot-card small{display:block}.pv-boot-card strong{font-size:16px}.pv-boot-card>span:not(.pv-boot-mark){margin-top:21px;font-size:13px}.pv-boot-card small{margin-top:12px;color:#91a397;font-size:10px}
+      .pv-boot-track{height:8px;margin-top:17px;overflow:hidden;border-radius:8px;background:#2b3b31}.pv-boot-track i{display:block;width:35%;height:100%;border-radius:8px;background:linear-gradient(90deg,#57966a,#b4d68e);animation:pv-boot-progress 1.45s ease-in-out infinite alternate}
+      @keyframes pv-boot-progress{from{transform:translateX(-8%);width:25%}to{transform:translateX(250%);width:45%}}
+      @media(prefers-reduced-motion:reduce){.pv-boot-track i{animation:none;width:65%}}
+    </style>
   </head>
-  <body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body>
+  <body><div id="root"><div class="pv-boot-loader" role="status" aria-live="polite"><div class="pv-boot-card"><span class="pv-boot-mark">PV</span><strong>PetroVista 3D</strong><span>در حال آماده‌سازی محیط پالایشگاه</span><div class="pv-boot-track" aria-hidden="true"><i></i></div><small>بارگذاری مدل‌ها و صحنه‌ی سه‌بعدی…</small></div></div></div><script type="module" src="/src/main.tsx"></script></body>
 </html>

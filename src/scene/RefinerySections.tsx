@@ -69,13 +69,35 @@ function HorizontalVessel({x,z,y=1.05,length=2.7,r=.58}:{x:number;z:number;y?:nu
   <mesh position={[0,r+.18,.02]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.12,.12,.36,12]}/><meshStandardMaterial color="#74847a" metalness={.54}/></mesh>
  </group>;
 }
-function PlatformLevels({levels,halfX=4.8,halfZ=3.6}:{levels:number[];halfX?:number;halfZ?:number}){
+function PlatformLevels({levels,halfX=4.8,halfZ=3.6,ladderAccess=false}:{levels:number[];halfX?:number;halfZ?:number;ladderAccess?:boolean}){
+ const ladderZ=2.2,opening=.9,gapStart=ladderZ-opening/2,gapEnd=ladderZ+opening/2;
  return <>{levels.map(y=><group key={y}>
   {Array.from({length:Math.floor(halfZ*5)},(_,n)=><Beam key={`grating-${n}`} position={[0,y+.035,-halfZ+.18+n*.36]} size={[halfX*2-.2,.04,.035]} color="#303b36"/>)}
   {[-halfX,0,halfX].map(x=><Beam key={`joist-${x}`} position={[x,y-.065,0]} size={[.12,.14,halfZ*2]} color="#87938a"/>)}
-  {[-halfX,halfX].map(x=><Beam key={`railx-${x}`} position={[x,y+.55,0]} size={[.06,.95,halfZ*2]} color={safety}/>)}
+  <Beam position={[-halfX,y+.55,0]} size={[.06,.95,halfZ*2]} color={safety}/>
+  {ladderAccess?<>
+   <Beam position={[halfX,y+.55,(-halfZ+gapStart)/2]} size={[.06,.95,gapStart+halfZ]} color={safety}/>
+   <Beam position={[halfX,y+.55,(gapEnd+halfZ)/2]} size={[.06,.95,halfZ-gapEnd]} color={safety}/>
+  </>:<Beam position={[halfX,y+.55,0]} size={[.06,.95,halfZ*2]} color={safety}/>}
   {[-halfZ,halfZ].map(z=><Beam key={`railz-${z}`} position={[0,y+.55,z]} size={[halfX*2,.95,.06]} color={safety}/>)}
   {Array.from({length:Math.floor(halfX*2)},(_,n)=><Beam key={`bal-${n}`} position={[-halfX+.5+n,y+.5,halfZ]} size={[.045,.68,.045]} color={safety}/>)}
+  {ladderAccess&&<group>
+   {/* Short grated landings tie the fixed unit ladders into each deck; the hinged gate is shown swung clear of the ladder path. */}
+   <Beam position={[halfX,y+.5,gapEnd]} size={[.06,.9,.06]} color={safety}/>
+   <Beam position={[halfX+.3,y+.045,ladderZ]} size={[.9,.05,.9]} color="#303b36"/>
+   {Array.from({length:7},(_,i)=><Beam key={`ladder-landing-grate-${i}`} position={[halfX+.3,y+.08,ladderZ-.36+i*.12]} size={[.82,.025,.025]} color="#a3aea5"/>)}
+   <Beam position={[halfX+.75,y+.55,ladderZ]} size={[.06,.95,1.05]} color={safety}/>
+   {[-.5,.5].map(offset=><Beam key={`landing-post-${offset}`} position={[halfX+.75,y+.5,ladderZ+offset]} size={[.06,.9,.06]} color={safety}/>)}
+   {[-.45,.45].map(offset=><Beam key={`landing-side-top-${offset}`} position={[halfX+.3,y+.55,ladderZ+offset]} size={[.9,.07,.06]} color={safety}/>)}
+   {/* Self-closing gate is open in the illustration so the ladder-to-platform route stays visible. */}
+   <group position={[halfX,y,ladderZ-opening/2]} rotation={[0,-Math.PI/2,0]}>
+    <Beam position={[0,.5,0]} size={[.06,.9,.06]} color={safety}/>
+    <Beam position={[0,.5,opening]} size={[.06,.9,.06]} color={safety}/>
+    <Beam position={[0,.92,opening/2]} size={[.06,.07,opening]} color={safety}/>
+    <Beam position={[0,.52,opening/2]} size={[.05,.055,opening]} color={safety}/>
+    <Beam position={[0,.1,opening/2]} size={[.06,.18,opening]} color="#b8a46e"/>
+   </group>
+  </group>}
  </group>)}</>;
 }
 function PipeBridge(){
@@ -92,7 +114,7 @@ export function RefineryUnit({item}:{item:SiteItem}){
  return <Selectable item={item}>
   <mesh position={[0,.06,0]} receiveShadow><boxGeometry args={[12,.12,9]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',12/9,9/9)} color={night?'#4b554f':'#c0c1b5'} roughness={.94}/></mesh>
   {[-5,5].map(x=>[-3.55,3.55].map(z=><group key={`${x}-${z}`}><Beam position={[x,3.8,z]} size={[.2,7.6,.2]}/><Beam position={[x,1.4,z]} size={[.36,.14,.36]} color="#a18d64"/></group>))}
-  <PlatformLevels levels={fcc?[2.7,5.5,8.2]:[2.5,5,7.5]} halfX={4.8} halfZ={3.45}/>
+  <PlatformLevels levels={fcc?[2.7,5.5,8.2]:[2.5,5,7.5]} halfX={4.8} halfZ={3.45} ladderAccess/>
   {fcc?<>
     <Vessel x={-2.4} z={.2} r={1.1} h={8.3}/><Vessel x={1.1} z={.25} r={1.35} h={9.8} color="#9da99f"/>
     <Vessel x={4.1} z={-.6} r={.85} h={10.7}/>
@@ -118,9 +140,9 @@ export function RefineryUnit({item}:{item:SiteItem}){
     <Beam position={[0,.45,0]} size={[1.15,.7,.75]} color="#536a5f"/><mesh position={[0,.48,.52]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.28,.09,8,16]}/><meshStandardMaterial color={['#be8050','#729a94','#b9634a'][i]} metalness={.5}/></mesh>
     <mesh position={[0,.9,0]}><cylinderGeometry args={[.1,.1,.32,10]}/><meshStandardMaterial color="#ddbf77"/></mesh>
   </group>)}
-  {/* Caged access ladder and diagonal bracing */}
-  <Beam position={[4.85,4.4,3.48]} size={[.1,7.8,.1]} color={safety}/><Beam position={[5.35,4.4,3.48]} size={[.1,7.8,.1]} color={safety}/>
-  {Array.from({length:18},(_,i)=><Beam key={`rung-${i}`} position={[5.1,.8+i*.42,3.48]} size={[.52,.045,.055]} color={safety}/>)}
+  {/* Fixed access ladder is clear of the corner support and aligned with the three grated deck landings. */}
+  <Beam position={[4.85,4.4,2.2]} size={[.1,7.8,.1]} color={safety}/><Beam position={[5.35,4.4,2.2]} size={[.1,7.8,.1]} color={safety}/>
+  {Array.from({length:18},(_,i)=><Beam key={`rung-${i}`} position={[5.1,.8+i*.42,2.2]} size={[.52,.045,.055]} color={safety}/>)}
   {[-4.8,4.8].map(x=><Beam key={x} position={[x,3.8,3.25]} size={[.11,7.1,.11]} rotation={[0,0,x<0?-.42:.42]} color="#819087"/>)}
   {item.id==='HDS-01'&&<group>
    <Run a={[4.75,5.3,.2]} b={[5.6,5.3,.2]} color="#9eb5b2" r={.12}/>
@@ -273,7 +295,7 @@ export function SourWaterStripper({item}:{item:SiteItem}){
  </Selectable>;
 }
 export function DesalterUnit({item}:{item:SiteItem}){
- const night=useStore(s=>s.night);
+ const night=useStore(s=>s.night),ladderZ=1.07,accessWidth=.9,gapStart=ladderZ-accessWidth/2,gapEnd=ladderZ+accessWidth/2;
  return <Selectable item={item}>
   <mesh position={[0,.07,0]} receiveShadow><boxGeometry args={[11,.14,9.5]}/><meshStandardMaterial map={getYardSurfaceMap('concrete',11/9,9.5/9)} color={night?'#4b554f':'#c0c1b6'} roughness={.95}/></mesh>
   {/* Access frame and open grating service deck */}
@@ -281,7 +303,24 @@ export function DesalterUnit({item}:{item:SiteItem}){
   {[-3.2,-2.9,-2.6].map((y,i)=><Run key={i} a={[-4.3,y,-3.2]} b={[4.3,y,-3.2]} color={['#9a8057','#658f90','#b66c51'][i]} r={.085}/>)}
   <Beam position={[0,4.05,0]} size={[9.2,.14,7.1]} color="#596b62"/>
   {Array.from({length:19},(_,i)=><Beam key={`grate-${i}`} position={[0,4.14,-3.35+i*.37]} size={[8.9,.04,.035]} color="#303a36"/>)}
-  {[-4.55,4.55].map(x=><Beam key={`rail-${x}`} position={[x,4.65,0]} size={[.06,1,7.1]} color={safety}/>)}
+  <Beam position={[-4.55,4.65,0]} size={[.06,1,7.1]} color={safety}/>
+  {/* Open the east guardrail only at the stair landing; the gate is swung clear of the stair head. */}
+  <Beam position={[4.55,4.65,(-3.55+gapStart)/2]} size={[.06,1,gapStart+3.55]} color={safety}/>
+  <Beam position={[4.55,4.65,(gapEnd+3.55)/2]} size={[.06,1,3.55-gapEnd]} color={safety}/>
+  <Beam position={[4.55,4.55,gapEnd]} size={[.06,.9,.06]} color={safety}/>
+  {/* Grated stair-head landing, aligned to the last step and bounded on the exposed edges. */}
+  <Beam position={[5.02,4.08,ladderZ]} size={[1.02,.06,.94]} color="#303b36"/>
+  {Array.from({length:7},(_,i)=><Beam key={`stair-landing-grate-${i}`} position={[5.02,4.115,gapStart+.08+i*.12]} size={[.92,.025,.025]} color="#a3aea5"/>)}
+  <Beam position={[5.5,4.62,ladderZ]} size={[.06,1,.94]} color={safety}/>
+  {[gapStart,gapEnd].map(z=><Beam key={`landing-side-rail-${z}`} position={[5.02,4.62,z]} size={[.96,1,.06]} color={safety}/>)}
+  {/* Self-closing gate is illustrated open so the stair can reach the service deck. */}
+  <group position={[4.55,4.08,gapStart]} rotation={[0,-Math.PI/2,0]}>
+   <Beam position={[0,.5,0]} size={[.06,.9,.06]} color={safety}/>
+   <Beam position={[0,.5,accessWidth]} size={[.06,.9,.06]} color={safety}/>
+   <Beam position={[0,.94,accessWidth/2]} size={[.06,.07,accessWidth]} color={safety}/>
+   <Beam position={[0,.52,accessWidth/2]} size={[.05,.055,accessWidth]} color={safety}/>
+   <Beam position={[0,.1,accessWidth/2]} size={[.06,.18,accessWidth]} color="#b8a46e"/>
+  </group>
   {/* Parallel electrostatic desalter drums with dish heads, heavy flanges and saddles */}
   {[-1.75,1.75].map((x,i)=><group key={`desalter-${i}`}>
     <HorizontalVessel x={x} z={-.1} y={1.55} length={3.8} r={.72}/>
@@ -292,7 +331,7 @@ export function DesalterUnit({item}:{item:SiteItem}){
   <Run a={[-5,1.05,-2.6]} b={[5,1.05,-2.6]} color="#b47d4f" r={.13}/><Run a={[-5,2.2,2.8]} b={[5,2.2,2.8]} color="#668f92" r={.11}/>
   {[-3.6,0,3.6].map(x=><group key={`pump-${x}`} position={[x,.15,2.05]}><Beam position={[0,.36,0]} size={[1,.58,.78]} color="#53685d"/><mesh position={[0,.39,.48]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.25,.08,8,16]}/><meshStandardMaterial color="#b47d4f" metalness={.55}/></mesh><Beam position={[0,.9,0]} size={[.14,.42,.14]} color="#d1bd83"/></group>)}
   <Beam position={[4.8,2.15,3.55]} size={[.08,4.2,.08]} color={safety}/><Beam position={[5.25,2.15,3.55]} size={[.08,4.2,.08]} color={safety}/>
-  {Array.from({length:13},(_,i)=><Beam key={`step-${i}`} position={[5.02,.25+i*.32,3.35-i*.19]} size={[.58,.07,.3]} color="#aab1a4"/>)}
+  {Array.from({length:13},(_,i)=><Beam key={`step-${i}`} position={[5.02,.25+i*.32,ladderZ+(12-i)*.19]} size={[.58,.07,.3]} color="#aab1a4"/>)}
   <EquipmentTag label={item.id} position={[0,1.55,4.82]}/>
  </Selectable>;
 }

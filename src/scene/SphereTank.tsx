@@ -1,6 +1,7 @@
 import { useStore } from '../store';
 import type { SiteItem } from '../data/site';
 import { getWeatheredSteelMap } from './materials';
+import { VesselAccessDeck } from './VesselAccessDeck';
 
 function FrameMember({position,size,rotation,color='#68776e'}:{position:[number,number,number];size:[number,number,number];rotation?:[number,number,number];color?:string}){return <mesh position={position} rotation={rotation} castShadow><boxGeometry args={size}/><meshStandardMaterial color={color} metalness={.5} roughness={.55}/></mesh>}
 export function SphereTank({item}:{item:SiteItem}){
@@ -18,12 +19,11 @@ export function SphereTank({item}:{item:SiteItem}){
     <FrameMember position={[x*1.05,.18,z*1.05]} size={[.58,.22,.58]} color="#565f58"/>
     <FrameMember position={[x*.52,1.2,z*.52]} size={[1.55,.1,.1]} rotation={[0,-a,Math.PI/4]} color="#8d9486"/>
   </group>})}
-  {/* Ring access deck, guard rails, and a stair/ladder tower */}
-  <mesh position={[0,5.24,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[2.25,.09,6,48]}/><meshStandardMaterial color="#756f5b" metalness={.35}/></mesh>
-  {[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23].map(i=>{const a=i*Math.PI/12;return <mesh key={i} position={[Math.cos(a)*2.26,5.65,Math.sin(a)*2.26]}><cylinderGeometry args={[.027,.027,.78,6]}/><meshStandardMaterial color="#dbc999"/></mesh>})}
-  <mesh position={[0,6.03,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[2.25,.035,5,48]}/><meshStandardMaterial color="#dbc999"/></mesh>
-  <FrameMember position={[2.13,3.1,.1]} size={[.1,5.2,.1]} color="#d6c18e"/>
-  {[0,1,2,3,4,5,6,7,8,9,10,11].map(i=><FrameMember key={`rung-${i}`} position={[2.13,1+i*.36,.1]} size={[.44,.045,.055]} color="#d6c18e"/>)}
+  {/* Raised access ring with a gated ladder opening and a grated bridge aligned to the fixed ladder. */}
+  <VesselAccessDeck radius={1.77} level={4.96} color="#dbc999"/>
+  <FrameMember position={[2.59,3.57,.1]} size={[.07,6.94,.07]} color="#d6c18e"/>
+  <FrameMember position={[2.91,3.57,.1]} size={[.07,6.94,.07]} color="#d6c18e"/>
+  {Array.from({length:22},(_,i)=><FrameMember key={`rung-${i}`} position={[2.75,.5+i*.3,.1]} size={[.44,.045,.055]} color="#d6c18e"/>)}
   {/* Top nozzle, pressure valve, red LPG header and level indication */}
   <mesh position={[0,5.52,0]}><cylinderGeometry args={[.23,.3,.34,14]}/><meshStandardMaterial color="#89958a" metalness={.58}/></mesh>
   <mesh position={[0,5.87,0]}><cylinderGeometry args={[.09,.09,.4,12]}/><meshStandardMaterial color="#b95d49" metalness={.5}/></mesh>

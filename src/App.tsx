@@ -23,7 +23,7 @@ const nav=[
 ];
 function App(){
  const lang=useStore(s=>s.lang),quality=useStore(s=>s.quality),set=useStore(s=>s.set),selected=useStore(s=>s.selected),select=useStore(s=>s.select),mode=useStore(s=>s.mode),playing=useStore(s=>s.playing),speed=useStore(s=>s.speed),night=useStore(s=>s.night),flow=useStore(s=>s.flow),reset=useStore(s=>s.reset),resetKey=useStore(s=>s.resetKey);
- const t=translations[lang];const rtl=lang==='fa'; const [query,setQuery]=useState(''); const [help,setHelp]=useState(false); const [analytics,setAnalytics]=useState(false); const [clock,setClock]=useState(8*60+42); const {progress:assetProgress}=useProgress(); const [sceneReady,setSceneReady]=useState(false); const [showLoading,setShowLoading]=useState(true);
+ const t=translations[lang];const rtl=lang==='fa'; const [query,setQuery]=useState(''); const [help,setHelp]=useState(false); const [analytics,setAnalytics]=useState(false); const [clock,setClock]=useState(8*60+42); const [mobileInspectorOpen,setMobileInspectorOpen]=useState(true); const {progress:assetProgress}=useProgress(); const [sceneReady,setSceneReady]=useState(false); const [showLoading,setShowLoading]=useState(true);
  // Keep the readout tied to actual loader progress; 100% means the scene has rendered its first frame.
  const shownProgress=sceneReady?100:Math.min(94,Math.max(0,Math.round(assetProgress*.94)));
  useEffect(()=>{if(!sceneReady)return;const timer=window.setTimeout(()=>setShowLoading(false),320);return()=>window.clearTimeout(timer)},[sceneReady]);
@@ -33,8 +33,10 @@ function App(){
  useEffect(()=>{if(resetKey)setClock(8*60+42)},[resetKey]);
  const results=useMemo(()=>query.trim()?items.filter(i=>(i.fa+i.en+i.id+i.kind).toLowerCase().includes(query.toLowerCase())).slice(0,6):[],[query]);
  const currentZone=selected?zones.find(z=>z.id===selected.zone):null;
- const jump=(id:string)=>{set('mode',id);const dest=zones.find(z=>z.id===id);if(dest)set('focus',[...dest.position]);if(id==='overview')select(null)};
- const selectAsset=(item:SiteItem)=>{select(item);set('focus',[...item.position]);setQuery('')};
+ useEffect(()=>{if(selected)setMobileInspectorOpen(true)},[selected]);
+ const jump=(id:string)=>{set('mode',id);const dest=zones.find(z=>z.id===id);if(dest)set('focus',[...dest.position]);if(id==='overview'){select(null);setMobileInspectorOpen(true)}};
+ const selectAsset=(item:SiteItem)=>{select(item);set('focus',[...item.position]);setQuery('');setMobileInspectorOpen(true)};
+ const dismissInspector=()=>{select(null);if(window.matchMedia('(max-width: 850px)').matches)setMobileInspectorOpen(false)};
  const fullScreen=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()};
  const clockText=`${String(Math.floor(clock/60)).padStart(2,'0')}:${String(clock%60).padStart(2,'0')}`;
  return <div className={`app-shell ${night?'night':''}`} dir={rtl?'rtl':'ltr'}>
@@ -54,7 +56,7 @@ function App(){
   <main className="workspace">
    <div className="scene-wrap">
     <Canvas shadows={quality!=='low'} fallback={<WebGLUnavailable rtl={rtl} onReady={()=>setSceneReady(true)}/>} dpr={quality==='low'?.75:quality==='medium'?1:[1,1.3]} onPointerMissed={()=>select(null)} orthographic camera={{position:[54,72,58],zoom:10.5,near:.1,far:300}} gl={{antialias:false,alpha:false,powerPreference:'high-performance'}}>
-     <SceneReadySignal onReady={()=>setSceneReady(true)}/><AssetBoundary fallback={(error)=><SceneFallback message={error}/>}><World loadHighDetail={sceneReady}/></AssetBoundary>
+     <SceneReadySignal onReady={()=>setSceneReady(true)}/><AssetBoundary fallback={(error)=><SceneFallback message={error}/>}><World loadHighDetail={sceneReady&&quality!=='low'}/></AssetBoundary>
     </Canvas>
     <div className="scene-topline"><div className="breadcrumb"><span>PetroVista</span><span className="crumb-slash">/</span><b>{mode==='overview'?t.overviewTitle:t[mode as keyof typeof t]||t.overviewTitle}</b></div><div className="scene-badges"><span className="weather"><Sun size={14}/>{night?'22° · Clear night':'28° · Clear'}</span><span className="scenario-label"><span/> DEMO SCENARIO 01</span></div></div>
     <div className="north-indicator"><span>N</span><div className="north-arrow"/><small>0°</small></div>
@@ -77,8 +79,8 @@ function App(){
     <div className="rail-alert"><span className="alert-symbol"><ShieldAlert size={15}/></span><span className="alert-copy"><b>{rtl?'خلاصه هشدارها':'ALARM SUMMARY'}</b><small><strong>P2 · TK-103</strong>{rtl?' · بازبینی برنامه‌ریزی‌شده':' · scheduled review'}</small></span><span className="alert-count">01</span></div>
     <button className="user-card" onClick={()=>setHelp(true)}><div className="avatar">PV</div><span><b>{rtl?'حالت بازدیدکننده':'Demo operator'}</b><small>{rtl?'پروفایل محلی':'Local session'}</small></span><Settings2 size={15}/></button>
    </aside>
-   <aside className="inspector">
-    <div className="inspector-head"><div><div className="eyebrow">{selected?rtl?'جزئیات تجهیز':'ASSET DETAILS':rtl?'مرکز عملیات':'OPERATIONS CENTER'}</div><h2>{selected?(rtl?selected.fa:selected.en):t.overviewTitle}</h2></div><button className="icon-button close-inspector" onClick={()=>select(null)} title={t.close}><X size={16}/></button></div>
+   <aside className={`inspector ${mobileInspectorOpen?'':'mobile-dismissed'}`}>
+    <div className="inspector-head"><div><div className="eyebrow">{selected?rtl?'جزئیات تجهیز':'ASSET DETAILS':rtl?'مرکز عملیات':'OPERATIONS CENTER'}</div><h2>{selected?(rtl?selected.fa:selected.en):t.overviewTitle}</h2></div><button className="icon-button close-inspector" onClick={dismissInspector} title={t.close}><X size={16}/></button></div>
     {selected?<>
       <div className="asset-identity"><div className={`asset-glyph ${selected.kind}`}><AssetIcon kind={selected.kind}/></div><div><b>{rtl?selected.fa:selected.en}</b><small>{selected.kind.toUpperCase()} · {selected.id}</small></div><span className="status-chip"><i/>{rtl?selected.status:'Operational'}</span></div>
       <div className="asset-stat-row"><div><span>{t.asset}</span><b>{selected.id}</b></div><div><span>{t.zone}</span><b>{currentZone?(rtl?currentZone.fa:currentZone.en):'—'}</b></div></div>

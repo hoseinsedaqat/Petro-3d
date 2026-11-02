@@ -2336,7 +2336,30 @@ function FlowPulse({points,color,delay}:{points:[number,number,number][];color:s
  return <group ref={ref}><mesh><sphereGeometry args={[.115,12,10]}/><meshBasicMaterial color={color} toneMapped={false}/></mesh><mesh><sphereGeometry args={[.19,10,8]}/><meshBasicMaterial color={color} transparent opacity={.18} depthWrite={false} toneMapped={false}/></mesh><mesh position={[0,.23,0]}><coneGeometry args={[.12,.24,9]}/><meshBasicMaterial color={color} toneMapped={false}/></mesh></group>
 }
 
-function FocusCamera({controlsRef}:{controlsRef:React.RefObject<any>}){const focus=useStore(s=>s.focus);const {camera}=useThree();const previous=useRef<[number,number,number]|null>(null);const desired=useRef<THREE.Vector3|null>(null);const desiredCamera=useRef<THREE.Vector3|null>(null);useFrame(()=>{if(focus&&focus!==previous.current){const controls=controlsRef.current;const current=controls?.target||new THREE.Vector3(0,0,0);const delta=new THREE.Vector3(...focus).sub(current);desired.current=new THREE.Vector3(...focus);desiredCamera.current=camera.position.clone().add(delta);previous.current=focus;}if(desired.current&&controlsRef.current){controlsRef.current.target.lerp(desired.current,.12);if(desiredCamera.current)camera.position.lerp(desiredCamera.current,.12);controlsRef.current.update();if(controlsRef.current.target.distanceTo(desired.current)<.08){desired.current=null;desiredCamera.current=null;}}});return null;}
+function FocusCamera({controlsRef}:{controlsRef:React.RefObject<any>}){
+ const focus=useStore(s=>s.focus),{camera}=useThree();
+ const previous=useRef<[number,number,number]|null>(null),desired=useRef<THREE.Vector3|null>(null),desiredCamera=useRef<THREE.Vector3|null>(null);
+ useEffect(()=>{
+  const controls=controlsRef.current;if(!controls)return;
+  const cancelFocus=()=>{desired.current=null;desiredCamera.current=null};
+  controls.addEventListener('start',cancelFocus);
+  return ()=>controls.removeEventListener('start',cancelFocus);
+ },[controlsRef]);
+ useFrame((_,delta)=>{
+  if(focus&&focus!==previous.current){
+   const controls=controlsRef.current,current=controls?.target||new THREE.Vector3(0,0,0),offset=new THREE.Vector3(...focus).sub(current);
+   desired.current=new THREE.Vector3(...focus);desiredCamera.current=camera.position.clone().add(offset);previous.current=focus;
+  }
+  const controls=controlsRef.current;if(!desired.current||!controls)return;
+  // Exponential damping keeps focus motion consistent at different frame rates.
+  const alpha=1-Math.exp(-8*Math.min(delta,.1));
+  controls.target.lerp(desired.current,alpha);
+  if(desiredCamera.current)camera.position.lerp(desiredCamera.current,alpha);
+  controls.update();
+  if(controls.target.distanceTo(desired.current)<.08){desired.current=null;desiredCamera.current=null}
+ });
+ return null;
+}
 export function SceneReadySignal({onReady}:{onReady:()=>void}){const sent=useRef(false);useFrame(()=>{if(!sent.current){sent.current=true;onReady()}});return null;}
 
 export function World({loadHighDetail=false}:{loadHighDetail?:boolean}){
@@ -2346,7 +2369,9 @@ export function World({loadHighDetail=false}:{loadHighDetail?:boolean}){
   <ambientLight color={night?'#a9b8cf':'#ffffff'} intensity={night?.24:1.15}/><directionalLight position={[-30,55,22]} color={night?'#9ab7df':'#ffffff'} intensity={night?.42:2.3} castShadow={quality!=='low'} shadow-mapSize={quality==='high'?[2048,2048]:[1024,1024]} shadow-camera-left={-60} shadow-camera-right={60} shadow-camera-top={60} shadow-camera-bottom={-60}/><NightLighting night={night}/>
   <SiteTerrain night={night}/><RefineryLandscapeBuffers/>
   {/* Raised, fenced industrial plot like a miniature engineering diorama */}
-  <Box position={[8,.015,-29]} scale={[84,.24,.42]} color="#48534e"/><Box position={[1,.015,29]} scale={[70,.24,.42]} color="#48534e"/>
+  <Box position={[8,.015,-29]} scale={[84,.24,.42]} color="#48534e"/>
+  {/* Keep the south site-edge curb aligned with the unchanged fence, but leave the loading-yard apron open. */}
+  <Box position={[-11.5,.015,29]} scale={[45,.24,.42]} color="#48534e"/><Box position={[30.25,.015,29]} scale={[11.5,.24,.42]} color="#48534e"/>
   <Box position={[-34,.015,0]} scale={[.42,.24,58]} color="#48534e"/>
   <SitePerimeterFence/>
   {/* site edge and zone paving */}

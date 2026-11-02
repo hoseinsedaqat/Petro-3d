@@ -4,6 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import type { SiteItem } from '../data/site';
 import { useStore } from '../store';
 import { getWeatheredSteelMap, getYardSurfaceMap } from './materials';
+import { VesselAccessDeck } from './VesselAccessDeck';
 
 const steel='#65766d', paleSteel='#aeb8ae', safety='#d5bd83', pipe='#a97e49';
 function Beam({position,size,color=steel,rotation}:{position:[number,number,number];size:[number,number,number];color?:string;rotation?:[number,number,number]}){
@@ -33,6 +34,8 @@ export function EquipmentTag({label,position}:{label:string;position:[number,num
 }
 function Vessel({x,z,r,h,color=paleSteel,band=true}:{x:number;z:number;r:number;h:number;color?:string;band?:boolean}){
  const accessLevels=[h*.48,h*.84];
+ const ladderTop=h*.84+.9,ladderHeight=ladderTop-.1,ladderCenter=(ladderTop+.1)/2;
+ const ladderRungCount=Math.floor((ladderTop-.62)/.42)+1;
  return <group position={[x,0,z]}>
   <mesh position={[0,h/2+.28,0]} castShadow receiveShadow><cylinderGeometry args={[r,r*.94,h,32]}/><meshStandardMaterial color={color} map={getWeatheredSteelMap()} metalness={.48} roughness={.62}/></mesh>
   {/* Dished vessel heads, skirt and circumferential weld/flange seams */}
@@ -45,15 +48,12 @@ function Vessel({x,z,r,h,color=paleSteel,band=true}:{x:number;z:number;r:number;
   </group>)}
   {/* Side nozzle, bolted flange and small handwheel */}
   <group position={[r*.93,h*.55+.28,0]}><mesh rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.14,.14,.5,12]}/><meshStandardMaterial color="#87948b" metalness={.6}/></mesh><mesh position={[.28,0,0]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.19,.045,8,20]}/><meshStandardMaterial color="#d0bd88" metalness={.62}/></mesh><mesh position={[.45,.23,0]}><torusGeometry args={[.16,.035,6,16]}/><meshStandardMaterial color="#bb7351" metalness={.5}/></mesh></group>
-  {/* Two-ring access decks, guard rails and caged ladder */}
-  {accessLevels.map((level,k)=><group key={k}>
-    <mesh position={[0,level+.28,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[r+.12,r+.48,32]}/><meshStandardMaterial color="#303a36" side={THREE.DoubleSide}/></mesh>
-    <mesh position={[0,level+.8,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[r+.48,.035,6,36]}/><meshStandardMaterial color={safety}/></mesh>
-    {Array.from({length:12},(_,i)=>{const a=i*Math.PI/6;return <mesh key={i} position={[Math.cos(a)*(r+.48),level+.55,Math.sin(a)*(r+.48)]}><cylinderGeometry args={[.025,.025,.55,6]}/><meshStandardMaterial color={safety}/></mesh>})}
-  </group>)}
-  <mesh position={[r+.18,h*.48+.28,0]}><boxGeometry args={[.055,h*.82,.055]}/><meshStandardMaterial color={safety}/></mesh>
-  <mesh position={[r+.5,h*.48+.28,0]}><boxGeometry args={[.055,h*.82,.055]}/><meshStandardMaterial color={safety}/></mesh>
-  {Array.from({length:Math.floor(h/.42)},(_,i)=><mesh key={`rung-${i}`} position={[r+.34,.62+i*.42,0]}><boxGeometry args={[.39,.045,.055]}/><meshStandardMaterial color={safety}/></mesh>)}
+  {/* Two accessible ring decks with ladder-aligned openings, grated transfer landings and gates swung clear. */}
+  {accessLevels.map((level,k)=><VesselAccessDeck key={`vessel-deck-${k}`} radius={r} level={level} color={safety}/>)}
+  {/* Fixed ladder is offset outside the vessel shell and lands on the grated bridges at both access decks. */}
+  <mesh position={[r+.82,ladderCenter,0]}><boxGeometry args={[.055,ladderHeight,.055]}/><meshStandardMaterial color={safety}/></mesh>
+  <mesh position={[r+1.14,ladderCenter,0]}><boxGeometry args={[.055,ladderHeight,.055]}/><meshStandardMaterial color={safety}/></mesh>
+  {Array.from({length:ladderRungCount},(_,i)=><mesh key={`rung-${i}`} position={[r+.98,.62+i*.42,0]}><boxGeometry args={[.39,.045,.055]}/><meshStandardMaterial color={safety}/></mesh>)}
  </group>;
 }
 function HorizontalVessel({x,z,y=1.05,length=2.7,r=.58}:{x:number;z:number;y?:number;length?:number;r?:number}){

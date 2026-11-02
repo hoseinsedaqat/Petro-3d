@@ -1,128 +1,159 @@
-# PetroVista 3D
+<div align="center">
+  <h1>PetroVista 3D</h1>
+  <p><strong>Explore. Understand. Simulate.</strong><br />An interactive, bilingual 3D refinery and export-terminal demo.</p>
+  <p><a href="#english">English</a> · <a href="#persian">فارسی</a></p>
+  <p>
+    <img src="https://img.shields.io/badge/React-18.3-149eca?logo=react&logoColor=white" alt="React 18.3" />
+    <img src="https://img.shields.io/badge/TypeScript-5.6-3178c6?logo=typescript&logoColor=white" alt="TypeScript 5.6" />
+    <img src="https://img.shields.io/badge/Three.js-0.170-black?logo=threedotjs&logoColor=white" alt="Three.js 0.170" />
+    <img src="https://img.shields.io/badge/Vite-5.4-646cff?logo=vite&logoColor=white" alt="Vite 5.4" />
+  </p>
+</div>
 
-**Explore. Understand. Simulate.**
+<a id="english"></a>
 
-An interactive, client-side 3D refinery and petroleum export terminal demonstration. Built with React, TypeScript, Vite, Three.js, React Three Fiber, Drei, Zustand, Framer Motion, and Lucide icons. All operations, values, personnel and statuses are simulated demo data; the application is not connected to a real facility.
+## English
 
-## Features
+PetroVista 3D is a browser-based, interactive miniature of a refinery campus and its export terminal. Explore the site from an isometric overview, follow illustrative process routes, and inspect equipment in context. The interface is available in English and Persian, with Persian RTL support.
 
-- Isometric-style, orbitable Three.js site with selectable process units, distillation towers, tanks, utilities, buildings, tanker trucks, workers and an export vessel.
-- Separate road-truck loading and marine export areas, connected to dedicated, visibly independent process and transfer pipelines.
-- Multi-tier steel pipeway with repeated bents, cross-bracing, pipe shoes/flanges, accessible walkways, separate power and instrument ladder trays, an overhead crossover around the HDS equipment envelope, and a lateral expansion loop.
-- Three electrical feeder conduits follow a covered inland trench with handholes to the relocated, fenced switchyard; the station is set back from the harbor, and its location/details are illustrative.
-- Tank-farm containment includes a stair crossing, sump grate and visible manually isolated drain detail; no open drain is routed to the sea, and all features are illustrative.
-- A dedicated firewater reserve tank, enclosed electric/standby pump house, buried red ring main and accessible perimeter hydrants visualize active firewater coverage; the south run detours around the drum-loading apron rather than passing beneath the vehicle-handling zone. The layout and equipment are illustrative, with no real capacity, hydraulic analysis, or compliance claim.
-- PPE-detailed field staff with reflective bands, hard hats, boots, handheld gas detector/tablet/tool accents, and subtle role-based movement.
-- Company entrance and visitor campus include a selectable glazed security gatehouse, marked approach and stop line, wheel stops, a kerbed pedestrian route, protected zebra crossing, low-glare path lights and planted office-side beds; parking and access-control details are illustrative.
-- The perimeter now has locally textured chain-link infill, top/mid rails and taller posts, while preserving the original gate opening and established posts. Its north run jogs around the H2 package so the fence no longer crosses the pad. A low gravel-and-xeric planting bed softens the company-side arrival without intruding into the gatehouse, vehicle apron or pedestrian path.
-- The central control building and laboratory use distinct industrial façades: a restrained control-room observation band, screened low-profile roof ventilation, visible access/egress details, and laboratory exhaust stacks. These are visual details only—not blast-resistance, ventilation, or laboratory-safety designs.
-- Road-tanker top loading and palletized-drum truck loading remain separate demonstrations. The tanker stays secured under Bay 01 while its articulated arm is connected; the flatbed follows a rounded, low-speed, one-way loop on the lower terminal road and pauses at the drum-transfer stand. The forklift shuttles on its own marked, widened hardstand, raises the pallet only during the truck stop, lowers the forks and retreats to a holding pocket before dispatch. The south perimeter fence steps outward around this handling apron, and the illustrative buried firewater route is diverted clear of the vehicle-handling area; existing process equipment positions are unchanged. The flatbed driver waits in a painted refuge on the protected walkway during loading and appears in the cab only while the truck is moving. A visual red/green signal synchronizes the stop and clear phases; pedestrians remain on the physically separated walkway. All timing and cargo changes are deterministic demo behavior—not a traffic-control or safety system.
-- Distinct loading vignettes: the stationary tanker is connected to its road-fuel loading arm while the flatbed, cab driver, forklift, strapped pallet cargo and walking staff follow role-appropriate, coordinated demo routes. Subtle ship bobbing and pipeline-flow indicators remain visual effects.
-- Expanded site terrain with a carved harbor basin, flush shoreline water, and a segmented concrete quay wall; the water surface no longer overlays the land plate, and existing equipment coordinates remain fixed.
-- A more legible elevated flare vignette with a tapered red/white stack, grated service decks and rails, caged access ladder, burner-tip pilots, a local knockout-drum/header detail, and a layered flickering flame. It is an illustrative visual model, not a flare-system or safety design.
-- `F-102` now has a compact box-type fired-heater silhouette with a radiant firebox, small burner ports and flicker, coil/header details, an open-framed convection/shield bank, breeching, and a tall stack with access decks and ladders. This is a local illustrative model, not process, combustion, emissions, stack-sizing, or safety engineering.
-- A new selectable `ACHE-01` three-cell forced-draft air-cooled exchanger bank sits above the existing pipe-rack wing, with axial fans, tapered plenums, finned tubes, removable-style headers, connected demo tie-ins, and separate maintenance decks. Its support frame ties into the rack bents and offsets outer posts clear of the existing cable-tray lanes; this is visual demo geometry, not an engineered installation.
-- The atmospheric and vacuum columns now have curved heads, shell-course seams, bolted manways, accessible side-draw valves, a visible level chamber and pressure gauges. A new selectable overhead condenser, reflux drum and paired pump set complete a clearly traced, animated CDU overhead/reflux demonstration loop; all added locations and operating values are simulated.
-- Procedural local-only yard materials distinguish compacted site soil, saw-cut concrete process pads, and asphalt vehicle routes; subtle aggregate, panel joints, and pad textures add scale without remote assets or layout changes.
-- Floodlight masts, illuminated pedestrian lamps, truck headlamps and warm control-room windows keep the night scene readable. These are illustrative visual effects, not lighting engineering data.
-- Bilingual Persian / English interface (Persian by default), RTL-aware layout, day/night lighting, process flow mode, navigation, search, asset inspection, simulation speed/pause/reset, and scene quality settings.
-- Static-only architecture. No backend, database, external API, or remote 3D asset dependency. User language preference is saved in localStorage.
-- Bundled glTF/GLB assets: an animated, skinned worker character and a detailed oil tanker vessel. Both are loaded locally; the worker model has PPE accents and its supplied logo area is neutralized.
-- GitHub Pages deployment workflow with repository-path Vite base support.
+### The site at a glance
 
-## Requirements
+![PetroVista 3D — live application screenshot showing the refinery, tank farm, landscaped site buffers, road terminal, and marine berth](docs/images/petrovista-site-overview.png)
 
-Node.js 20 or newer and npm.
+*Captured from the running PetroVista 3D application. All people, equipment states, readings, and activities shown are demonstration data.*
 
-## Install and run locally
+### Explore
+
+- **Refinery and utilities:** crude receiving, distillation, conversion, hydrotreating, hydrogen, sulfur recovery, steam, instrument air, nitrogen, firewater, and wastewater systems.
+- **Storage and export:** atmospheric and spherical storage tanks, a separate road-loading terminal, and a marine berth with an oil tanker.
+- **A living site model:** selectable equipment, animated workers and vehicles, illustrative flow cues, day/night lighting, and locally generated ground and landscape materials.
+- **Bilingual controls:** switch between English and Persian, search for equipment, inspect selected assets, navigate by site zone, and adjust scene quality.
+
+### Controls
+
+- Drag to orbit or pan the scene; use the mouse wheel to zoom.
+- Select a unit, tank, or vehicle to open its information panel; use search to find an asset by name or tag.
+- Use the navigation rail to focus on a site zone. The toolbar provides day/night, flow, playback, speed, reset, and quality controls.
+- Keyboard shortcuts: **W/A/S/D** or **arrow keys** to move the focus, **F** to focus the selected asset, **R** to reset, and **Esc** to clear the selection or close search/help.
+
+### Run locally
+
+**Requirements:** Node.js 20+ and npm.
 
 ```bash
+git clone https://github.com/hoseinsedaqat/Petro-3d.git
+cd Petro-3d
 npm ci
 npm run dev
 ```
 
-Vite prints the local development URL. The dev server binds to `0.0.0.0` for preview environments.
-
-## Type-check and production build
+Open the local URL printed by Vite. The server binds to `0.0.0.0`, which also works in hosted preview environments.
 
 ```bash
-npm run typecheck
-npm run build
-npm run preview
+npm run typecheck   # TypeScript checks
+npm run build       # Production build in dist/
+npm run preview     # Serve the production build locally
 ```
 
-The static production files are written to `dist/`. To test a project-site path locally, set the base path before building:
+### Deploy to GitHub Pages
+
+The repository includes a GitHub Actions workflow named **Deploy PetroVista 3D to GitHub Pages**. Configure **Settings → Pages → Build and deployment → Source** to **GitHub Actions**, then push to the `test` branch or run the workflow manually from the Actions tab. It installs the locked dependencies, type-checks, builds with the repository-specific Vite base path, and deploys `dist/`.
+
+For a local project-site build, set the base path to match the repository name:
 
 ```bash
-VITE_BASE_PATH=/petrovista-3d/ npm run build
+VITE_BASE_PATH=/Petro-3d/ npm run build
 ```
 
-The default base path is `/` for local development.
+### Project map
 
-## Deploy to GitHub Pages
+| Path | Purpose |
+| --- | --- |
+| `src/scene/World.tsx` | Site layout, environment, pipelines, and scene behavior |
+| `src/scene/RefinerySections.tsx` | Selectable process and utility equipment |
+| `src/scene/ProcessSteelwork.tsx` | Central process steelwork and pipe rack |
+| `src/scene/SphereTank.tsx` | Spherical storage tanks |
+| `src/scene/VesselAccessDeck.tsx` | Shared vessel access decks and ladder landings |
+| `src/data/site.ts` | Bilingual demo asset, zone, and personnel data |
+| `src/i18n/` | English and Persian interface strings |
+| `src/store.ts` | Local UI and simulation state |
+| `public/models/` | Locally bundled ship and worker GLB assets |
+| `ASSET-CREDITS.md` | Attribution and asset license notes |
 
-1. Create a GitHub repository and push this project to its `main` branch.
-2. In the repository, open **Settings → Pages** and set **Build and deployment → Source** to **GitHub Actions**.
-3. Push to `main`, or start **Deploy PetroVista 3D to GitHub Pages** from the **Actions** tab using **Run workflow**.
-4. The workflow installs dependencies, runs TypeScript checks, builds the app with `VITE_BASE_PATH=/<repository-name>/`, uploads `dist/`, and deploys the static artifact.
-5. Visit `https://<username>.github.io/<repository-name>/` after the deployment job completes.
+### Important scope note
 
-The workflow uses the repository name automatically; no hard-coded username or root-host assumption is required. This app uses a single page and does not require direct-route rewrites.
+**PetroVista is a visual demonstration—not an operating refinery, digital twin, process simulator, engineering design, or safety system.** It has no backend, PLC connection, live telemetry, or external 3D-asset dependency. Equipment placement, routes, dimensions, capacities, readings, and operational behavior are illustrative and are not verified for engineering, regulatory, or safety use. Bundled model attributions and license obligations are listed in [`ASSET-CREDITS.md`](ASSET-CREDITS.md).
 
-## Troubleshooting
+---
 
-- **404 or missing assets on a project site:** confirm the Pages source is GitHub Actions and that the latest deployment ran successfully. The workflow sets the repository base path; local custom builds need a matching `VITE_BASE_PATH`.
-- **Workflow permission failure:** verify Pages is configured to use GitHub Actions and that repository Actions policies permit the official Pages actions. The workflow requests only `contents: read`, `pages: write`, and `id-token: write`.
-- **Dependency lock mismatch:** run `npm install` after changing `package.json`, then commit the updated `package-lock.json`.
-- **Slow rendering on a lower-end device:** use the scene quality control to step down from High to Medium or Low; reduce browser zoom or close other GPU-heavy tabs.
-- **No live operations data:** this is expected. All data is deterministic local demonstration data and intentionally has no backend or industrial-system integration.
+<a id="persian"></a>
 
-## Visual design references
+## فارسی
 
-The local renderings are illustrative, not engineering designs. Layout decisions were informed by the multi-tier rack, accessible-valve, cable-separation, and thermal-flexibility notes in [Wermac’s pipe-rack reference](https://www.wermac.org/steel/piperacks.html) and [industrial cable-ladder examples](https://ydxcabletray.com/cable-ladder-tray-applications). The road loop and protected walkway follow the site-traffic principles of separate pedestrian routes, physical barriers, and marked interfaces described in the [WISH safe-traffic guidance](https://www.wishforum.org.uk/wp-content/uploads/2025/08/WISH-WASTE-09-Safe-traffic-management-on-waste-and-recycling-sites-V2.pdf); designated parking, site-entry instructions and pedestrian separation also reflect the [HSE workplace-parking guidance](https://www.hse.gov.uk/workplacetransport/parking.htm) and its [safe workplace layout](https://www.hse.gov.uk/workplacetransport/information/safeworkplace.htm) and [loading/unloading guidance](https://www.hse.gov.uk/workplacetransport/factsheets/loading.htm): marked one-way vehicle routes, separated pedestrian access, safe loading areas and no dispatch until the handling area clears. The new shuttle/apron composition was also reviewed against local image studies in `image-search/industrial-warehouse-forklift-dedicated--1.png`, `--2.jpg`, and `--3.jpg`; they are visual references only. The flatbed’s visible load straps were informed by [flatbed cargo securement examples](https://truckstop.com/blog/flatbed-shipping). The harbor edge uses a conceptual retained-quay treatment informed by the shoreline-protection vocabulary in the [U.S. Army Corps of Engineers coastal revetment and seawall manual](https://www.delmar.ca.us/DocumentCenter/View/1899/Design-of-Coastal-Revetments-Seawalls-and-Bulkheads_Army-Corps-of-Engineers-1995); this model is illustrative and is not an engineered coastal design. The switchyard setback is a visual choice informed by a utility operator’s [substation flood-mitigation code](https://www.northernpowergrid.com/sites/default/files/assets/IMP001012.pdf); the scene is not a flood-risk assessment. Control-building glazing and screened roof-service details were informed by HSE’s [control-room design note](https://www.hse.gov.uk/comah/sragtech/techmeascontrol.htm); no blast-resistance, safe-haven, or ventilation performance is claimed. The tank-farm drain/sump depiction was informed by the U.S. EPA’s [SPCC guidance on secondary containment and controlled drainage](https://www.epa.gov/sites/default/files/2014-04/documents/4_secondarycontainment_impracticability_2014.pdf); the model is illustrative and makes no capacity or compliance claim. The firewater concept was informed by HSE’s notes on [active and passive fire protection](https://www.hse.gov.uk/comah/sragtech/techmeasfire.htm) and [plant layout](https://www.hse.gov.uk/comah/sragtech/techmeasplantlay.htm), including conceptual attention to safe siting, backup supply, hydrant access and site routes; the scene is not a hydraulic design or compliance assessment. Shoreline, quay, night-scene, flare, substation, tank-farm, firewater, refinery-campus, gatehouse and modular control-building compositions were also reviewed against local image-search studies in the workspace; those images are visual references only, include stock/commercial results, and are not standards, bundled Git assets, or runtime assets. The elevated stack vocabulary (service platforms, pilot burners, burner tip and optional knockout/header context) was cross-checked against the U.S. EPA [flare cost manual, Chapter 7](https://www.epa.gov/sites/default/files/2019-08/documents/flarescostmanualchapter7thedition_august2019vff.pdf); the flare remains conceptual and makes no claim about capacity, combustion, emissions, clearances or safety performance. Yard surfacing also takes visual cues from the subtle paved-panel joints in the [warehouse-journey-3d exterior reference](https://github.com/hiobuy/warehouse-journey-3d) and local industrial-ground image searches; the project’s own local procedural textures are used, with no reference image or remote asset loaded at runtime.
+**پتروویستا ۳بعدی** یک ماکت تعاملی و مرورگرمحور از محوطه‌ی پالایشگاه و پایانه‌ی صادراتی است. در نمای کلی سایت حرکت کنید، مسیرهای مفهومی فرایند را دنبال کنید و تجهیزات را در جایگاه خود بررسی کنید. رابط کاربری فارسی و انگلیسی است و چیدمان فارسی از راست به چپ پشتیبانی می‌شود.
 
-The wastewater unit is shown as a selectable treatment-train vignette: the existing oil-separation channels are supplemented with equalization, aeration, secondary clarification, polishing filtration and a compact sludge-handling skid. The arrangement is conceptual; refinery wastewater systems vary by site and stream, and no treatment performance, discharge compliance, hydraulic capacity or safety rating is claimed. The two-bay on-site fire station and its short, marked access hardstand are likewise visual cues only, not a response-time, staffing or fire-protection design. These details were informed by the EPA’s [2019 Detailed Study of the Petroleum Refining Category](https://www.epa.gov/sites/default/files/2019-10/documents/petro-refining-elg-study-2019.pdf), the U.S. Department of Energy’s [Reverse Osmosis Optimization report](https://www.energy.gov/sites/prod/files/2013/10/f3/ro_optimization.pdf) for feed-water pretreatment and RO context, HSE’s [fire-protection guidance](https://www.hse.gov.uk/comah/sragtech/techmeasfire.htm) and [plant-layout guidance](https://www.hse.gov.uk/comah/sragtech/techmeasplantlay.htm), plus local visual searches of wastewater facilities, packaged industrial RO skids and two-bay fire stations. The `WW-01` utility-water package is a compact, non-potable service-water illustration; no purification quality, treatment capacity or process performance is claimed. It remains a separate asset from `WWT-01`, the refinery wastewater plant. Search-result imagery is reference-only and is not bundled or loaded at runtime.
+### نمایی از سایت
 
-`P-301A` now depicts a compact paired transfer-pump set with horizontal drivers, baseplates, enclosed couplings, suction/discharge headers, small instruments and a simple canopy frame. It remains within the west edge of its existing utility footprint; no equipment coordinates were moved. Pipe routes, equipment duties and clearances are illustrative and make no claim about hydraulic design or safe operation. The visual study used Flowserve’s [HPX API process-pump overview](https://www.flowserve.com/products/products-catalog/pumps/overhung-pumps/api-process-pumps/flowserve-hpx-oh2-type-api-process-pump/) and [pump installation instructions](https://www.flowserve.com/sites/default/files/dam/documents/85392697-e.pdf), HSE’s [plant-layout guidance](https://www.hse.gov.uk/comah/sragtech/techmeasplantlay.htm), and local image searches of process-pump installations. Search imagery is reference-only; no external image or pump model is used at runtime.
+تصویر بالا از خود محیط در حال اجرای PetroVista 3D گرفته شده است. تجهیزات، افراد، وضعیت‌ها، اعداد و فعالیت‌های نمایش‌داده‌شده همگی داده‌ی نمایشی هستند.
 
-The road-tanker rack remains a separate top-loading operation; the six-drum flatbed is now shown as a pallet transfer instead of being associated with liquid tanker arms. Four drums are secured to a timber pallet on the truck, while an interactive forklift holds a second two-drum pallet at the truck side on an adjoining marked hardstand. This distinction follows palletized-drum handling examples from [Federal Manufacturing’s drum-filling/conveyor system](https://www.federalmfg.com/products/net-weight-tote-and-drum-filler/) and [BASCO’s drum-handling guidance](https://bascousa.com/blog/tips-for-managing-drums-in-your-warehouse), which describe using pallets and forklift handling for grouped drums. The tanker gantry separately uses [SafeRack’s top-loading-arm examples](https://saferack.com/products/loading-arms-couplings/top-loading-arms/) and loading-platform references. Local visual references include `image-search/industrial-drum-filling-line-55-gallon-s-1.webp` to `-4.webp` and `image-search/forklift-loading-pallet-drums-flatbed-tr-1.jpg` to `-4.jpg`; these images are not runtime assets. The modeled load, forklift, pallet and handling clearances are illustrative and make no claim about rated capacities, securement design or workplace safety.
+### بخش‌های اصلی
 
-`F-102` is represented as a compact box-type fired heater: the lower radiant chamber, burner openings, tube/header cues, upper convection/shield bank, breeching, stack, and access steelwork are separated visually while keeping the existing equipment location and compact ground envelope. The visual vocabulary was cross-checked against [KLM Technology Group’s refinery-furnace design guideline](https://www.klmtechgroup.com/PDF/EDG-REF/ENGINEERING-DESIGN-GUIDELINES-refinery-furnace-Rev1.2web.pdf), [XRG Technologies’ fired-heater overview](https://xrgtechnologies.com/what-is-a-fired-heater-for-dummies/), [HeaterSim’s convection-section notes](https://www.heatersim.com/knowledge/convection_section_design), and local heater image-search references. Search imagery and the user-supplied commercial model page are references only; no downloaded model, image, or texture is used at runtime. The model is not an engineered heater design and makes no claim about duty, tube sizing, combustion, emissions, stack design, clearances, or safety.
+- **پالایشگاه و یوتیلیتی‌ها:** دریافت نفت خام، تقطیر، تبدیل، گوگردزدایی، تولید هیدروژن، بازیافت گوگرد، بخار، هوای ابزار دقیق، نیتروژن، آب آتش‌نشانی و تصفیه‌ی پساب.
+- **ذخیره‌سازی و صادرات:** مخازن اتمسفریک و کروی، پایانه‌ی مستقل بارگیری جاده‌ای و اسکله‌ی دریایی با نفت‌کش.
+- **مدل زنده‌ی سایت:** انتخاب و بررسی تجهیزات، حرکت نمایشی کارکنان و خودروها، نشانه‌های بصری جریان، نورپردازی روز و شب و مصالح محلیِ ساخته‌شده در خود پروژه.
+- **کنترل دوزبانه:** جابه‌جایی بین فارسی و انگلیسی، جست‌وجوی تجهیزات، بررسی مشخصات دارایی‌ها، ناوبری بر اساس محدوده‌های سایت و تنظیم کیفیت صحنه.
 
-`ACHE-01` adds a selectable elevated air-cooled exchanger module over the existing right-hand rack, without moving any existing assets. Three fan cells sit below tapered plenums and a shared finned-tube bank; bolted-looking end headers, pipe tie-ins, steel supports and two guarded service levels make the missing equipment group legible from the site view. The study used [Wermac’s pipe-rack reference](https://www.wermac.org/steel/piperacks.html) for multi-tier separation and access, [Stone Process’ air-cooled exchanger overview](http://stoneprocess.com/acooler.htm) for the fan/plenum/tube-bundle arrangement, and [United Heat Exchangers’ ACHE component notes](https://www.unitedheatexchangers.com/heat-exchanger/Air-cooled-Heat-Exchanger/) for frame and elevated-mounting cues; local image searches included refinery fan decks and fin-fan assemblies. Reference images are not bundled or loaded at runtime. This new asset is static demonstration geometry with fans animated only as a visual effect; it makes no claim about thermal duty, airflow, process connection design, structure, or safe clearances.
+### راهبری صحنه
 
-The CDU overhead study adds a selectable shell-and-tube condenser (`E-101`), horizontal reflux accumulator (`V-102`) and paired return-pump set (`P-102A`), with an illustrative overhead/condensation/accumulation/reflux pipe route. The existing `CDU-01` and `V-201` shells also gain external manways, side-draw nozzles, gauge glass and accessible instrument details. Layout vocabulary was checked against the [column-piping study](https://www.pipingguide.net/2014/07/sequence-of-distillation-column-piping.html), [tower access and piping notes](https://pipingengineering.softecks.in/72/), the [distillation overhead-reservoir teaching reference](https://chemengvirtual.uwaterloo.ca/distillation-lab/components/overhead.html), and a [CDU condenser/reflux overview](https://blog.projectmaterials.com/oil-gas-equipment/distillation-columns-reactors/). Local visual references are in `image-search/industrial-refinery-distillation-column--1.jpg` and `image-search/refinery-crude-distillation-overhead-con-1.webp`; these, like the web images, remain reference-only. No commercial image/model is loaded by the app. The new process loop is a visual demo, not an engineered PFD or claim about pressure, duty, yield, pump performance, layout clearances or safety.
+- برای چرخاندن یا جابه‌جایی دید، صحنه را بکشید؛ برای بزرگ‌نمایی از چرخ ماوس استفاده کنید.
+- با انتخاب واحد، مخزن یا وسیله‌ی نقلیه، پنل اطلاعات آن را باز کنید؛ برای یافتن تجهیز می‌توانید از نام یا شناسه‌ی آن جست‌وجو کنید.
+- از نوار ناوبری برای رفتن به محدوده‌های سایت استفاده کنید. نوار ابزار، حالت روز/شب، نمایش جریان، پخش و سرعت شبیه‌سازی، بازنشانی و کیفیت صحنه را کنترل می‌کند.
+- میان‌برها: **W/A/S/D** یا کلیدهای جهت‌دار برای حرکت نقطه‌ی تمرکز، **F** برای تمرکز روی تجهیز انتخاب‌شده، **R** برای بازنشانی و **Esc** برای پاک‌کردن انتخاب یا بستن جست‌وجو/راهنما.
 
-The campus trees have been repositioned outside the control-room and laboratory roof/wall footprints in both the primary and fallback scenes, with clearance from the visitor-parking edge and nearby walk light. Their crowns are now irregular layered foliage over visible trunks and small mulch pits rather than large, rigid spheres. The placement follows the integration principle in the EPA [Facilities Manual, Volume 2](https://www.epa.gov/system/files/documents/2023-12/epa-facilities-manual-vol-2-architecture-engineering-guidelines.pdf) and was cross-checked against local courtyard/office-campus landscape images; those search images remain visual references only and are not runtime assets.
+### اجرا در سیستم محلی
 
-The company-side arrival now uses a restrained low-water planting bed and a chain-link fence treatment that fills the existing perimeter posts while keeping the original southern gate opening, all equipment positions, and all vehicle/pedestrian routes unchanged. The planting strategy was cross-checked against EPA [facility landscape and site-planning guidance](https://nepis.epa.gov/Exe/ZyNET.exe/7000010N.txt?Back=ZyActionS&BackDesc=&Client=EPA&DefSeekPage=&Display=hpfrw&Docs=&EndTime=&ExtQFieldOp=0&File=D:%5CZYFILES%5CINDEX+DATA%5C91THRU94%5CTXT%5C00000019%5C7000010N.TXT&FuzzyDegree=-1&ImageQuality=r150g4/r150g4/x150y150g16/i850&Index=1991+Thru+1994&IntQFieldOp=0&MaximumDocuments=0&Password=anonymous&QField=&QFieldDay=&QFieldMonth=&QFieldYear=&Query=fname%3D%227000010N.TXT%22&SearchBack=ZyActionE&SearchMethod=&SortMethod=&Time=&Toc=&TocEntry=&TocRestrict=&UseQField=&User=ANONYMOUS&XmlQuery=&ZyActionW=Download) and the [industrial-site planning guidelines](https://temeculaca.gov/DocumentCenter/View/294/Chapter-5--Industrial-Guidelines-PDF); local image searches of xeric office planting and gated industrial entries were used only as visual references. Neither the searched photos nor remote textures are bundled or loaded at runtime.
+**پیش‌نیازها:** Node.js نسخه‌ی ۲۰ یا جدیدتر و npm.
 
-## Utility, civil, and campus refinement
+```bash
+git clone https://github.com/hoseinsedaqat/Petro-3d.git
+cd Petro-3d
+npm ci
+npm run dev
+```
 
-`SB-01` adds a selectable, illustrative package water-tube boiler with a steam drum, burner/front register, convection/economizer cassette, breeching and stack, plus a deaerator, paired boiler-feed pumps, chemical-dosing cabinet, makeup-water tie-in, steam users on the refinery rack, and a condensate-return path. The arrangement follows the system-level vocabulary in [KLM Technology Group’s utility-boiler operating manual](https://www.klmtechgroup.com/PDF/manuals/OPERATING%20MANUALS%20-%20Utility%20Boilers%20Rev%2001%20web.pdf) and [Simtronics’ utility-boiler model](https://simtronics.com/spm/spm-1510-advanced-utility-boiler/): feedwater/deaeration, pumping, steam generation/distribution, and condensate return. Local image studies include `image-search/refinery-steam-boiler-deaerator-package--1.jpg` to `--3.jpg` and `image-search/industrial-refinery-package-boiler-house-1.webp` to `-3.jpg`; one deaerator product image was used only for vessel/skid vocabulary, not as a boiler reference. All search imagery is reference-only. The new unit is placed in previously open ground; existing equipment positions remain fixed. Its process lines, capacities, burner appearance, and operating state are demo-only, not an engineered PFD, utility design, rating, or safety claim.
+نشانی محلی‌ای را که Vite چاپ می‌کند باز کنید. سرور روی `0.0.0.0` اجرا می‌شود و در محیط‌های پیش‌نمایش میزبانی‌شده نیز قابل استفاده است.
 
-Road edges now distinguish the cross-plant emergency access, with low mountable kerbs, reflectors, covered inlets, a contained catchpit, and a locally detailed trench drain at the boiler pad. This visual study drew on the [TDOT roadway drainage manual](https://www.tn.gov/content/dam/tdot/engineering-production-support/documents/drainage_manual/DM-Chapter_07.pdf) and [NJDOT drainage guidance](https://www.nj.gov/transportation/eng/documents/BDC/pdf/DMR-Sec10.pdf) for curb/gutter and trench-drain vocabulary; the site is not a hydraulic model and no catchment, capacity, discharge, fire-lane compliance, or emergency-response claim is made. The company approach gains a restrained monument sign and warm, shielded accent light while keeping visitor parking, pedestrian circulation, existing trees, and the gate opening in place. The campus composition was cross-checked against [Sacramento’s Industrial and Business Park Design Guidelines](https://www.cityofsacramento.gov/content/dam/portal/cdd/Planning/IBPDesignGuidelines.pdf) and [Temecula’s industrial guidelines](https://temeculaca.gov/DocumentCenter/View/294/Chapter-5--Industrial-Guidelines-PDF), particularly visible entries, separated pedestrian paths, visitor parking, and landscape-defined access. Local visual references are `image-search/industrial-refinery-trench-drain-road-cu-1.jpg` to `-3.jpg`, `image-search/industrial-corporate-campus-entrance-gat-1.jpg` to `-3.jpg`, and `image-search/industrial-refinery-night-lighting-weath-1.jpg` to `-3.jpg`; these are ignored reference files, not runtime assets.
+```bash
+npm run typecheck   # بررسی TypeScript
+npm run build       # ساخت نسخه‌ی انتشار در dist/
+npm run preview     # اجرای محلی نسخه‌ی ساخته‌شده
+```
 
-The boiler’s galvanized/painted surfaces reuse deterministic local procedural material maps, with wear localized to selected feet, drain edges, and shell seams rather than a uniform rust overlay. The visual distinction between sound coating and localized weathering was checked against the [state-of-the-art review of weathering steel](https://www.mdpi.com/2075-5309/15/13/2260); it informs appearance only and does not represent a corrosion survey, material specification, or remaining-life estimate. Night cues use restrained warm task lighting rather than emissive textures or remote light assets.
+### انتشار در GitHub Pages
 
-`IA-01` adds a separate utility package for instrument air and nitrogen: paired compressor trains, aftercooling/receivers, staged filters, twin-tower desiccant drying, a PSA nitrogen module, and a dedicated nitrogen buffer. Distinct headers branch through the existing pipe-rack structure to illustrative instrument and purge/blanketing users; the air and nitrogen lines are not cross-connected. The equipment sequence was informed by the [NRC AP1000 auxiliary-systems design document](https://www.nrc.gov/docs/ML0715/ML071580933.pdf), which describes compressor trains, aftercoolers, receivers, pre-/after-filters and twin-tower desiccant dryers; PSA tower/buffer arrangement cues were checked against [Neometrix’s PSA package overview](https://neometrixgroup.com/products/PSA-nitrogen-generation-plant) and [Grasys’ compressor-plant packages](https://www.grasys.com/products/compressor-plants/gas-compressor-skid-packages/). Local image studies are `image-search/industrial-instrument-air-compressor-dry-1.jpg` to `-4.webp` and `image-search/industrial-nitrogen-generation-psa-skid--1.jpg` to `--3.jpg`; the search images are references only and are not bundled or loaded at runtime. `IA-01` is a static demo model: no air quality, nitrogen purity, pressure, capacity, redundancy performance, area classification, or engineering suitability is claimed.
+مخزن یک گردش‌کار GitHub Actions با نام **Deploy PetroVista 3D to GitHub Pages** دارد. در **Settings → Pages → Build and deployment → Source** گزینه‌ی **GitHub Actions** را انتخاب کنید؛ سپس به شاخه‌ی `test` push کنید یا گردش‌کار را از زبانه‌ی Actions به‌صورت دستی اجرا کنید. گردش‌کار وابستگی‌های قفل‌شده را نصب می‌کند، TypeScript را بررسی می‌کند، با مسیر پایه‌ی متناسب با نام مخزن build می‌گیرد و پوشه‌ی `dist/` را منتشر می‌کند.
 
-## Flare and process-column layout refinement
+برای build محلی با مسیر پروژه، مسیر پایه را مطابق نام مخزن تنظیم کنید:
 
-The vacuum column `V-201` has been moved from the edge of the central steelwork into a clear, dedicated hardstand beside the process area; the other pre-existing asset coordinates, including `FL-01`, are unchanged. This is a visual placement correction informed by the qualitative arrangement guidance in [Distillation Towers Layout](https://pipingengineering.softecks.in/72/), which discusses open-area access and avoiding interference with pipe racks; it is not a site-layout standard or a clearance verification. The flare’s former tiny, embedded KO-drum proxy has been replaced with a selectable, larger horizontal flare-gas knockout drum (`FL-KO-01`) on a connected apron beside the stack. Its relief branch and vapor outlet are shown as local illustrative piping, with the vapor header kept on supported orthogonal runs and tied into the flare riser near grade. An unrelated high-level nitrogen drop that visually crossed the flare tip was removed; no purge connection is asserted. The upstream-of-stack location and horizontal-vessel vocabulary were checked against [Chemical Engineering’s pressure-relief-system discussion](https://www.chemengonline.com/optimizing-pressure-relief-systems/). Local image studies are `image-search/refinery-vacuum-distillation-tower-proce-1.jpg` to `-3.jpg` and `image-search/refinery-flare-knockout-drum-horizontal--1.jpg` to `--4.jpg`; images are reference-only, not runtime assets. The new vessel, line routing, pad, process connection, and both asset statuses remain demonstration geometry/data, not a relief-system design, API 521 sizing, drainage plan, safety assessment, or verified clearance study.
+```bash
+VITE_BASE_PATH=/Petro-3d/ npm run build
+```
 
-## Hydrogen supply and process-stage alignment
+### ساختار پروژه
 
-`H2-01` adds a selectable, illustrative steam-methane-reforming hydrogen unit in the northern process corridor: feed guard vessels, a fired reformer and stack, heat-recovery steam drum, shift converters, four PSA adsorbers, and a compact product compressor. The site perimeter now jogs around the existing package pad rather than cutting through the equipment, while the established fence and gate remain in place elsewhere. Its service-walkway rails now have continuous top/mid rails, toe protection, and a clear ladder landing. A dedicated elevated hydrogen header links the package to an added nozzle on the existing `HDS-01`; that hydrotreater and every other pre-existing asset retain their coordinates. The vacuum-distillation stage focus and its steam/condensate utility branches were also aligned with the already-moved `V-201`, avoiding stale connections at its former position. The process sequence was checked against the U.S. DOE [natural-gas-reforming overview](https://www.energy.gov/cmei/fuels/hydrogen-production-natural-gas-reforming) and the [refinery hydrogen-generation process overview](https://www.digitalrefining.com/article/1000044/hydrogen-generation-for-modern-refineries). Local image studies are `image-search/industrial-hydrogen-production-plant-ste-1.webp` to `-4.webp`; these remain reference-only, not runtime assets. The layout, line route, fuel, steam, status and operating values are demonstration-only: no hydrogen purity, pressure, capacity, emissions, efficiency, clearances or engineering suitability is represented.
+| مسیر | کاربرد |
+| --- | --- |
+| `src/scene/World.tsx` | چیدمان سایت، محیط، خطوط لوله و رفتار صحنه |
+| `src/scene/RefinerySections.tsx` | تجهیزات فرایندی و یوتیلیتیِ قابل انتخاب |
+| `src/scene/ProcessSteelwork.tsx` | سازه‌ی فرایندی مرکزی و پایپ‌رک |
+| `src/scene/SphereTank.tsx` | مخازن کروی ذخیره‌سازی |
+| `src/scene/VesselAccessDeck.tsx` | سکوهای دسترسی مخازن و پاگرد نردبان |
+| `src/data/site.ts` | داده‌های دوزبانه‌ی نمایشی تجهیزات، محدوده‌ها و کارکنان |
+| `src/i18n/` | متن‌های رابط انگلیسی و فارسی |
+| `src/store.ts` | وضعیت محلی رابط و شبیه‌سازی |
+| `public/models/` | فایل‌های GLB محلی کشتی و نیروی انسانی |
+| `ASSET-CREDITS.md` | انتساب و توضیحات مجوز دارایی‌ها |
 
-## Oily-water collection
+### محدوده و هشدار مهم
 
-A buried, closed oily-water sewer network now collects illustrative drains from selected process areas and the existing tank-bund sump, then ties into the first covered separation lane at `WWT-01`. Small access covers and source grates indicate maintenance points; the existing road/storm inlets remain a separate system and are not connected. This distinction follows the general segregation described in the EPA refinery fact sheet for process wastewater, oily stormwater, and non-oily stormwater, and the use of oil-water separation as primary treatment described in the [API 421 separator overview](https://www.veoliawatertechnologies.com/en/solution/technologies/api-gravity-separator). Local image references are `image-search/refinery-oily-water-sewer-sealed-manhole-1.webp` to `-3.jpg`; they are reference-only. The routes, elevations, covers, and treatment tie-in are visualization geometry—not surveyed drainage, hydraulic gradients, capacity, a permit plan, API 421 sizing, or a compliance claim.
-
-## Sour-water treatment and routing
-
-A compact, illustrative `SWS-01` sour-water stripper closes the process-water path without mixing it into the oily floor-drain sewer. It includes a feed flash drum, single stripping column, reboiler, overhead condenser/reflux receiver, an illustrative steam supply with condensate return, and a dedicated sour-gas line to the Claus `SRU-01`; stripped water goes separately to the wastewater plant’s equalization tank. This sequence follows the refinery sour-water overview from [Yokogawa](https://www.yokogawa.com/us/library/resources/application-notes/sour-water-stripper-process/) and the [Digital Refining process description](https://www.digitalrefining.com/literature/1000587/sour-water-stripper), which describe stripping H2S/NH3, routing sour gas to sulfur recovery, and sending stripped water to further treatment or reuse. Local image studies are `image-search/refinery-sour-water-stripper-unit-stripp-1.gif` to `-3.jpg`; these are visual references only. Feed routes, elevations, equipment sizes and operating data are illustrative—not a PFD, H2S/NH3 balance, steam-duty calculation, performance guarantee, hazardous-area review, or engineered clearance study.
-
-## Project notes
-
-The truck-route cycle, forklift hold/dispatch signal, pallet transfer, and pedestrian-route separation are deterministic visual simulation only; no collision avoidance, interlock, access control, or safety function is provided. The surrounding refinery layout and repeatable equipment are generated locally in React Three Fiber; the human and ship GLBs are bundled in `public/models/` and never fetched from third-party URLs at runtime. Their attribution and license obligations are documented in `ASSET-CREDITS.md`. Equipment dimensions and KPI values are representative visualization data, not engineering plans or real measurements. See `src/data/site.ts` for local bilingual zone, asset, and personnel data, `src/scene/World.tsx` for scene models and simulation animation, `src/i18n/fa.ts` / `src/i18n/en.ts` for translations, and `src/store.ts` for UI state.
+**پتروویستا صرفاً یک نمایش بصری است؛ نه پالایشگاه عملیاتی، دوقلوی دیجیتال، شبیه‌ساز فرایند، طرح مهندسی یا سامانه‌ی ایمنی.** این پروژه backend، اتصال PLC، داده‌ی زنده یا وابستگی به مدل سه‌بعدی خارجی ندارد. جانمایی تجهیزات، مسیرها، ابعاد، ظرفیت‌ها، اعداد و رفتارهای عملیاتی نمایشی‌اند و برای استفاده‌ی مهندسی، مقرراتی یا ایمنی صحه‌گذاری نشده‌اند. اطلاعات انتساب و تعهدات مجوز مدل‌های همراه پروژه در [`ASSET-CREDITS.md`](ASSET-CREDITS.md) آمده است.

@@ -1,131 +1,292 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Canvas } from '@react-three/fiber';
+import * as THREE from 'three';
 import { useProgress } from '@react-three/drei';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Activity, Anchor, ArrowDownLeft, Bell, Box, Building2, Check, ChevronDown, CircleHelp, Clock3, Compass, Cpu, Factory, Gauge, GitBranch, Globe2, Layers3, Maximize2, Moon, Pause, Play, Plus, Radio, RotateCcw, Search, Settings2, ShieldAlert, Ship, Sun, Truck, Users, Waves, X, Zap } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { Activity, Anchor, ArrowDownLeft, Bell, Box, Building2, Check, ChevronDown, CircleHelp, Clock3, Compass, Cpu, Factory, Gauge, GitBranch, Globe2, Layers3, LayoutDashboard, Maximize2, Moon, Pause, Play, Plus, Radio, RotateCcw, Search, Settings2, ShieldAlert, Ship, Sun, Truck, Users, Waves, X, Zap, PanelLeftOpen, PanelRightOpen } from 'lucide-react';
 import { AssetBoundary, SceneFallback, SceneReadySignal, World } from './scene/World';
-import { items, zones, type SiteItem } from './data/site';
+import { items, zones, type SiteItem, type SiteMode } from './data/site';
+import { categoryName, inspectableItems, mainFunction, relatedItemsFor, statusName } from './data/interactions';
+import { processStageAssets, processStages } from './data/process';
 import { useStore } from './store';
 import { translations } from './i18n/translations';
 import './styles.css';
 import './monitoring-theme.css';
 import './scene-loading.css';
+import './cinematic-tour.css';
 
-const processCycle=[
- {en:'CRUDE FEED',fa:'دریافت خوراک',position:[-31,0,-7] as [number,number,number]},
- {en:'DISTILLATION',fa:'تقطیر',position:[-12,0,-9] as [number,number,number]},
- {en:'CONVERSION',fa:'تبدیل و پالایش',position:[2,0,-14] as [number,number,number]},
- {en:'STORAGE',fa:'ذخیره‌سازی',position:[16,0,-8] as [number,number,number]},
- {en:'EXPORT',fa:'ارسال محصول',position:[29,0,4] as [number,number,number]},
-];
+type ToastNotice={id:number;title:string;detail:string;tone:'success'|'warning'|'error'};
+
 const nav=[
  {id:'overview',icon:Compass},{id:'refinery',icon:Factory},{id:'storage',icon:Layers3},{id:'utilities',icon:Zap},{id:'truck',icon:Truck},{id:'marine',icon:Anchor},{id:'personnel',icon:Users},
-];
+] as const;
+const dashboardSections:Record<string,{fa:string;en:string;descriptionFa:string;descriptionEn:string;position:[number,number,number]}>= {
+ refinery:{fa:'واحدهای فرایندی',en:'Process units',descriptionFa:'برج‌ها، کوره‌ها، واحدهای تبدیل و تجهیزات مرتبط در محدوده فرایندی.',descriptionEn:'Columns, furnaces, conversion units and connected process equipment.',position:[-13,0,-8]},
+ storage:{fa:'مخازن ذخیره‌سازی',en:'Tank farm',descriptionFa:'مخازن فرآورده و مخازن کروی گاز مایع؛ ظرفیت و سطح‌ها صرفاً نمایشی‌اند.',descriptionEn:'Product storage and LPG spheres; all capacities and levels are illustrative.',position:[17,0,-9]},
+ utilities:{fa:'یوتیلیتی و آب',en:'Utilities',descriptionFa:'سامانه‌های آب، برق، بخار، آتش‌نشانی و خدمات پشتیبان.',descriptionEn:'Water, power, steam, firewater and supporting utility systems.',position:[-18,0,13]},
+ truck:{fa:'پایانه جاده‌ای',en:'Road terminal',descriptionFa:'چرخه کامیون‌ها، جایگاه‌های بارگیری و فعالیت‌های لجستیکی نمایشی.',descriptionEn:'Illustrative truck cycles, loading bays and logistics activity.',position:[13,0,15]},
+ marine:{fa:'پایانه دریایی',en:'Marine terminal',descriptionFa:'اسکله، کشتی و مسیر صادرات دریایی نمایشی.',descriptionEn:'Berth, vessel and illustrative marine export route.',position:[31,0,8]},
+ personnel:{fa:'پرسنل سایت',en:'Site personnel',descriptionFa:'کارکنان نمایشی و فعالیت‌های تخصیص‌یافته در زون‌های مختلف سایت.',descriptionEn:'Simulated personnel and assigned activities across site zones.',position:[0,0,5]},
+ control:{fa:'کنترل و مدیریت',en:'Control & admin',descriptionFa:'اتاق کنترل، آزمایشگاه و امکانات اداری مجتمع.',descriptionEn:'Central control room, laboratory and site administration facilities.',position:[-24,0,21]},
+};
+const mapPins:Record<string,{left:string;top:string}>={overview:{left:'52%',top:'55%'},refinery:{left:'56%',top:'28%'},storage:{left:'74%',top:'36%'},utilities:{left:'28%',top:'68%'},truck:{left:'67%',top:'77%'},marine:{left:'91%',top:'48%'},personnel:{left:'50%',top:'51%'},control:{left:'14%',top:'84%'}};
+function sectionAssets(mode:string){
+ if(mode==='overview'||mode==='all')return inspectableItems;
+ if(mode==='personnel')return inspectableItems.filter(item=>item.kind==='worker');
+ if(mode==='storage')return inspectableItems.filter(item=>item.kind==='tank'||item.kind==='sphere-tank');
+ return inspectableItems.filter(item=>item.zone===mode);
+}
+function SectionOverview({mode,rtl,onSelect}:{mode:string;rtl:boolean;onSelect:(item:SiteItem)=>void}){
+ const section=dashboardSections[mode],scoped=sectionAssets(mode),t=translations[rtl?'fa':'en'];
+ if(!section)return null;
+ const workers=scoped.filter(item=>item.kind==='worker').length;
+ return <section className="section-overview-card" aria-live="polite">
+  <div className="section-overview-heading"><span className="section-overview-icon"><LayoutDashboard size={16}/></span><span><small>{t.siteView}</small><b>{rtl?section.fa:section.en}</b></span><span className="section-demo-tag">{t.demoBadge}</span></div>
+  <p>{rtl?section.descriptionFa:section.descriptionEn}</p>
+  <div className="section-overview-metrics"><div><b>{scoped.length.toLocaleString(rtl?'fa-IR':'en-US')}</b><small>{t.assetsInScope}</small></div><div><b>{workers.toLocaleString(rtl?'fa-IR':'en-US')}</b><small>{t.demoPersonnel}</small></div></div>
+  <div className="section-quick-assets"><span>{t.quickInspectionLabel}</span>{scoped.slice(0,3).map(item=><button type="button" key={item.id} onClick={()=>onSelect(item)}><b>{rtl?item.fa:item.en}</b><small>{item.id}</small></button>)}</div>
+ </section>;
+}
+const tankAssets=items.filter(item=>item.kind==='tank'||item.kind==='sphere-tank');
+const tankUtilization=Math.round(tankAssets.reduce((total,item)=>total+(item.fill??0),0)/Math.max(1,tankAssets.length));
+const demoTruckCount=items.filter(item=>item.kind==='truck').length;
+const demoPersonnelCount=items.filter(item=>item.kind==='worker').length;
+function LiveVehicleProgress({rtl,forklift=false}:{rtl:boolean;forklift?:boolean}){
+ const status=useStore(s=>s.trafficStatus);
+ const title=rtl
+  ?status.stage==='loading'?(forklift?'انتقال پالت به TR-027':'بارگیری پالت دوم'):status.stage==='clearing'?(forklift?'بازگشت به مسیر امن':'پاک‌سازی مسیر توسط لیفتراک'):(forklift?'انتظار در جایگاه امن':'حرکت کفی در مسیر یک‌طرفه')
+  :status.stage==='loading'?(forklift?'Transferring pallet to TR-027':'Second pallet loading'):status.stage==='clearing'?(forklift?'Returning to safe lane':'Forklift clearing the lane'):(forklift?'Waiting in safe refuge':'Flatbed on one-way route');
+ const detail=rtl
+  ?status.stage==='loading'?'کامیون متوقف است؛ انتقال پالت در جریان است':status.stage==='clearing'?'حرکت کامیون تا پاک‌شدن محدوده متوقف می‌ماند':'کامیون در مسیر است؛ لیفتراک در محدوده امن انتظار می‌کشد'
+  :status.stage==='loading'?'Truck is stopped while the pallet transfer is active':status.stage==='clearing'?'Truck holds until the forklift clears the lane':'Truck is moving; forklift waits in the safe refuge';
+ const progress=Math.round(status.progress*100);
+ return <div className="vehicle-progress"><div><span>{title}</span><b>{progress}%</b></div><div className="level-track" role="progressbar" aria-label={title} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><i style={{width:`${progress}%`}}/></div><small><Truck size={13}/>{detail}</small></div>;
+}
+function LiveTankerProgress({rtl}:{rtl:boolean}){
+ const status=useStore(s=>s.tankerStatus);
+ const title=rtl
+  ?status.stage==='arriving'?'تانکر در مسیر ورود به جایگاه':status.stage==='loading'?'بارگیری تانکر در جایگاه ۰۱':'تانکر در حال خروج از جایگاه'
+  :status.stage==='arriving'?'Tanker approaching loading bay':status.stage==='loading'?'Tanker loading at bay 01':'Tanker departing the bay';
+ const detail=rtl
+  ?status.stage==='arriving'?'ورود روی مسیر موجود؛ داده و زمان‌بندی نمایشی':status.stage==='loading'?'انتقال فرآورده از بازوی بالاسری · حجم شبیه‌سازی‌شده':'خروج به مسیر دسترسی سایت · چرخه‌ی نمایشی'
+  :status.stage==='arriving'?'Using the existing access road · simulated cycle':status.stage==='loading'?'Product transfer from the top arm · simulated volume':'Leaving via the site access road · illustrative cycle';
+ const progress=Math.round(status.progress*100);
+ return <div className="vehicle-progress"><div><span>{title}</span><b>{progress}%</b></div><div className="level-track" role="progressbar" aria-label={title} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><i style={{width:`${progress}%`}}/></div><small><Truck size={13}/>{detail}</small></div>;
+}
+function InspectionReadout({item,rtl,onSelect}:{item:SiteItem;rtl:boolean;onSelect:(item:SiteItem)=>void}){
+ const tanker=useStore(s=>s.tankerStatus),traffic=useStore(s=>s.trafficStatus);
+ const zone=zones.find(value=>value.id===item.zone),[functionFa,functionEn]=mainFunction(item),related=relatedItemsFor(item),t=translations[rtl?'fa':'en'];
+ const number=(value:number)=>Math.round(value).toLocaleString(rtl?'fa-IR':'en-US');
+ const rows:{fa:string;en:string;valueFa:string;valueEn:string}[]=[];
+ const add=(fa:string,en:string,valueFa:string|number,valueEn?:string|number)=>rows.push({fa,en,valueFa:String(valueFa),valueEn:String(valueEn??valueFa)});
+ if(item.kind==='tank'||item.kind==='sphere-tank'){
+  const capacity=Number((item.capacity??'0').replace(/,/g,'')),fill=item.fill??60;
+  const productsFa=['نفتا','گازوئیل','نفت سفید','نفتا','گازوئیل','نفتا','نفت سفید','گازوئیل'],productsEn=['Naphtha','Diesel','Kerosene','Naphtha','Diesel','Naphtha','Kerosene','Diesel'],products=rtl?productsFa:productsEn;
+  add(t.simulatedCapacity,'Simulated capacity',`${item.capacity??'—'} m³`);
+  add(t.simulatedCurrentLevel,'Simulated current level',`${number(capacity*fill/100)} m³`);
+  add(t.fillPercentage,'Fill percentage',`${number(fill)}%`);
+  add(t.productType,'Product type',products[Math.max(0,Number(item.id.slice(-3))-101)]??(item.kind==='sphere-tank'?(rtl?'گاز مایع':'LPG'):(rtl?'فرآورده':'Product')));
+ } else if(item.kind==='pump'){
+  add(t.volumetricFlow,'Volumetric flow','186 m³/h');add(t.dischargePressure,'Discharge pressure','8.4 bar');add(t.motorSpeed,'Motor speed','1,480 rpm');
+ } else if(item.kind==='pipeline'){
+  add(t.simulatedFlow,'Simulated flow','124 m³/h');add(t.simulatedLinePressure,'Simulated line pressure','6.2 bar');add(t.routeState,'Route state','فعال · مفهومی','Active · conceptual');
+ } else if(item.kind==='truck'){
+  if(item.id==='TR-014'){
+   const phaseFa=tanker.stage==='arriving'?'در مسیر ورود':tanker.stage==='loading'?'در حال بارگیری':'در حال خروج';
+   const phaseEn=tanker.stage==='arriving'?'Approaching bay':tanker.stage==='loading'?'Loading at bay':'Departing bay';
+   add('موقعیت فعلی','Current location',phaseFa,phaseEn);
+   add('مقصد','Destination',tanker.stage==='departing'?'خروجی پایانه':'جایگاه بارگیری ۰۱',tanker.stage==='departing'?'Site exit':'Loading bay 01');
+   add('فعالیت','Activity',phaseFa,phaseEn);
+   add('وضعیت بارگیری','Loading status',tanker.stage==='loading'?`${number(tanker.progress*100)}٪`:'متوقف / انتقال فعال نیست',tanker.stage==='loading'?`${number(tanker.progress*100)}%`:'Not loading');
+  }else{
+   const stageFa=traffic.stage==='driving'?'حرکت در مسیر یک‌طرفه':traffic.stage==='loading'?'توقف و دریافت پالت':'پاک‌سازی و انتظار ایمن';
+   const stageEn=traffic.stage==='driving'?'Driving on one-way loop':traffic.stage==='loading'?'Stopped for pallet transfer':'Clearing / safe hold';
+   add('موقعیت فعلی','Current location',stageFa,stageEn);
+   add('مقصد','Destination','مسیر حلقه‌ای پایانه','Terminal loop');add('فعالیت','Activity',stageFa,stageEn);
+   add('وضعیت بارگیری','Loading status',traffic.stage==='loading'?`${number(traffic.progress*100)}٪`:'بار ثابت‌شده · بدون انتقال',traffic.stage==='loading'?`${number(traffic.progress*100)}%`:'Secured · no transfer');
+  }
+  add(t.vehicleId,'Vehicle ID',item.id);
+ } else if(item.kind==='ship'){
+  add(t.vesselName,'Vessel name',item.fa,item.en);add('اسکله','Berth','اسکله ۰۱','Berth 01');
+  add('وضعیت بارگیری','Loading status','بارگیری دریایی نمایشی','Illustrative marine loading');
+  add('پیشرفت محموله','Simulated cargo progress','۴۲٪','42%');
+ } else if(item.kind==='worker'){
+  add(t.department,'Department',item.departmentFa??'—',item.departmentEn??'—');
+  add(t.jobPosition,'Job position',item.roleFa??'—',item.roleEn??'—');
+  add(t.currentActivity,'Current activity',item.taskFa??'فعالیت میدانی',item.taskEn??'Field activity');
+  add(t.assignedZone,'Assigned zone',zone?.fa??item.zone,zone?.en??item.zone);
+ } else if(item.kind==='loading-bay'){
+  const bay=item.id.slice(-1),assigned=bay==='1'?'TR-014':bay==='2'?'TR-027':'—';
+  add(t.assignedVehicle,'Assigned vehicle',assigned);
+  add(t.bayStatus,'Bay status',bay==='1'?'چرخه ورود و بارگیری نمایشی':'آماده/آزاد · وضعیت نمایشی',bay==='1'?'Illustrative arrival and loading cycle':'Ready / available · simulated');
+  add(t.simulatedTransferRate,'Simulated transfer rate','124 m³/h');
+ } else if(item.kind==='marine'){
+  add(t.assignedVessel,'Assigned vessel','نفت‌کش آذر','MT Azar');add(t.berthState,'Berth state','در سرویس · نمایشی','In service · simulated');
+ } else if(item.kind==='building'){
+  add(t.accessState,'Access state','محدود به پرسنل','Staff-only');add(t.simulatedOccupancy,'Simulated occupancy','۴ نفر','4 people');
+ } else if(item.kind==='cooling'){
+  add(t.simulatedFanSpeed,'Simulated fan speed','720 rpm');add(t.simulatedOutletTemperature,'Simulated outlet temperature','34 °C');add(t.simulatedWaterFlow,'Simulated water flow','124 m³/h');
+ } else {
+  add(t.simulatedLoad,'Simulated load','74%');add(t.simulatedOperatingTemperature,'Simulated operating temperature','312 °C');add(t.systemState,'System state','پایدار · نمایشی','Stable · simulated');
+ }
+
+ return <section className="inspection-details">
+  <div className="section-label">{t.inspectionPanel}</div>
+  <div className="inspection-grid">
+   <div><span>{t.equipmentId}</span><b>{item.id}</b></div>
+   <div><span>{t.equipmentCategory}</span><b>{categoryName(item,rtl)} <small lang={rtl?'en':'fa'} dir={rtl?'ltr':'rtl'}>/ {categoryName(item,!rtl)}</small></b></div>
+   <div><span>{t.industrialZone}</span><b>{zone?(rtl?zone.fa:zone.en):item.zone} <small lang={rtl?'en':'fa'} dir={rtl?'ltr':'rtl'}>/ {zone?(rtl?zone.en:zone.fa):item.zone}</small></b></div>
+   <div><span>{t.operationalStatus}</span><b>{statusName(item,rtl)}</b></div>
+  </div>
+  <div className="inspection-copy"><span>{t.persianName}</span><b>{item.fa}</b><span>{t.englishName}</span><b lang="en" dir="ltr">{item.en}</b></div>
+  <div className="inspection-copy function-copy"><span>{t.mainFunction} · {t.persian}</span><p>{functionFa}</p><span>{t.mainFunction} · EN</span><p lang="en" dir="ltr">{functionEn}</p></div>
+  <div className="inspection-copy"><span>{t.descriptionFa}</span><p>{item.descriptionFa}</p><span>{t.descriptionEn}</span><p lang="en" dir="ltr">{item.descriptionEn}</p></div>
+  <div className="inspection-reading-list"><div className="inspection-subhead"><b>{t.readingsActivity}</b><small>{t.allValuesSimulated}</small></div>
+   {rows.map((row,index)=><div className="inspection-reading" key={`${row.en}-${index}`}><span>{rtl?row.fa:row.en}</span><b>{rtl?row.valueFa:row.valueEn}</b></div>)}
+  </div>
+  <div className="inspection-connections"><div className="inspection-subhead"><b>{t.connectedAssetsConceptual}</b><small>{t.illustrativeLinks}</small></div>
+   {related.length?<div className="inspection-connection-list">{related.map(asset=><button type="button" key={asset.id} onClick={()=>onSelect(asset)} title={rtl?asset.fa:asset.en}><span className="connection-dot"/>{rtl?asset.fa:asset.en}<small>{asset.id}</small></button>)}</div>:<p className="inspection-empty">{t.noIllustrativeLinks}</p>}
+  </div>
+ </section>;
+}
+type SceneCanvasProps={quality:'low'|'medium'|'high';playing:boolean;sceneReady:boolean;onReady:()=>void;onPointerMissed:()=>void};
+const SceneCanvas=memo(function SceneCanvas({quality,playing,sceneReady,onReady,onPointerMissed}:SceneCanvasProps){
+ return <Canvas frameloop={playing?'always':'demand'} shadows={quality!=='low'} fallback={<WebGLUnavailable onReady={onReady}/>} dpr={quality==='low'?.75:quality==='medium'?1:[1,1.3]} onPointerMissed={onPointerMissed} orthographic camera={{position:[54,72,58],zoom:9.7,near:.1,far:300}} gl={{antialias:false,alpha:false,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.05}}>
+  <SceneReadySignal onReady={onReady}/><AssetBoundary fallback={(error)=><SceneFallback message={error}/>}><World loadHighDetail={sceneReady&&quality!=='low'}/></AssetBoundary>
+ </Canvas>;
+});
 function App(){
- const lang=useStore(s=>s.lang),quality=useStore(s=>s.quality),set=useStore(s=>s.set),selected=useStore(s=>s.selected),select=useStore(s=>s.select),mode=useStore(s=>s.mode),playing=useStore(s=>s.playing),speed=useStore(s=>s.speed),night=useStore(s=>s.night),flow=useStore(s=>s.flow),reset=useStore(s=>s.reset),resetKey=useStore(s=>s.resetKey);
- const t=translations[lang];const rtl=lang==='fa'; const [query,setQuery]=useState(''); const [help,setHelp]=useState(false); const [analytics,setAnalytics]=useState(false); const [clock,setClock]=useState(8*60+42); const [mobileInspectorOpen,setMobileInspectorOpen]=useState(true); const {progress:assetProgress}=useProgress(); const [sceneReady,setSceneReady]=useState(false); const [showLoading,setShowLoading]=useState(true);
+ const lang=useStore(s=>s.lang),quality=useStore(s=>s.quality),setPreference=useStore(s=>s.setPreference),setSimulation=useStore(s=>s.setSimulation),setUI=useStore(s=>s.setUI),setFocus=useStore(s=>s.setFocus),setLanguage=useStore(s=>s.setLanguage),selected=useStore(s=>s.selected),select=useStore(s=>s.select),mode=useStore(s=>s.mode),playing=useStore(s=>s.playing),speed=useStore(s=>s.speed),night=useStore(s=>s.night),flow=useStore(s=>s.flow),activeProcessStage=useStore(s=>s.activeProcessStage),search=useStore(s=>s.search),resetSimulation=useStore(s=>s.resetSimulation),clock=useStore(s=>s.simulationMinutes);
+ const t=translations[lang];const rtl=lang==='fa',reduceMotion=Boolean(useReducedMotion()); const [help,setHelp]=useState(false); const [analytics,setAnalytics]=useState(false); const [mobileInspectorOpen,setMobileInspectorOpen]=useState(true); const [mobileMonitoringOpen,setMobileMonitoringOpen]=useState(false); const [settings,setSettings]=useState(false); const [tourActive,setTourActive]=useState(false); const [tourIndex,setTourIndex]=useState(0); const [notice,setNotice]=useState<ToastNotice|null>(null); const noticeTimer=useRef<number|undefined>(undefined),noticeSequence=useRef(0); const tourFlowBefore=useRef(false); const {progress:assetProgress}=useProgress(); const [sceneReady,setSceneReady]=useState(false); const [showLoading,setShowLoading]=useState(true);
  // Keep the readout tied to actual loader progress; 100% means the scene has rendered its first frame.
  const shownProgress=sceneReady?100:Math.min(94,Math.max(0,Math.round(assetProgress*.94)));
+ const resetDemo=useCallback(()=>{setTourActive(false);resetSimulation();setNotice({id:++noticeSequence.current,title:t.resetComplete,detail:t.resetCompleteDetail,tone:'success'});if(noticeTimer.current)window.clearTimeout(noticeTimer.current);noticeTimer.current=window.setTimeout(()=>setNotice(null),4200)},[resetSimulation,t.resetComplete,t.resetCompleteDetail]);
+ useEffect(()=>()=>{if(noticeTimer.current)window.clearTimeout(noticeTimer.current)},[]);
  useEffect(()=>{if(!sceneReady)return;const timer=window.setTimeout(()=>setShowLoading(false),320);return()=>window.clearTimeout(timer)},[sceneReady]);
- useEffect(()=>{document.documentElement.lang=lang;document.documentElement.dir=rtl?'rtl':'ltr';localStorage.setItem('pv-lang',lang)},[lang,rtl]);
- useEffect(()=>{const onKey=(e:KeyboardEvent)=>{if((e.target as HTMLElement)?.tagName==='INPUT')return;const current=useStore.getState();const focus=current.focus||[0,0,0];if(e.key==='Escape'){select(null);set('search','');setHelp(false);return}if(e.key.toLowerCase()==='r'){reset();return}if(e.key.toLowerCase()==='f'&&current.selected){set('focus',[...current.selected.position]);return}const step=e.shiftKey?10:4;const move:Record<string,[number,number,number]>={w:[0,0,-step],ArrowUp:[0,0,-step],s:[0,0,step],ArrowDown:[0,0,step],a:[-step,0,0],ArrowLeft:[-step,0,0],d:[step,0,0],ArrowRight:[step,0,0]};if(move[e.key]||move[e.key.toLowerCase()]){e.preventDefault();const [dx,dy,dz]=move[e.key]||move[e.key.toLowerCase()];set('focus',[focus[0]+dx,focus[1]+dy,focus[2]+dz]);}};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[select,set,reset]);
- useEffect(()=>{const timer=setInterval(()=>{if(useStore.getState().playing)setClock(v=>(v+Math.max(1,Math.round(useStore.getState().speed*2)))%1440)},1000);return()=>clearInterval(timer)},[]);
- useEffect(()=>{if(resetKey)setClock(8*60+42)},[resetKey]);
- const results=useMemo(()=>query.trim()?items.filter(i=>(i.fa+i.en+i.id+i.kind).toLowerCase().includes(query.toLowerCase())).slice(0,6):[],[query]);
+ useEffect(()=>{document.documentElement.lang=lang;document.documentElement.dir=rtl?'rtl':'ltr'},[lang,rtl]);
+ useEffect(()=>{const onKey=(e:KeyboardEvent)=>{if((e.target as HTMLElement)?.tagName==='INPUT')return;const current=useStore.getState();const focus=current.focus||[0,0,0];if(e.key==='Escape'){select(null);setUI('search','');setHelp(false);setSettings(false);setAnalytics(false);setMobileInspectorOpen(false);setMobileMonitoringOpen(false);return}if(e.key.toLowerCase()==='r'){resetDemo();return}if(e.key.toLowerCase()==='f'&&current.selected){setFocus([...current.selected.position]);return}const step=e.shiftKey?10:4;const move:Record<string,[number,number,number]>={w:[0,0,-step],ArrowUp:[0,0,-step],s:[0,0,step],ArrowDown:[0,0,step],a:[-step,0,0],ArrowLeft:[-step,0,0],d:[step,0,0],ArrowRight:[step,0,0]};if(move[e.key]||move[e.key.toLowerCase()]){e.preventDefault();const [dx,dy,dz]=move[e.key]||move[e.key.toLowerCase()];setFocus([focus[0]+dx,focus[1]+dy,focus[2]+dz]);}};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[select,setUI,setFocus,resetDemo]);
+ useEffect(()=>{const timer=setInterval(()=>useStore.getState().advanceSimulationClock(),1000);return()=>clearInterval(timer)},[]);
+ useEffect(()=>{if(!tourActive)return;const stage=processStages[tourIndex];if(!stage){setTourActive(false);setSimulation('flow',tourFlowBefore.current);return}setUI('activeProcessStage',stage.id);setUI('mode',stage.zone);setFocus([...stage.position]);setSimulation('flow',true);const timer=window.setTimeout(()=>{if(tourIndex===processStages.length-1){setSimulation('flow',tourFlowBefore.current);setTourActive(false)}else setTourIndex(index=>index+1)},5200);return()=>window.clearTimeout(timer)},[tourActive,tourIndex,setUI,setFocus,setSimulation]);
+ const results=useMemo(()=>search.trim()?inspectableItems.filter(i=>(i.fa+i.en+i.id+i.kind).toLowerCase().includes(search.toLowerCase())).slice(0,6):[],[search]);
  const currentZone=selected?zones.find(z=>z.id===selected.zone):null;
- useEffect(()=>{if(selected)setMobileInspectorOpen(true)},[selected]);
- const jump=(id:string)=>{set('mode',id);const dest=zones.find(z=>z.id===id);if(dest)set('focus',[...dest.position]);if(id==='overview'){select(null);setMobileInspectorOpen(true)}};
- const selectAsset=(item:SiteItem)=>{select(item);set('focus',[...item.position]);setQuery('');setMobileInspectorOpen(true)};
- const dismissInspector=()=>{select(null);if(window.matchMedia('(max-width: 850px)').matches)setMobileInspectorOpen(false)};
+ useEffect(()=>{if(selected){setMobileInspectorOpen(true);setMobileMonitoringOpen(false)}},[selected]);
+ const jump=(id:SiteMode)=>{if(tourActive)stopTour();select(null);setUI('activeProcessStage',null);setUI('mode',id);const dest=zones.find(z=>z.id===id),section=dashboardSections[id];setFocus([...(dest?.position??section?.position??[0,0,0])]);setMobileInspectorOpen(true);setMobileMonitoringOpen(false)};
+ const selectAsset=(item:SiteItem,preserveProcessStage=false)=>{if(tourActive)stopTour();if(!preserveProcessStage)setUI('activeProcessStage',null);const destination=item.kind==='worker'?'personnel':item.id==='PL-MARINE-01'?'marine':item.id==='PL-ROAD-01'||item.kind==='loading-bay'?'truck':item.zone;select(item);setUI('mode',destination);setFocus([...item.position]);setUI('search','');setMobileInspectorOpen(true);setMobileMonitoringOpen(false)};
+ const focusProcessStage=(stageId:string)=>{if(tourActive)stopTour();const stage=processStages.find(value=>value.id===stageId);if(!stage)return;select(null);setUI('activeProcessStage',stage.id);setUI('mode',stage.zone);setSimulation('flow',true);setFocus([...stage.position]);setMobileInspectorOpen(true);setMobileMonitoringOpen(false)};
+ const selectStageAsset=(item:SiteItem)=>selectAsset(item,true);
+ const dismissInspector=()=>{select(null);setMobileInspectorOpen(false)};
+ const toggleOperationsDrawer=()=>{setMobileInspectorOpen(open=>!open);setMobileMonitoringOpen(false)};
+ const toggleMonitoringDrawer=()=>{setMobileMonitoringOpen(open=>!open);setMobileInspectorOpen(false)};
+ const closeDrawers=()=>{setMobileInspectorOpen(false);setMobileMonitoringOpen(false)};
  const fullScreen=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()};
- const clockText=`${String(Math.floor(clock/60)).padStart(2,'0')}:${String(clock%60).padStart(2,'0')}`;
- return <div className={`app-shell ${night?'night':''}`} dir={rtl?'rtl':'ltr'}>
+ const markSceneReady=useCallback(()=>setSceneReady(true),[]),clearSceneSelection=useCallback(()=>select(null),[select]);
+ const clockFormatter=new Intl.NumberFormat(rtl?'fa-IR':'en-US',{minimumIntegerDigits:2,useGrouping:false});const clockText=`${clockFormatter.format(Math.floor(clock/60))}:${clockFormatter.format(clock%60)}`;
+ const scopeCount=sectionAssets(mode).length,scopePercent=Math.max(8,Math.round(scopeCount/Math.max(1,inspectableItems.length)*100));
+ const mapLabel=mode==='overview'?t.overviewTitle:dashboardSections[mode]?(rtl?dashboardSections[mode].fa:dashboardSections[mode].en):t.overviewTitle;
+ const stopTour=()=>{if(tourActive)setSimulation('flow',tourFlowBefore.current);setTourActive(false)};
+ const startTour=()=>{tourFlowBefore.current=useStore.getState().flow;select(null);setUI('search','');setTourIndex(0);setMobileInspectorOpen(false);setMobileMonitoringOpen(false);setUI('activeProcessStage',processStages[0].id);setUI('mode',processStages[0].zone);setFocus([...processStages[0].position]);setSimulation('flow',true);setTourActive(true)};
+ return <div className={`app-shell ${night?'night':''}`} lang={lang} dir={rtl?'rtl':'ltr'}>
   <header className="topbar">
-   <div className="brand-lockup"><div className="brand-mark"><Factory size={19}/><span/></div><div className="brand-name"><strong>PetroVista <b>3D</b></strong><small>EXPLORE · UNDERSTAND · SIMULATE</small></div></div>
+   <div className="brand-lockup"><div className="brand-mark"><Factory size={19}/><span/></div><div className="brand-name"><strong>PetroVista <b>3D</b></strong><small>{t.exploreUnderstandSimulate}</small></div></div>
    <div className="header-context"><span className="live-dot"/><span>{t.demo}</span><span className="header-divider"/><Clock3 size={14}/><b className="clock-value">{clockText}</b><span className="timezone">UTC+03:30</span></div>
    <div className="header-actions">
-    <div className="search-wrap"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={t.search}/>{query&&<button className="icon-button tiny" onClick={()=>setQuery('')}><X size={14}/></button>}
-      <AnimatePresence>{query&&<motion.div initial={{opacity:0,y:-5}} animate={{opacity:1,y:0}} exit={{opacity:0}} className="search-results">{results.length?results.map(i=><button key={i.id} className="result-row" onClick={()=>selectAsset(i)}><span className="result-icon"><Box size={15}/></span><span><b>{rtl?i.fa:i.en}</b><small>{i.id} · {rtl?i.en:i.fa}</small></span><ArrowDownLeft size={14}/></button>):<div className="empty-results">{t.noResults}</div>}</motion.div>}</AnimatePresence>
+    <button className="icon-button drawer-toggle operations-drawer-toggle" onClick={toggleOperationsDrawer} title={t.operationsCenter} aria-label={t.operationsCenter} aria-pressed={mobileInspectorOpen}><PanelLeftOpen size={16}/></button>
+    <button className="icon-button drawer-toggle monitoring-drawer-toggle" onClick={toggleMonitoringDrawer} title={t.siteMonitoring} aria-label={t.siteMonitoring} aria-pressed={mobileMonitoringOpen}><PanelRightOpen size={16}/></button>
+    <div className="search-wrap"><Search size={16}/><input value={search} onChange={e=>setUI('search',e.target.value)} placeholder={t.search} aria-label={t.search}/>{search&&<button className="icon-button tiny" type="button" title={t.close} aria-label={t.close} onClick={()=>setUI('search','')}><X size={14}/></button>}
+      <AnimatePresence>{search&&<motion.div initial={{opacity:0,y:-5}} animate={{opacity:1,y:0}} exit={{opacity:0}} className="search-results">{results.length?results.map(i=><button key={i.id} className="result-row" onClick={()=>selectAsset(i)}><span className="result-icon"><Box size={15}/></span><span><b>{rtl?i.fa:i.en}</b><small>{i.id} · <bdi lang={rtl?'en':'fa'} dir={rtl?'ltr':'rtl'}>{rtl?i.en:i.fa}</bdi></small></span><ArrowDownLeft size={14}/></button>):<div className="empty-results" role="status"><Search size={16}/><span>{t.noResults}</span></div>}</motion.div>}</AnimatePresence>
     </div>
-    <button className="lang-toggle" onClick={()=>set('lang',rtl?'en':'fa')}><Globe2 size={15}/>{rtl?'EN':'فا'}</button>
-    <button className="icon-button" title={t.help} onClick={()=>setHelp(true)}><CircleHelp size={17}/></button>
-    <button className="icon-button" title="Fullscreen" onClick={fullScreen}><Maximize2 size={16}/></button>
+    <button className="lang-toggle" onClick={()=>setLanguage(rtl?'en':'fa')} title={rtl?'تغییر زبان به انگلیسی':'Switch interface to Persian'} aria-label={rtl?'تغییر زبان به انگلیسی':'Switch interface to Persian'}><Globe2 size={15}/>{rtl?'EN':'فا'}</button>
+    <button className="icon-button" title={t.help} aria-label={t.help} onClick={()=>setHelp(true)}><CircleHelp size={17}/></button>
+    <button className="icon-button" title={t.settings} aria-label={t.settings} onClick={()=>setSettings(true)}><Settings2 size={16}/></button>
+    <button className="icon-button" title={t.fullscreen} aria-label={t.fullscreen} onClick={fullScreen}><Maximize2 size={16}/></button>
    </div>
   </header>
 
   <main className="workspace">
    <div className="scene-wrap">
-    <Canvas shadows={quality!=='low'} fallback={<WebGLUnavailable rtl={rtl} onReady={()=>setSceneReady(true)}/>} dpr={quality==='low'?.75:quality==='medium'?1:[1,1.3]} onPointerMissed={()=>select(null)} orthographic camera={{position:[54,72,58],zoom:10.5,near:.1,far:300}} gl={{antialias:false,alpha:false,powerPreference:'high-performance'}}>
-     <SceneReadySignal onReady={()=>setSceneReady(true)}/><AssetBoundary fallback={(error)=><SceneFallback message={error}/>}><World loadHighDetail={sceneReady&&quality!=='low'}/></AssetBoundary>
-    </Canvas>
-    <div className="scene-topline"><div className="breadcrumb"><span>PetroVista</span><span className="crumb-slash">/</span><b>{mode==='overview'?t.overviewTitle:t[mode as keyof typeof t]||t.overviewTitle}</b></div><div className="scene-badges"><span className="weather"><Sun size={14}/>{night?'22° · Clear night':'28° · Clear'}</span><span className="scenario-label"><span/> DEMO SCENARIO 01</span></div></div>
-    <div className="north-indicator"><span>N</span><div className="north-arrow"/><small>0°</small></div>
-    <div className="mini-map"><div className="map-title"><span>{rtl?'نقشه سایت':'SITE MAP'}</span><span className="map-live"/></div><div className="map-art"><div className="map-road road-a"/><div className="map-road road-b"/><div className="map-zone z1"/><div className="map-zone z2"/><div className="map-zone z3"/><div className="map-zone z4"/><div className="map-sea"/><span className="map-pin"/></div><div className="map-footer"><span>1200 × 900 m</span><span>{rtl?'نمای کلی':'OVERVIEW'}</span></div></div>
-    <div className="scene-tools"><button onClick={()=>set('focus',[0,0,0])} title={t.viewAll}><Compass size={16}/></button><button onClick={()=>set('focus',selected?[...selected.position]:[0,0,0])} title={rtl?'تمرکز روی انتخاب':'Focus selection'}><Plus size={17}/></button><button onClick={fullScreen} title="Fullscreen"><Maximize2 size={15}/></button></div>
-    <div className="scene-legend"><span><i className="legend-pipe"/> {rtl?'خط لوله':'Pipeline'}</span><span><i className="legend-flow"/> {rtl?'جریان نمایشی':'Demo flow'}</span><span><i className="legend-asset"/> {rtl?'تجهیز فعال':'Active asset'}</span></div>
+    <SceneCanvas quality={quality} playing={playing} sceneReady={sceneReady} onReady={markSceneReady} onPointerMissed={clearSceneSelection}/>
+    <div className="scene-topline"><div className="breadcrumb"><span>PetroVista</span><span className="crumb-slash">/</span><b>{mode==='overview'?t.overviewTitle:dashboardSections[mode]?(rtl?dashboardSections[mode].fa:dashboardSections[mode].en):t[mode as keyof typeof t]||t.overviewTitle}</b></div><button className={`cinematic-tour-trigger ${tourActive?'active':''}`} onClick={tourActive?stopTour:startTour}><span className="tour-trigger-icon">{tourActive?<X size={13}/>:<Play size={13}/>}</span><span>{tourActive?(rtl?t.stopTour:'Stop tour'):(rtl?t.siteTour:'Guided site tour')}</span></button><div className="scene-badges"><span className="weather"><Sun size={14}/>{night?t.clearNight:t.clearDay}</span><span className="scenario-label"><span/> {t.demoScenario}</span></div></div>
+    <AnimatePresence mode="wait">{tourActive&&<motion.div key={tourIndex} className="cinematic-tour-card" initial={{opacity:0,y:-10,scale:.98}} animate={{opacity:1,y:0,scale:1}} exit={{opacity:0,y:-8}} transition={{duration:reduceMotion?0:.28}}>
+     <div className="cinematic-tour-meta"><span><i/> {t.guidedTour}</span><b>{(tourIndex+1).toLocaleString(rtl?'fa-IR':'en-US',{minimumIntegerDigits:2,useGrouping:false})} <small>/ {processStages.length.toLocaleString(rtl?'fa-IR':'en-US',{minimumIntegerDigits:2,useGrouping:false})}</small></b><button onClick={stopTour} aria-label={rtl?'پایان تور':'Stop tour'}><X size={14}/></button></div>
+     <strong>{rtl?processStages[tourIndex].fa:processStages[tourIndex].en}</strong><p>{rtl?processStages[tourIndex].descriptionFa:processStages[tourIndex].descriptionEn}</p>
+     <div className="cinematic-tour-progress"><i style={{width:`${((tourIndex+1)/processStages.length)*100}%`}}/></div>
+     <small>{t.guidedInspection}</small>
+    </motion.div>}</AnimatePresence>
+    <div className="north-indicator" aria-label={t.northDirection}><span>{rtl?'ش':'N'}</span><div className="north-arrow"/><small>0°</small></div>
+    <div className="mini-map"><div className="map-title"><span>{t.siteMap}</span><span className="map-live"/></div><div className="map-art"><div className="map-road road-a"/><div className="map-road road-b"/><div className="map-zone z1"/><div className="map-zone z2"/><div className="map-zone z3"/><div className="map-zone z4"/><div className="map-sea"/><span className="map-pin" style={mapPins[mode]??mapPins.overview}/></div><div className="map-footer"><span>{rtl?'۱۲۰۰ × ۹۰۰ متر':'1,200 × 900 m'}</span><span>{mapLabel}</span></div></div>
+    <div className="scene-tools"><button onClick={()=>setFocus([0,0,0])} title={t.viewAll} aria-label={t.viewAll}><Compass size={16}/></button><button onClick={()=>setFocus(selected?[...selected.position]:[0,0,0])} title={t.focusSelection} aria-label={t.focusSelection}><Plus size={17}/></button><button onClick={fullScreen} title={t.fullscreen} aria-label={t.fullscreen}><Maximize2 size={15}/></button></div>
+    <div className="scene-legend"><span><i className="legend-pipe"/> {t.pipeline}</span><span><i className="legend-flow"/> {t.demoFlow}</span><span><i className="legend-asset"/> {t.activeAsset}</span></div>
    </div>
-   <aside className="left-rail">
-    <div className="rail-head"><span>{rtl?'پایش و ناوبری سایت':'SITE MONITORING'}</span><span className="rail-head-code">PV / OPS</span></div>
-    <div className="rail-status-card">
-     <div className="rail-status-top"><span>{rtl?'خلاصه وضعیت':'SITE TELEMETRY'}</span><span className="demo-badge"><i/>DEMO</span></div>
-     <div className="rail-status-main"><span className="rail-status-icon"><Activity size={17}/></span><span><b>{rtl?'پایش محلی فعال':'Local monitor active'}</b><small>{rtl?'بدون اتصال به PLC':'No PLC connection'}</small></span><b className="rail-unit-count">18<span>/21</span></b></div>
-     <div className="rail-status-track"><i/></div>
-     <div className="rail-status-foot"><span>{rtl?'واحدهای پایدار · داده نمایشی':'UNITS IN DEMO VIEW'}</span><b>{clockText} <small>LOC</small></b></div>
+   {(mobileMonitoringOpen||mobileInspectorOpen)&&<button className="drawer-scrim" type="button" aria-label={t.closePanels} onClick={closeDrawers}/>}
+   <aside className={`left-rail ${mobileMonitoringOpen?'drawer-open':''}`}>
+    <div className="rail-head"><span>{t.operationsNavigation}</span><span className="rail-head-code">{t.operationsCode}</span></div>
+    <div className="rail-status-card" title={rtl?'نمایش دارایی‌های محدوده انتخاب‌شده؛ داده‌ها محلی و شبیه‌سازی‌شده‌اند':'Assets included in the active view; local simulated data'}>
+     <div className="rail-status-top"><span>{t.activeViewScope}</span><span className="demo-badge"><i/>{t.demoBadge}</span></div>
+     <div className="rail-status-main"><span className="rail-status-icon"><Activity size={17}/></span><span><b>{mode==='overview'?(rtl?'نمای کلی مجتمع':'Full-site overview'):dashboardSections[mode]?(rtl?dashboardSections[mode].fa:dashboardSections[mode].en):(rtl?'محدوده انتخاب‌شده':'Selected zone')}</b><small>{t.localAssetInventory}</small></span><b className="rail-unit-count">{scopeCount.toLocaleString(rtl?'fa-IR':'en-US')}<span>{t.assets}</span></b></div>
+     <div className="rail-status-track"><i style={{width:`${scopePercent}%`}}/></div>
+     <div className="rail-status-foot"><span>{t.viewScope}</span><b>{t.local}</b></div>
     </div>
-    <nav aria-label={rtl?'ناوبری مجتمع':'Facility navigation'}>{nav.map(({id,icon:Icon})=><button key={id} onClick={()=>jump(id)} className={`nav-item ${mode===id?'active':''}`}><span className="nav-icon"><Icon size={17}/></span><span>{t[id as keyof typeof t]}</span>{mode===id&&<i className="nav-active-mark"/>}</button>)}</nav>
-    <div className="rail-divider"/><div className="zones-label">{rtl?'محدوده‌های سایت':'SITE ZONES'}</div>
-    <div className="zone-list">{zones.slice(1,6).map((z,i)=><button key={z.id} onClick={()=>jump(z.id)} className={`zone-item ${mode===z.id?'selected':''}`}><span className={`zone-dot dot-${i}`}/><span>{rtl?z.fa:z.en}</span><small>{['08','12','06','04','02'][i]}</small></button>)}</div>
+    <nav aria-label={t.facilityNavigation}>{nav.map(({id,icon:Icon})=><button key={id} onClick={()=>jump(id)} className={`nav-item ${mode===id?'active':''}`} aria-current={mode===id?'page':undefined}><span className="nav-icon"><Icon size={17}/></span><span>{t[id as keyof typeof t]}</span>{mode===id&&<i className="nav-active-mark"/>}</button>)}</nav>
+    <div className="rail-divider"/><div className="zones-label">{t.siteZones}</div>
+    <div className="zone-list">{zones.slice(1).map((z,i)=>{const count=inspectableItems.filter(item=>item.zone===z.id).length;return <button key={z.id} onClick={()=>jump(z.id)} className={`zone-item ${mode===z.id?'selected':''}`} aria-current={mode===z.id?'location':undefined} title={rtl?`${z.fa} · ${count} دارایی نمایشی`:`${z.en} · ${count} simulated assets`}><span className={`zone-dot dot-${i%5}`}/><span>{rtl?z.fa:z.en}</span><small>{count.toLocaleString(rtl?'fa-IR':'en-US')}</small></button>})}</div>
     <div className="rail-spacer"/>
-    <div className="rail-alert"><span className="alert-symbol"><ShieldAlert size={15}/></span><span className="alert-copy"><b>{rtl?'خلاصه هشدارها':'ALARM SUMMARY'}</b><small><strong>P2 · TK-103</strong>{rtl?' · بازبینی برنامه‌ریزی‌شده':' · scheduled review'}</small></span><span className="alert-count">01</span></div>
-    <button className="user-card" onClick={()=>setHelp(true)}><div className="avatar">PV</div><span><b>{rtl?'حالت بازدیدکننده':'Demo operator'}</b><small>{rtl?'پروفایل محلی':'Local session'}</small></span><Settings2 size={15}/></button>
+    <button className="rail-alert" type="button" onClick={()=>{const alarm=items.find(item=>item.id==='TK-103');if(alarm)selectAsset(alarm)}} title={rtl?'بازکردن جزئیات بازبینی نمایشی مخزن TK-103':'Open the simulated TK-103 review details'}><span className="alert-symbol"><ShieldAlert size={15}/></span><span className="alert-copy"><b>{t.alarmSummary}</b><small><strong>{rtl?'اولویت ۲':'Priority 2'} · TK-103</strong> · {t.scheduledReview}</small></span><span className="alert-count">{rtl?'۰۱':'01'}</span></button>
+    <button className="user-card" onClick={()=>setHelp(true)}><div className="avatar">PV</div><span><b>{t.visitorMode}</b><small>{t.localProfile}</small></span><Settings2 size={15}/></button>
    </aside>
-   <aside className={`inspector ${mobileInspectorOpen?'':'mobile-dismissed'}`}>
-    <div className="inspector-head"><div><div className="eyebrow">{selected?rtl?'جزئیات تجهیز':'ASSET DETAILS':rtl?'مرکز عملیات':'OPERATIONS CENTER'}</div><h2>{selected?(rtl?selected.fa:selected.en):t.overviewTitle}</h2></div><button className="icon-button close-inspector" onClick={dismissInspector} title={t.close}><X size={16}/></button></div>
+   <aside className={`inspector ${mobileInspectorOpen?'drawer-open':'mobile-dismissed'}`}>
+    <div className="inspector-head"><div><div className="eyebrow">{selected?t.assetDetails:t.operationsCenter}</div><h2>{selected?(rtl?selected.fa:selected.en):mode==='overview'?t.overviewTitle:dashboardSections[mode]?(rtl?dashboardSections[mode].fa:dashboardSections[mode].en):t.overviewTitle}</h2></div><button className="icon-button close-inspector" onClick={dismissInspector} title={t.close}><X size={16}/></button></div>
+    <AnimatePresence mode="wait" initial={false}>
+     <motion.div key={selected?`asset-${selected.id}`:`view-${mode}`} className="inspector-content" initial={reduceMotion?false:{opacity:0,y:5}} animate={{opacity:1,y:0}} exit={reduceMotion?{opacity:0}:{opacity:0,y:-3}} transition={{duration:reduceMotion?0:.18,ease:[.22,1,.36,1]}}>
     {selected?<>
-      <div className="asset-identity"><div className={`asset-glyph ${selected.kind}`}><AssetIcon kind={selected.kind}/></div><div><b>{rtl?selected.fa:selected.en}</b><small>{selected.kind.toUpperCase()} · {selected.id}</small></div><span className="status-chip"><i/>{rtl?selected.status:'Operational'}</span></div>
+      <div className="asset-identity"><div className={`asset-glyph ${selected.kind}`}><AssetIcon kind={selected.kind}/></div><div><b>{rtl?selected.fa:selected.en}</b><small>{categoryName(selected,rtl)} · {selected.id}</small></div><span className="status-chip"><i/>{statusName(selected,rtl)}</span></div>
       <div className="asset-stat-row"><div><span>{t.asset}</span><b>{selected.id}</b></div><div><span>{t.zone}</span><b>{currentZone?(rtl?currentZone.fa:currentZone.en):'—'}</b></div></div>
-      {['tank','sphere-tank'].includes(selected.kind)&&<div className="tank-level-card"><div className="tank-card-top"><span>{t.fill}</span><b>{selected.fill}%</b></div><div className="level-track"><i style={{width:`${selected.fill}%`}}/></div><div className="capacity-line"><span>{t.capacity}</span><b>{selected.capacity} m³</b></div><div className="capacity-line"><span>{rtl?'موجودی شبیه‌سازی‌شده':'Simulated inventory'}</span><b>{Math.round(Number(selected.capacity?.replace(',',''))*(selected.fill||0)/100).toLocaleString()} m³</b></div></div>}
-      {selected.kind==='truck'&&selected.id==='TR-014'&&<div className="vehicle-progress"><div><span>{t.loading}</span><b>67%</b></div><div className="level-track"><i style={{width:'67%'}}/></div><small><Truck size={13}/>{rtl?'بارگیری تانکر · جایگاه ۰۱ · داده نمایشی':'Road tanker · bay 01 · simulated volume'}</small></div>}
-      {selected.kind==='truck'&&selected.id==='TR-027'&&<div className="vehicle-progress"><div><span>{rtl?'بارگیری بشکه‌ها':'Drum pallet loading'}</span><b>67%</b></div><div className="level-track"><i style={{width:'67%'}}/></div><small><Truck size={13}/>{rtl?'۴ از ۶ بشکه روی کفی · پالت دوم در حال انتقال':'4 of 6 drums on flatbed · second pallet transferring'}</small></div>}
-      {selected.kind==='forklift'&&<div className="vehicle-progress"><div><span>{rtl?'انتقال پالت نمایشی':'Simulated pallet transfer'}</span><b>50%</b></div><div className="level-track"><i style={{width:'50%'}}/></div><small><Truck size={13}/>{rtl?'پالت دوم · دو بشکه · مقصد: TR-027':'Second pallet · two drums · destination: TR-027'}</small></div>}
-      {selected.kind==='ship'&&<div className="vehicle-progress"><div><span>{rtl?'پیشرفت بارگیری نمایشی':'Demo loading progress'}</span><b>42%</b></div><div className="level-track"><i style={{width:'42%'}}/></div><small><Waves size={13}/>{rtl?'اسکله صادراتی · مخزن‌بندی مستقل':'Export berth · dedicated marine system'}</small></div>}
-      {selected.kind==='worker'&&<div className="asset-stat-row worker-stats"><div><span>{rtl?'نقش شغلی':'ROLE'}</span><b>{rtl?selected.roleFa:selected.roleEn}</b></div><div><span>{rtl?'واحد سازمانی':'DEPARTMENT'}</span><b>{rtl?selected.departmentFa:selected.departmentEn}</b></div></div>}
-      {selected.kind==='worker'&&<div className="worker-task"><Users size={14}/><span><small>{rtl?'فعالیت نمایشی':'SIMULATED TASK'}</small><b>{rtl?selected.taskFa:selected.taskEn}</b></span></div>}
-      <section className="info-section"><div className="section-label">{t.about}</div><p>{rtl?selected.descriptionFa:selected.descriptionEn}</p></section>
-      <section className="info-section"><div className="section-label">{t.connected}</div><div className="connection-chip"><span className="connection-dot"/>{['tank','sphere-tank'].includes(selected.kind)?(rtl?'خط لوله فرآورده · P-301A':'Product line · P-301A'):selected.kind==='ship'?(rtl?'بازوی بارگیری دریایی · اسکله ۰۱':'Marine loading arm · Berth 01'):selected.kind==='forklift'?(rtl?'پالت بشکه · کفی TR-027':'Drum pallet · flatbed TR-027'):selected.id==='TR-027'?(rtl?'پالت بشکه · لیفتراک FL-027':'Drum pallet · forklift FL-027'):(rtl?'هدر بارگیری تانکر · جایگاه ۰۱':'Tanker loading header · bay 01')}</div><div className="connection-chip"><span className="connection-dot muted"/>{selected.kind==='forklift'||selected.id==='TR-027'?(rtl?'مسیر جابه‌جایی محموله · نمایشی':'Simulated cargo-handling route'):(rtl?'سامانه کنترل مرکزی':'Central control system')}</div></section>
-      <div className="sim-note"><Activity size={14}/><span>{rtl?'تمام داده‌ها و وضعیت‌ها نمایشی و شبیه‌سازی‌شده هستند.':'All figures and statuses are simulated demo data.'}</span></div>
-      <button className="focus-button" onClick={()=>set('focus',[...selected.position])}><Maximize2 size={15}/>{rtl?'تمرکز دوربین روی تجهیز':'Focus camera on asset'}<ArrowDownLeft size={14}/></button>
+      <InspectionReadout item={selected} rtl={rtl} onSelect={selectAsset}/>
+      {selected.kind==='truck'&&selected.id==='TR-027'&&<LiveVehicleProgress rtl={rtl}/>}
+      {selected.kind==='forklift'&&<LiveVehicleProgress rtl={rtl} forklift/>}
+      {selected.kind==='truck'&&selected.id==='TR-014'&&<LiveTankerProgress rtl={rtl}/>}
+      {selected.kind==='ship'&&<div className="vehicle-progress"><div><span>{rtl?'پیشرفت بارگیری نمایشی':'Simulated loading progress'}</span><b>42%</b></div><div className="level-track"><i style={{width:'42%'}}/></div><small><Waves size={13}/>{rtl?'اسکله صادراتی · وضعیت شبیه‌سازی‌شده':'Export berth · simulated state'}</small></div>}
+      <button className="focus-button" onClick={()=>setFocus([...selected.position])}><Maximize2 size={15}/>{rtl?'تمرکز دوربین روی تجهیز':'Focus camera on asset'}<ArrowDownLeft size={14}/></button>
     </>:<>
-      <div className="site-health"><div className="health-ring"><div><strong>96</strong><small>/100</small></div></div><div><span className="health-label">{rtl?'وضعیت کلی مجتمع':'SITE HEALTH'}</span><b>{rtl?'عملیات پایدار':'Operations stable'}</b><small><i/> {rtl?'آخرین بروزرسانی همین حالا':'Updated just now'}</small></div></div>
-      <div className="inspector-kpis"><Kpi icon={<Factory size={16}/>} label={t.active} value="18" meta={rtl?'از ۲۱ واحد':'of 21 units'} color="blue"/><Kpi icon={<Truck size={16}/>} label={t.trucks} value="02" meta={rtl?'۲ جایگاه آزاد':'2 bays available'} color="amber"/><Kpi icon={<Gauge size={16}/>} label={t.storageKpi} value="64%" meta={rtl?'۸ مخزن پایش‌شده':'8 monitored tanks'} color="slate"/></div>
-      <ProcessCyclePanel rtl={rtl} onFocus={position=>set('focus',[...position])}/>
-      <section className="utility-snapshot"><div className="section-row"><span className="section-label">{rtl?'تراز یوتیلیتی · نمایشی':'DEMO UTILITIES BALANCE'}</span><span className="instrument-source"><i/>{rtl?'محلی':'LOCAL'}</span></div><div className="utility-metrics"><UtilityMetric label={rtl?'برق':'POWER'} value="18.6" unit="MW" fill={74}/><UtilityMetric label={rtl?'بخار':'STEAM'} value="42.1" unit="t/h" fill={61}/><UtilityMetric label={rtl?'آب خنک‌کن':'COOLING WATER'} value="124" unit="m³/h" fill={48}/></div></section>
-      <section className="instrument-panel"><div className="section-row"><span className="section-label">{rtl?'نشانگرهای فرایندی':'PROCESS INSTRUMENTS'}</span><span className="instrument-source"><i/>DEMO</span></div><InstrumentRow tag="FIC-101" label={rtl?'دبی خوراک خام':'Crude charge flow'} value="82.4%" fill={82}/><InstrumentRow tag="TIC-204" label={rtl?'دمای خروجی کوره':'Furnace outlet temp'} value="352°C" fill={68}/><InstrumentRow tag="PIC-207" label={rtl?'فشار برج تقطیر':'Column pressure'} value="1.42 bar" fill={54}/></section>
-      <section className="mini-chart-section"><button className="chart-heading chart-open" onClick={()=>setAnalytics(true)}><div><span className="section-label">{rtl?'روند نمایشی تولید':'DEMO THROUGHPUT'}</span><b>42.8 <small>kt/day</small></b></div><span className="chart-change"><ArrowDownLeft size={12}/> 2.4%</span></button><MiniChart/></section>
-      <section className="activity-section"><div className="section-row"><span className="section-label">{rtl?'فعالیت‌های اخیر':'RECENT ACTIVITY'}</span><button onClick={()=>setAnalytics(true)}>{rtl?'مشاهده همه':'View all'}</button></div><ActivityRow icon={<Truck size={14}/>} title={rtl?'کامیون TR-014 وارد جایگاه شد':'TR-014 entered loading bay'} time="08:39" color="amber"/><ActivityRow icon={<Check size={14}/>} title={rtl?'بازبینی ایمنی TK-103 ثبت شد':'TK-103 safety review logged'} time="08:26" color="slate"/><ActivityRow icon={<Anchor size={14}/>} title={rtl?'نفت‌کش آذر به اسکله رسید':'MT Azar arrived at berth'} time="08:12" color="blue"/></section>
-      <div className="demo-callout"><div className="callout-icon"><Radio size={16}/></div><div><b>{rtl?'محیط شبیه‌سازی تعاملی':'Interactive demo environment'}</b><p>{rtl?'با انتخاب تجهیزات روی صحنه، وضعیت و داده‌های نمایشی را بررسی کنید.':'Select equipment in the scene to inspect simulated states and data.'}</p></div></div>
+      {mode!=='overview'&&<SectionOverview mode={mode} rtl={rtl} onSelect={selectAsset}/>}
+      <div className="site-health" title={rtl?'شاخص وضعیت کلی، محاسبه و ارائه‌شده برای نمایش آزمایشی':'Illustrative site-health score; demo only'}><div className="health-ring"><div><strong>96</strong><small>/100</small></div></div><div><span className="health-label">{t.siteHealth}</span><b>{t.operationsStable}</b><small><i/> {t.updatedNow}</small></div></div>
+      <div className="inspector-kpis"><Kpi icon={<Factory size={16}/>} label={t.active} value="18" meta={rtl?'از ۲۱ واحد':'of 21 units'} color="blue" tip={rtl?'واحدهای فعال در نمای آزمایشی؛ داده زنده نیست':'Active units in this simulated view; not live telemetry'}/><Kpi icon={<Truck size={16}/>} label={t.trucks} value={String(demoTruckCount).padStart(2,'0')} meta={rtl?'دو خودروی نمایشی':'simulated vehicles'} color="amber" tip={rtl?'دو خودروی نمایشی در پایانه جاده‌ای':'Two simulated road-terminal vehicles'}/><Kpi icon={<Gauge size={16}/>} label={t.storageKpi} value={`${tankUtilization}%`} meta={`${tankAssets.length} ${rtl?'مخزن نمایشی':'simulated tanks'}`} color="slate" tip={rtl?'میانگین سطح مخازن ذخیره؛ از داده‌های محلی نمایشی محاسبه شده':'Average tank fill derived from local simulated values'}/></div>
+      <ProcessCyclePanel rtl={rtl} activeStageId={activeProcessStage} onSelectStage={focusProcessStage} onSelectAsset={selectStageAsset}/>
+      <section className="utility-snapshot"><div className="section-row"><span className="section-label">{t.utilityBalance}</span><span className="instrument-source"><i/>{t.local}</span></div><div className="utility-metrics"><UtilityMetric label={t.power} value="18.6" unit="MW" fill={74} tip={rtl?'توان نمایشی، نه تله‌متری واقعی':'Illustrative power demand; not real telemetry'}/><UtilityMetric label={t.steam} value="42.1" unit="t/h" fill={61} tip={rtl?'دبی بخار نمایشی':'Illustrative steam flow'}/><UtilityMetric label={t.coolingWater} value="124" unit="m³/h" fill={48} tip={rtl?'دبی آب خنک‌کن نمایشی':'Illustrative cooling-water flow'}/></div></section>
+      <section className="instrument-panel"><div className="section-row"><span className="section-label">{t.processInstruments}</span><span className="instrument-source"><i/>{t.demoBadge}</span></div><InstrumentRow tag="FIC-101" label={rtl?'دبی خوراک خام':'Crude charge flow'} value="82.4%" fill={82} tip={rtl?'دبی خوراک خام · مقدار نمایشی، بدون اتصال به ابزار واقعی':'Crude charge flow · illustrative demo reading, no live instrument connection'}/><InstrumentRow tag="TIC-204" label={rtl?'دمای خروجی کوره':'Furnace outlet temp'} value="352°C" fill={68} tip={rtl?'دمای خروجی کوره · مقدار نمایشی':'Furnace outlet temperature · illustrative demo reading'}/><InstrumentRow tag="PIC-207" label={rtl?'فشار برج تقطیر':'Column pressure'} value="1.42 bar" fill={54} tip={rtl?'فشار برج تقطیر · مقدار نمایشی':'Distillation column pressure · illustrative demo reading'}/></section>
+      <section className="mini-chart-section" title={rtl?'روند ساختگی برای نمایش رابط؛ داده تاریخی واقعی نیست':'Illustrative demo trend, not real historical data'}><button className="chart-heading chart-open" onClick={()=>setAnalytics(true)}><div><span className="section-label">{t.throughputTrend}</span><b>42.8 <small>kt/day</small></b></div><span className="chart-change"><ArrowDownLeft size={12}/> 2.4%</span></button><MiniChart rtl={rtl}/></section>
+      <section className="activity-section"><div className="section-row"><span className="section-label">{t.recentActivity}</span><button onClick={()=>setAnalytics(true)}>{t.viewAllActivity}</button></div><ActivityRow icon={<Truck size={14}/>} title={rtl?'کامیون TR-014 وارد جایگاه شد':'TR-014 entered loading bay'} time="08:39" color="amber"/><ActivityRow icon={<Check size={14}/>} title={rtl?'بازبینی ایمنی TK-103 ثبت شد':'TK-103 safety review logged'} time="08:26" color="slate"/><ActivityRow icon={<Anchor size={14}/>} title={rtl?'نفت‌کش آذر به اسکله رسید':'MT Azar arrived at berth'} time="08:12" color="blue"/></section>
+      <div className="demo-callout"><div className="callout-icon"><Radio size={16}/></div><div><b>{t.interactiveDemo}</b><p>{rtl?'با انتخاب تجهیزات روی صحنه، وضعیت و داده‌های نمایشی را بررسی کنید.':'Select equipment in the scene to inspect simulated states and data.'}</p></div></div>
     </>}
-    <div className="inspector-foot"><span className="foot-dot"/>{rtl?'محیط نمایشی · بدون اتصال به سامانه واقعی':'DEMO ENVIRONMENT · NO LIVE SYSTEM CONNECTION'}</div>
+     </motion.div>
+    </AnimatePresence>
+    <div className="inspector-foot"><span className="foot-dot"/>{rtl?'محیط نمایشی · بدون اتصال به سامانه زنده':'DEMO ENVIRONMENT · NO LIVE SYSTEM CONNECTION'}</div>
    </aside>
   </main>
   <footer className="bottom-bar">
-   <div className="bottom-left"><span className="bottom-state"><i/> {rtl?'شبیه‌سازی فعال':'SIMULATION ACTIVE'}</span><span className="bottom-sep"/><span><Building2 size={14}/>{rtl?'۲۱ واحد':'21 units'}</span><span><Cpu size={14}/>{rtl?'۵۲ تجهیز':'52 assets'}</span><span><Users size={14}/>{rtl?'۱۲ نفر':'12 personnel'}</span></div>
-   <div className="bottom-controls"><button className={`flow-toggle ${flow?'enabled':''}`} onClick={()=>set('flow',!flow)}><span className="flow-toggle-icon"><Activity size={15}/></span>{flow?t.flowOn:t.flow}</button><div className="playback"><button onClick={()=>set('playing',!playing)} title={playing?t.pause:t.play}>{playing?<Pause size={15}/>:<Play size={15}/>}</button><button onClick={reset} title={t.reset}><RotateCcw size={14}/></button><button className="speed-button" onClick={()=>set('speed',speed===.5?1:speed===1?2:speed===2?4:.5)}>{speed}×<ChevronDown size={12}/></button></div></div>
-   <div className="bottom-right"><button className="mode-pill" onClick={()=>set('night',!night)}>{night?<Moon size={14}/>:<Sun size={14}/>} {night?t.night:t.day}</button><span className="bottom-sep"/><span className="time-label">{t.time}</span><b className="bottom-clock">{clockText}</b></div>
+   <div className="bottom-left"><span className="bottom-state"><i/> {t.currentSimulation}</span><span className="bottom-sep"/><span><Building2 size={14}/>{rtl?'۲۱ واحد':'21 units'}</span><span><Cpu size={14}/>{inspectableItems.length} {t.demoAssets}</span><span><Users size={14}/>{demoPersonnelCount} {t.personnelLabel}</span></div>
+   <div className="bottom-controls"><button className={`flow-toggle ${flow?'enabled':''}`} onClick={()=>setSimulation('flow',!flow)} title={t.toggleProcessFlow} aria-pressed={flow}><span className="flow-toggle-icon"><Activity size={15}/></span>{flow?t.flowOn:t.flow}</button><div className="playback"><button aria-label={playing?t.pause:t.play} onClick={()=>setSimulation('playing',!playing)} title={playing?t.pause:t.play}>{playing?<Pause size={15}/>:<Play size={15}/>}</button><button aria-label={t.reset} onClick={resetDemo} title={t.reset}><RotateCcw size={14}/></button><button className="speed-button" aria-label={rtl?`سرعت شبیه‌سازی ${speed} برابر`:`Simulation speed ${speed} times`} title={t.cycleSpeed} onClick={()=>setSimulation('speed',speed===.5?1:speed===1?2:speed===2?4:.5)}>{speed}×<ChevronDown size={12}/></button></div></div>
+   <div className="bottom-right"><button className="mode-pill" aria-label={night?t.switchToDay:t.switchToNight} title={t.toggleLighting} aria-pressed={night} onClick={()=>setPreference('night',!night)}>{night?<Moon size={14}/>:<Sun size={14}/>} {night?t.night:t.day}</button><span className="bottom-sep"/><span className="time-label">{t.time}</span><b className="bottom-clock" aria-label={`${t.time}: ${clockText}`}>{clockText}</b></div>
   </footer>
-  <div className="right-zoom"><button onClick={()=>set('quality',useStore.getState().quality==='high'?'medium':useStore.getState().quality==='medium'?'low':'high')}><Settings2 size={14}/></button><div className="zoom-line"/><button onClick={()=>set('focus',[0,0,0])}><Compass size={14}/></button></div>
-  <AnimatePresence>{showLoading&&<SceneLoadingOverlay progress={shownProgress}/>}</AnimatePresence>
-  <AnimatePresence>{help&&<Modal title={rtl?'راهنمای محیط':'Environment guide'} onClose={()=>setHelp(false)}><div className="help-grid"><HelpItem icon={<Compass/>} title={rtl?'حرکت در صحنه':'Navigate the scene'} text={rtl?'برای جابه‌جایی کلیک و بکشید؛ اسکرول برای زوم و راست‌کلیک برای چرخش.':'Drag to pan, scroll to zoom, and right-drag to rotate.'}/><HelpItem icon={<Box/>} title={rtl?'بازرسی تجهیزات':'Inspect assets'} text={rtl?'روی مخزن، واحد یا وسیله نقلیه کلیک کنید تا پنل جزئیات باز شود.':'Click a tank, unit, or vehicle to open its detail panel.'}/><HelpItem icon={<Activity/>} title={rtl?'جریان فرآیند':'Process flow'} text={rtl?'جریان نمایشی را برای دنبال کردن مسیر مفهومی پالایش فعال کنید.':'Turn on process flow to follow the illustrative refinery path.'}/><HelpItem icon={<Radio/>} title={rtl?'داده‌های نمایشی':'Demo data'} text={rtl?'همه مقادیر، وضعیت‌ها و فعالیت‌ها صرفاً نمایشی هستند.':'All values, statuses, and activities are simulated.'}/></div></Modal>}</AnimatePresence>
-  <AnimatePresence>{analytics&&<Modal title={rtl?'تحلیل عملکرد نمایشی':'Demo performance analytics'} onClose={()=>setAnalytics(false)}><div className="analytics-summary"><Kpi icon={<Gauge/>} label={t.storageKpi} value="64%" meta="± 3.2%" color="blue"/><Kpi icon={<Activity/>} label={rtl?'نرخ فرآورش':'Throughput'} value="42.8" meta="kt/day · demo" color="blue"/><Kpi icon={<Bell/>} label={t.alerts} value="01" meta={rtl?'نیازمند بازبینی':'Review required'} color="amber"/></div><div className="analytics-utility-grid"><div><small>{rtl?'توان مصرفی':'POWER DEMAND'}</small><b>18.6 <i>MW</i></b><span>74% {rtl?'بار نمایشی':'demo load'}</span></div><div><small>{rtl?'بخار فرایندی':'PROCESS STEAM'}</small><b>42.1 <i>t/h</i></b><span>61% {rtl?'بار نمایشی':'demo load'}</span></div><div><small>{rtl?'آب خنک‌کن':'COOLING WATER'}</small><b>124 <i>m³/h</i></b><span>48% {rtl?'بار نمایشی':'demo load'}</span></div><div><small>{rtl?'وضعیت هشدار':'ALARM STATE'}</small><b>{rtl?'۱ بازبینی':'01 review'}</b><span>{rtl?'داده آزمایشی':'simulated event'}</span></div></div><div className="large-chart"><MiniChart/><div>{rtl?'نمودار شاخص نمایشی ـ ۲۴ ساعت گذشته':'Illustrative performance index · last 24 hours'}</div></div></Modal>}</AnimatePresence>
+  <div className="toast-region" aria-live="polite" aria-atomic="true">
+   <AnimatePresence initial={false}>{notice&&<motion.div key={notice.id} className={`toast-notice ${notice.tone}`} role="status" dir={rtl?'rtl':'ltr'} initial={{opacity:0,y:8,scale:.985}} animate={{opacity:1,y:0,scale:1}} exit={{opacity:0,y:5,scale:.99}} transition={{duration:reduceMotion?0:.18,ease:[.22,1,.36,1]}}>
+    <span className="toast-icon"><Check size={16}/></span><span className="toast-copy"><b>{notice.title}</b><small>{notice.detail}</small></span><button type="button" onClick={()=>setNotice(null)} title={t.dismissNotification} aria-label={t.dismissNotification}><X size={14}/></button>
+   </motion.div>}</AnimatePresence>
+  </div>
+  <div className="right-zoom"><button onClick={()=>setFocus([0,0,0])} title={t.viewAll} aria-label={t.viewAll}><Compass size={14}/></button></div>
+  <AnimatePresence>{showLoading&&<SceneLoadingOverlay progress={shownProgress} rtl={rtl}/>}</AnimatePresence>
+  <AnimatePresence>{settings&&<Modal title={t.displaySettings} onClose={()=>setSettings(false)}><div className="settings-panel"><p>{t.chooseSceneQuality}</p><div className="quality-options">{(['low','medium','high'] as const).map(level=><button key={level} type="button" className={quality===level?'selected':''} aria-pressed={quality===level} onClick={()=>setPreference('quality',level)}><b>{rtl?({low:t.low,medium:t.medium,high:t.high} as const)[level]:({low:t.low,medium:t.medium,high:t.high} as const)[level]}</b><small>{rtl?({low:t.lowDescription,medium:t.mediumDescription,high:t.highDescription} as const)[level]:({low:t.lowDescription,medium:t.mediumDescription,high:t.highDescription} as const)[level]}</small></button>)}</div><div className="settings-demo-note"><Radio size={15}/>{t.simulatedNoConnection}</div></div></Modal>}</AnimatePresence>
+  <AnimatePresence>{help&&<Modal title={t.environmentGuide} onClose={()=>setHelp(false)}><div className="help-grid"><HelpItem icon={<Compass/>} title={t.navigateScene} text={t.navigateSceneHelp}/><HelpItem icon={<Box/>} title={t.inspectAssets} text={t.inspectAssetsHelp}/><HelpItem icon={<Activity/>} title={t.flow} text={t.processFlowHelp}/><HelpItem icon={<Radio/>} title={t.demoData} text={t.demoDataHelp}/></div></Modal>}</AnimatePresence>
+  <AnimatePresence>{analytics&&<Modal title={t.demoAnalytics} onClose={()=>setAnalytics(false)}><div className="analytics-summary"><Kpi icon={<Gauge/>} label={t.storageKpi} value="64%" meta="± 3.2%" color="blue"/><Kpi icon={<Activity/>} label={t.throughput} value="42.8" meta="kt/day · demo" color="blue"/><Kpi icon={<Bell/>} label={t.alerts} value="01" meta={t.reviewRequired} color="amber"/></div><div className="analytics-utility-grid"><div><small>{t.powerDemand}</small><b>18.6 <i>MW</i></b><span>74% {t.demoLoad}</span></div><div><small>{t.processSteam}</small><b>42.1 <i>t/h</i></b><span>61% {t.demoLoad}</span></div><div><small>{t.coolingWater}</small><b>124 <i>m³/h</i></b><span>48% {t.demoLoad}</span></div><div><small>{t.alarmState}</small><b>{rtl?'۱ بازبینی':'01 review'}</b><span>{t.simulatedEvent}</span></div></div><div className="large-chart"><MiniChart rtl={rtl}/><div>{t.performanceIndex}</div></div></Modal>}</AnimatePresence>
  </div>;
 }
-function SceneLoadingOverlay({progress}:{progress:number}){
- const stages=['Crude feed','Distillation','Conversion','Utilities','Storage & export'];
- const status=progress<22?'Starting site data and runtime':progress<58?'Building process flow and assets':progress<90?'Preparing materials and scene':'Finishing the first rendered frame';
- return <motion.div className="scene-loading-overlay" role="status" aria-live="polite" lang="en" dir="ltr" initial={{opacity:1}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:.3}}>
+function SceneLoadingOverlay({progress,rtl}:{progress:number;rtl:boolean}){
+ const t=translations[rtl?'fa':'en'],reduceMotion=Boolean(useReducedMotion());
+ const stages=[t.crudeFeed,t.distillation,t.conversion,t.utilitiesStage,t.storageExport];
+ const status=progress<22?t.startingRuntime:progress<58?t.buildingAssets:progress<90?t.preparingScene:t.finishingFrame;
+ return <motion.div className="scene-loading-overlay" role="status" aria-live="polite" lang={rtl?"fa":"en"} dir={rtl?"rtl":"ltr"} initial={{opacity:1}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:reduceMotion?0:.3}}>
   <div className="scene-loading-card">
-   <div className="scene-loading-brand"><span className="scene-loading-mark">PV</span><div><b>PetroVista <i>3D</i></b><small>REFINERY OPERATIONS VIEW</small></div><span className="scene-demo-pill"><i/>DEMO</span></div>
-   <div className="scene-loading-title"><strong>REFINERY PRODUCTION CYCLE</strong><span>From crude receiving to product storage and export</span></div>
+   <div className="scene-loading-brand"><span className="scene-loading-mark">PV</span><div><b>PetroVista <i>3D</i></b><small>{t.refineryOperationsView}</small></div><span className="scene-demo-pill"><i/>{t.demoBadge}</span></div>
+   <div className="scene-loading-title"><strong>{t.productionCycle}</strong><span>{t.fromReceivingToExport}</span></div>
    <div className="loader-refinery-art" aria-hidden="true"><svg viewBox="0 0 520 170" preserveAspectRatio="xMidYMid meet">
     <path className="loader-pipe" d="M25 130H493M58 130V93H197V130M192 130V110H337V130M335 130V88H463V130M72 93V61H135V93M225 110V54H268V110M393 88V45H438V88"/>
     <path className="loader-flow" d="M25 130H493M58 130V93H197V130M192 130V110H337V130M335 130V88H463V130"/>
@@ -141,28 +302,37 @@ function SceneLoadingOverlay({progress}:{progress:number}){
     <ellipse className="loader-vapor" cx="308" cy="33" rx="9" ry="6"/><ellipse className="loader-vapor vapor-two" cx="315" cy="26" rx="12" ry="7"/>
     <path className="loader-platform" d="M26 137h468M39 139v8m43-8v8m43-8v8m43-8v8m43-8v8m43-8v8m43-8v8m43-8v8m43-8v8m43-8v8"/>
    </svg></div>
-   <div className="scene-cycle-steps" style={{'--loader-progress':`${progress/100}`} as CSSProperties}>{stages.map((stage,index)=><div className={`scene-cycle-step ${progress>=index*20+15?'reached':''} ${progress>=index*20+15&&progress<(index+1)*20+15?'current':''}`} key={stage}><i><span>{String(index+1).padStart(2,'0')}</span></i><small>{stage}</small></div>)}</div>
-   <div className="scene-loading-status"><span className="loading-pulse"/><span>{status}</span><b>{String(progress).padStart(2,'0')}%</b></div>
-   <div className="scene-loading-progress" role="progressbar" aria-label="Scene preparation progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><div style={{width:`${progress}%`}}/></div>
-   <div className="scene-loading-meta"><span>0</span><span>SCENE INITIALIZATION</span><span>100%</span></div>
-   <div className="scene-loading-foot"><i/>Illustrative data · no live control connection</div>
+   <div className="scene-cycle-steps" style={{'--loader-progress':`${progress/100}`} as CSSProperties}>{stages.map((stage,index)=><div className={`scene-cycle-step ${progress>=index*20+15?'reached':''} ${progress>=index*20+15&&progress<(index+1)*20+15?'current':''}`} key={stage}><i><span>{(index+1).toLocaleString(rtl?'fa-IR':'en-US',{minimumIntegerDigits:2,useGrouping:false})}</span></i><small>{stage}</small></div>)}</div>
+   <div className="scene-loading-status"><span className="loading-pulse"/><span>{status}</span><b>{progress.toLocaleString(rtl?'fa-IR':'en-US',{minimumIntegerDigits:2,useGrouping:false})}%</b></div>
+   <div className="scene-loading-progress" role="progressbar" aria-label={t.scenePreparation} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><div style={{width:`${progress}%`}}/></div>
+   <div className="scene-loading-meta"><span>0</span><span>{t.sceneInitialization}</span><span>100%</span></div>
+   <div className="scene-loading-foot"><i/>{t.illustrativeNoControl}</div>
   </div>
  </motion.div>;
 }
-function ProcessCyclePanel({rtl,onFocus}:{rtl:boolean;onFocus:(position:[number,number,number])=>void}){
- return <section className="process-cycle-panel"><div className="section-row"><span className="section-label">{rtl?'چرخه فرایند پالایشگاه':'REFINERY PROCESS CYCLE'}</span><span className="cycle-demo-label">{rtl?'نمای مفهومی':'ILLUSTRATIVE'}</span></div><div className="process-cycle-list">{processCycle.map((step,index)=><button key={step.en} className="process-cycle-step" onClick={()=>onFocus(step.position)} title={rtl?'تمرکز دوربین روی محدوده':'Focus the scene on this area'}><span className="process-cycle-index">0{index+1}</span><span className="process-cycle-copy"><b>{rtl?step.fa:step.en}</b><small>{rtl?['خوراک خام','برش‌های اصلی','تبدیل برش‌ها','مخازن محصول','اسکله و ارسال'][index]:['Crude intake','Primary separation','Product upgrading','Tank farm','Marine terminal'][index]}</small></span><span className="process-cycle-node"/></button>)}</div><div className="process-cycle-foot"><GitBranch size={12}/>{rtl?'مسیر مفهومی · انتخاب هر مرحله برای رفتن به محدوده':'Conceptual flow · select a stage to inspect its area'}</div></section>;
+function ProcessCyclePanel({rtl,activeStageId,onSelectStage,onSelectAsset}:{rtl:boolean;activeStageId:string|null;onSelectStage:(stageId:string)=>void;onSelectAsset:(item:SiteItem)=>void}){
+ const t=translations[rtl?'fa':'en'];
+ const active=processStages.find(stage=>stage.id===activeStageId)??null,connected=active?processStageAssets(active):[];
+ return <section className="process-cycle-panel"><div className="section-row"><span className="section-label">{t.processPath}</span><span className="cycle-demo-label">{t.illustrativeDemo}</span></div>
+  <div className="process-cycle-endpoints"><span>{rtl?processStages[0].fa:processStages[0].en}</span><ArrowDownLeft size={12}/><span>{rtl?processStages[processStages.length-1].fa:processStages[processStages.length-1].en}</span></div>
+  <div className="process-cycle-list">{processStages.map((stage,index)=><button key={stage.id} className={`process-cycle-step ${activeStageId===stage.id?'active':''}`} aria-pressed={activeStageId===stage.id} onClick={()=>onSelectStage(stage.id)} title={t.selectStage}><span className="process-cycle-index">{(index+1).toLocaleString(rtl?'fa-IR':'en-US',{minimumIntegerDigits:2,useGrouping:false})}</span><span className="process-cycle-copy"><b>{rtl?stage.fa:stage.en}</b><small>{rtl?stage.startFa:stage.startEn}</small></span><span className="process-cycle-node"/></button>)}</div>
+  {active&&<div className="process-stage-detail"><p>{rtl?active.descriptionFa:active.descriptionEn}</p><div className="process-stage-terminals"><span><small>{t.start}</small><b>{rtl?active.startFa:active.startEn}</b></span><ArrowDownLeft size={13}/><span><small>{t.end}</small><b>{rtl?active.endFa:active.endEn}</b></span></div><div className="process-stage-assets"><span>{t.connectedUnits}</span><div>{connected.map(item=><button type="button" key={item.id} onClick={()=>onSelectAsset(item)} title={rtl?item.fa:item.en}><b>{rtl?item.fa:item.en}</b><small>{item.id}</small></button>)}</div></div></div>}
+  <div className="process-cycle-foot"><GitBranch size={12}/>{t.chooseProcess}</div>
+ </section>;
 }
-function UtilityMetric({label,value,unit,fill}:{label:string;value:string;unit:string;fill:number}){return <div className="utility-metric"><div><span>{label}</span><b>{value}<small> {unit}</small></b></div><i><span style={{width:`${fill}%`}}/></i></div>}
 
-function WebGLUnavailable({rtl,onReady}:{rtl:boolean;onReady:()=>void}){
- useEffect(()=>{onReady()},[]);
+function UtilityMetric({label,value,unit,fill,tip}:{label:string;value:string;unit:string;fill:number;tip?:string}){return <div className="utility-metric" title={tip}><div><span>{label}</span><b>{value}<small> {unit}</small></b></div><i><span style={{width:`${fill}%`}}/></i></div>}
+
+function WebGLUnavailable({onReady}:{onReady:()=>void}){
+ const rtl=useStore(s=>s.lang==='fa');
+ useEffect(()=>{onReady()},[onReady]);
  return <div className="webgl-fallback">{rtl?'مرورگر شما WebGL را فعال نکرده؛ شتاب‌دهی سخت‌افزاری مرورگر را روشن کنید.':'WebGL is unavailable. Enable browser hardware acceleration and reload.'}</div>;
 }
 function AssetIcon({kind}:{kind:string}){if(kind==='worker')return <Users size={20}/>;if(kind==='tank'||kind==='sphere-tank')return <Layers3 size={20}/>;if(kind==='truck'||kind==='forklift')return <Truck size={20}/>;if(kind==='ship'||kind==='marine')return <Ship size={20}/>;if(kind==='process'||kind==='furnace')return <Factory size={20}/>;if(kind==='building')return <Building2 size={20}/>;if(kind==='cooling')return <Waves size={20}/>;return <Cpu size={20}/>}
-function Kpi({icon,label,value,meta,color}:{icon:React.ReactNode;label:string;value:string;meta:string;color:string}){return <div className={`kpi-card ${color}`}><div className="kpi-icon">{icon}</div><span>{label}</span><b>{value}</b><small>{meta}</small></div>}
-function InstrumentRow({tag,label,value,fill}:{tag:string;label:string;value:string;fill:number}){return <div className="instrument-row"><div className="instrument-main"><span className="instrument-tag">{tag}</span><span className="instrument-name">{label}</span><b>{value}</b></div><div className="instrument-meter" role="meter" aria-label={`${tag} ${label}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={fill}><i style={{width:`${fill}%`}}/></div></div>}
-function MiniChart(){return <div className="mini-chart"><div className="chart-grid"><i/><i/><i/></div><svg viewBox="0 0 320 84" preserveAspectRatio="none"><defs><linearGradient id="chartfill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#55b8d3" stopOpacity=".24"/><stop offset="1" stopColor="#55b8d3" stopOpacity="0"/></linearGradient></defs><path d="M0 59 C20 56,25 40,42 47 S63 61,80 40 S103 46,121 33 S145 44,163 28 S182 42,202 24 S226 34,244 20 S267 38,283 18 S306 21,320 9 V84 H0Z" fill="url(#chartfill)"/><path d="M0 59 C20 56,25 40,42 47 S63 61,80 40 S103 46,121 33 S145 44,163 28 S182 42,202 24 S226 34,244 20 S267 38,283 18 S306 21,320 9" fill="none" stroke="#55b8d3" strokeWidth="2" vectorEffect="non-scaling-stroke"/></svg><div className="chart-x"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>NOW</span></div></div>}
+function Kpi({icon,label,value,meta,color,tip}:{icon:React.ReactNode;label:string;value:string;meta:string;color:string;tip?:string}){return <div className={`kpi-card ${color}`} title={tip} aria-label={`${label}: ${value}. ${tip??meta}`}><div className="kpi-icon">{icon}</div><span>{label}</span><b>{value}</b><small>{meta}</small></div>}
+function InstrumentRow({tag,label,value,fill,tip}:{tag:string;label:string;value:string;fill:number;tip?:string}){return <div className="instrument-row" title={tip??`${tag} · ${label}: ${value} · simulated demo reading`}><div className="instrument-main"><span className="instrument-tag">{tag}</span><span className="instrument-name">{label}</span><b>{value}</b></div><div className="instrument-meter" role="meter" aria-label={`${tag} ${label}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={fill}><i style={{width:`${fill}%`}}/></div></div>}
+function MiniChart({rtl}:{rtl:boolean}){const t=translations[rtl?'fa':'en'];const ticks=rtl?['۰۰:۰۰','۰۶:۰۰','۱۲:۰۰','۱۸:۰۰',t.now]:['00:00','06:00','12:00','18:00',t.now];return <div className="mini-chart" lang={rtl?'fa':'en'} dir="ltr"><div className="chart-grid"><i/><i/><i/></div><svg viewBox="0 0 320 84" preserveAspectRatio="none"><defs><linearGradient id="chartfill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#55b8d3" stopOpacity=".24"/><stop offset="1" stopColor="#55b8d3" stopOpacity="0"/></linearGradient></defs><path d="M0 59 C20 56,25 40,42 47 S63 61,80 40 S103 46,121 33 S145 44,163 28 S182 42,202 24 S226 34,244 20 S267 38,283 18 S306 21,320 9 V84 H0Z" fill="url(#chartfill)"/><path d="M0 59 C20 56,25 40,42 47 S63 61,80 40 S103 46,121 33 S145 44,163 28 S182 42,202 24 S226 34,244 20 S267 38,283 18 S306 21,320 9" fill="none" stroke="#55b8d3" strokeWidth="2" vectorEffect="non-scaling-stroke"/></svg><div className="chart-x">{ticks.map(tick=><span key={tick}>{tick}</span>)}</div></div>}
 function ActivityRow({icon,title,time,color}:{icon:React.ReactNode;title:string;time:string;color:string}){return <div className="activity-row"><span className={`activity-icon ${color}`}>{icon}</span><b>{title}</b><small>{time}</small></div>}
-function Modal({title,onClose,children}:{title:string;onClose:()=>void;children:React.ReactNode}){return <motion.div className="modal-backdrop" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onClick={onClose}><motion.div className="modal-card" initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} onClick={e=>e.stopPropagation()}><div className="modal-head"><h3>{title}</h3><button className="icon-button" onClick={onClose}><X size={16}/></button></div>{children}</motion.div></motion.div>}
+function Modal({title,onClose,children}:{title:string;onClose:()=>void;children:React.ReactNode}){const closeLabel=translations[useStore(s=>s.lang)].close,reduceMotion=Boolean(useReducedMotion()),duration=reduceMotion?0:.18;return <motion.div className="modal-backdrop" initial={reduceMotion?false:{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration}} onClick={onClose}><motion.div className="modal-card" initial={reduceMotion?false:{opacity:0,y:12}} animate={{opacity:1,y:0}} exit={{opacity:0,y:4}} transition={{duration,ease:[.22,1,.36,1]}} onClick={e=>e.stopPropagation()}><div className="modal-head"><h3>{title}</h3><button className="icon-button" type="button" title={closeLabel} aria-label={closeLabel} onClick={onClose}><X size={16}/></button></div>{children}</motion.div></motion.div>}
 function HelpItem({icon,title,text}:{icon:React.ReactNode;title:string;text:string}){return <div className="help-item"><span>{icon}</span><div><b>{title}</b><p>{text}</p></div></div>}
 export default App;

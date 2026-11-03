@@ -6,6 +6,66 @@ const yardSurfaceSources = new Map<string, THREE.CanvasTexture>();
 const yardSurfaceVariants = new Map<string, THREE.Texture>();
 let chainlinkSource: THREE.CanvasTexture | undefined;
 const chainlinkVariants = new Map<string, THREE.Texture>();
+let industrialEnvironment: THREE.CanvasTexture | undefined;
+let steelRoughnessMap: THREE.CanvasTexture | undefined;
+let steelBumpMap: THREE.CanvasTexture | undefined;
+
+/** Deterministic local softbox/sky environment used for subtle PBR reflections; no remote HDRI. */
+export function getIndustrialEnvironmentMap(){
+ if(industrialEnvironment)return industrialEnvironment;
+ const canvas=document.createElement('canvas');canvas.width=512;canvas.height=256;
+ const context=canvas.getContext('2d');
+ if(!context)throw new Error('Canvas 2D context is required for the local industrial environment');
+ const sky=context.createLinearGradient(0,0,0,canvas.height);
+ sky.addColorStop(0,'#536c80');sky.addColorStop(.32,'#a9bdc0');sky.addColorStop(.54,'#e2dfd1');sky.addColorStop(.7,'#a6a89c');sky.addColorStop(1,'#43524d');
+ context.fillStyle=sky;context.fillRect(0,0,canvas.width,canvas.height);
+ const panels:[number,number,number,number,string][]=[
+  [35,28,92,12,'rgba(255,244,218,.96)'],[172,36,114,9,'rgba(241,248,242,.88)'],[352,25,104,14,'rgba(255,229,190,.78)'],
+  [61,107,76,8,'rgba(218,232,224,.48)'],[276,119,132,7,'rgba(229,240,235,.42)'],
+ ];
+ for(const [x,y,width,height,color] of panels){
+  const glow=context.createRadialGradient(x+width/2,y+height/2,1,x+width/2,y+height/2,width*.72);
+  glow.addColorStop(0,color);glow.addColorStop(1,'rgba(255,255,255,0)');context.fillStyle=glow;context.fillRect(x-width*.4,y-height*2,width*1.8,height*5);
+ }
+ industrialEnvironment=new THREE.CanvasTexture(canvas);industrialEnvironment.mapping=THREE.EquirectangularReflectionMapping;industrialEnvironment.colorSpace=THREE.SRGBColorSpace;industrialEnvironment.needsUpdate=true;return industrialEnvironment;
+}
+
+function getSteelRoughnessMap(){
+ if(steelRoughnessMap)return steelRoughnessMap;
+ const size=256,canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
+ const context=canvas.getContext('2d');if(!context)throw new Error('Canvas 2D context is required for steel roughness');
+ const image=context.createImageData(size,size),pixels=image.data;let seed=51173;const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+ for(let y=0;y<size;y++)for(let x=0;x<size;x++){const i=(y*size+x)*4,v=Math.max(0,Math.min(255,146+(random()-.5)*32+Math.sin(x*.16+y*.025)*7));pixels[i]=pixels[i+1]=pixels[i+2]=v;pixels[i+3]=255}
+ context.putImageData(image,0,0);steelRoughnessMap=new THREE.CanvasTexture(canvas);steelRoughnessMap.wrapS=THREE.RepeatWrapping;steelRoughnessMap.wrapT=THREE.RepeatWrapping;steelRoughnessMap.colorSpace=THREE.NoColorSpace;steelRoughnessMap.needsUpdate=true;return steelRoughnessMap;
+}
+function getSteelBumpMap(){
+ if(steelBumpMap)return steelBumpMap;
+ const size=256,canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
+ const context=canvas.getContext('2d');if(!context)throw new Error('Canvas 2D context is required for steel bump detail');
+ const image=context.createImageData(size,size),pixels=image.data;let seed=72191;const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+ for(let y=0;y<size;y++)for(let x=0;x<size;x++){const i=(y*size+x)*4,seam=y%64<2?-14:0,v=Math.max(0,Math.min(255,128+(random()-.5)*13+Math.sin(x*.17)*2+seam));pixels[i]=pixels[i+1]=pixels[i+2]=v;pixels[i+3]=255}
+ context.putImageData(image,0,0);steelBumpMap=new THREE.CanvasTexture(canvas);steelBumpMap.wrapS=THREE.RepeatWrapping;steelBumpMap.wrapT=THREE.RepeatWrapping;steelBumpMap.colorSpace=THREE.NoColorSpace;steelBumpMap.needsUpdate=true;return steelBumpMap;
+}
+/** Painted carbon-steel finish: restrained metalness, weathering, roughness variation and fine plate relief. */
+export function createPaintedSteelMaterial(color:THREE.ColorRepresentation){
+ return new THREE.MeshStandardMaterial({color,map:getWeatheredSteelMap(),roughnessMap:getSteelRoughnessMap(),bumpMap:getSteelBumpMap(),bumpScale:.018,metalness:.38,roughness:.56,envMapIntensity:.68});
+}
+/** Stainless wetted metalwork: tighter specular response with subtle rolled-sheet relief. */
+export function createStainlessSteelMaterial(color:THREE.ColorRepresentation='#aeb7ad'){
+ return new THREE.MeshStandardMaterial({color,map:getWeatheredSteelMap(),roughnessMap:getSteelRoughnessMap(),bumpMap:getSteelBumpMap(),bumpScale:.008,metalness:.76,roughness:.31,envMapIntensity:.82});
+}
+/** Galvanized access steel reads brighter and more reflective than painted process shells. */
+export function createGalvanizedSteelMaterial(color:THREE.ColorRepresentation='#87948a'){
+ return new THREE.MeshStandardMaterial({color,map:getWeatheredSteelMap(),roughnessMap:getSteelRoughnessMap(),bumpMap:getSteelBumpMap(),bumpScale:.012,metalness:.62,roughness:.48,envMapIntensity:.78});
+}
+/** Insulated process lines use a matte non-metallic jacket, unlike exposed steel pipe. */
+export function createInsulatedPipeMaterial(color:THREE.ColorRepresentation){
+ return new THREE.MeshStandardMaterial({color,metalness:.08,roughness:.84,envMapIntensity:.24});
+}
+/** Neutral industrial glazing with restrained transmission for control-room windows. */
+export function createIndustrialGlassMaterial(color:THREE.ColorRepresentation='#789b9a'){
+ return new THREE.MeshPhysicalMaterial({color,metalness:.08,roughness:.22,transparent:true,opacity:.72,transmission:.12,thickness:.08,envMapIntensity:.65,depthWrite:false});
+}
 
 /** Locally generated, deterministic steel grain and light weathering; no remote assets. */
 export function getWeatheredSteelMap(){
@@ -19,9 +79,9 @@ export function getWeatheredSteelMap(){
  let seed=918273;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
  for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++){
   const p=(y*canvas.width+x)*4,grain=(rand()-.5)*24,streak=Math.sin(x*.19+Math.sin(x*.037)*2)*3,seam=(y%128<2)?-14:0;
-  pixels[p]=Math.max(0,Math.min(255,232+grain+streak+seam));
-  pixels[p+1]=Math.max(0,Math.min(255,236+grain+streak+seam));
-  pixels[p+2]=Math.max(0,Math.min(255,232+grain+streak+seam));
+  pixels[p]=Math.max(0,Math.min(255,184+grain+streak+seam));
+  pixels[p+1]=Math.max(0,Math.min(255,192+grain+streak+seam));
+  pixels[p+2]=Math.max(0,Math.min(255,182+grain+streak+seam));
   pixels[p+3]=255;
  }
  ctx.putImageData(image,0,0);

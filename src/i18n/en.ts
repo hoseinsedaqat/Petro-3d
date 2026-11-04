@@ -9,7 +9,7 @@ export const en = {
  exploreUnderstandSimulate:'EXPLORE · UNDERSTAND · SIMULATE', siteMap:'SITE MAP', clearDay:'28° · Clear', clearNight:'22° · Clear night', demoScenario:'DEMO SCENARIO 01', focusSelection:'Focus selection', fullscreen:'Fullscreen',
  pipeline:'Pipeline', demoFlow:'Demo flow', activeAsset:'Active asset', siteMonitoring:'SITE MONITORING', operationsNavigation:'SITE MONITORING & NAVIGATION', activeViewScope:'ACTIVE VIEW SCOPE', localAssetInventory:'Local asset inventory', assets:'assets',
  local:'LOCAL', siteZones:'SITE ZONES', alarmSummary:'ALARM SUMMARY', scheduledReview:'scheduled review', visitorMode:'Visitor mode', localProfile:'Local session', assetDetails:'ASSET DETAILS', operationsCenter:'OPERATIONS CENTER', operationsCode:'PV / OPS', settings:'Settings',
- currentSimulation:'SIMULATION ACTIVE', units:'units', demoAssets:'demo assets', personnelLabel:'personnel', interactiveDemo:'Interactive demo environment', noLiveConnection:'NO LIVE SYSTEM CONNECTION',
+ currentSimulation:'SIMULATION ACTIVE', simulationPaused:'SIMULATION PAUSED', units:'units', demoAssets:'demo assets', personnelLabel:'personnel', interactiveDemo:'Interactive demo environment', noLiveConnection:'NO LIVE SYSTEM CONNECTION',
  siteHealth:'SITE HEALTH', operationsStable:'Operations stable', updatedNow:'Updated just now', utilityBalance:'DEMO UTILITIES BALANCE', power:'POWER', steam:'STEAM', coolingWater:'COOLING WATER', processInstruments:'PROCESS INSTRUMENTS',
  throughputTrend:'DEMO THROUGHPUT', recentActivity:'RECENT ACTIVITY', viewAllActivity:'View all',
  processPath:'REFINERY PROCESS PATH', illustrativeDemo:'ILLUSTRATIVE · DEMO', connectedUnits:'CONNECTED UNITS', start:'START', end:'END',

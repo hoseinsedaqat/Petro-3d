@@ -9,7 +9,9 @@ type SimulationValues=Pick<AppState,'playing'|'speed'|'flow'|'trafficStatus'|'ta
 /** Reproducible local demo baseline; no network or persisted operational values. */
 export function createInitialSimulationState(resetKey=0):SimulationValues {
  return {
-  playing:true,speed:1,flow:false,
+  // Start with rendering on demand; the visitor can opt into continuous vehicle/scene animation.
+  // This avoids an expensive full-scene animation loop on first load, especially on mobile GPUs.
+  playing:false,speed:1,flow:false,
   trafficStatus:{...initialTrafficStatus},tankerStatus:{...initialTankerStatus},
   resetKey,simulationMinutes:8*60+42,
  };

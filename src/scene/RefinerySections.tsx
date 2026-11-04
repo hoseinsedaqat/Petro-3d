@@ -1,12 +1,37 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import type { SiteItem } from '../data/site';
 import { useStore } from '../store';
 import { getWeatheredSteelMap, getYardSurfaceMap } from './materials';
 import { VesselAccessDeck } from './VesselAccessDeck';
+import { InteractionFeedback } from './InteractionFeedback';
 
 const steel='#65766d', paleSteel='#aeb8ae', safety='#d5bd83', pipe='#a97e49';
+
+/** Lightweight local particles for illustrative steam/smoke; no external assets or services. */
+export function SimulatedPlume({color='#d5dcd6',count=14,rise=3.2,spread=.42,size=.22,position}:{color?:string;count?:number;rise?:number;spread?:number;size?:number;position?:[number,number,number]}){
+ const playing=useStore(s=>s.playing),speed=useStore(s=>s.speed),quality=useStore(s=>s.quality),resetKey=useStore(s=>s.resetKey),elapsed=useRef(0),lastReset=useRef(resetKey);
+ const particleCount=quality==='low'?Math.max(3,Math.ceil(count*.42)):quality==='high'?Math.ceil(count*1.35):count;
+ const plume=useMemo(()=>{
+  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(particleCount*3),3));geometry.boundingSphere=new THREE.Sphere(new THREE.Vector3(0,rise/2,0),Math.hypot(rise/2,spread*1.25)+size);
+  const material=new THREE.PointsMaterial({color,size,transparent:true,opacity:.34,depthWrite:false,sizeAttenuation:true});
+  return {geometry,material,phases:Array.from({length:particleCount},(_,i)=>((i*.61803398875)%1)*.92)};
+ },[color,particleCount,rise,size,spread]);
+ useEffect(()=>()=>{plume.geometry.dispose();plume.material.dispose()},[plume]);
+ useFrame((_,delta)=>{
+  if(resetKey!==lastReset.current){elapsed.current=0;lastReset.current=resetKey;}
+  if(!playing)return;
+  elapsed.current+=delta*speed;
+  const positions=plume.geometry.getAttribute('position') as THREE.BufferAttribute;
+  for(let i=0;i<particleCount;i++){
+   const phase=(plume.phases[i]+elapsed.current*.29)%1,angle=i*2.399+elapsed.current*.24;
+   positions.setXYZ(i,Math.cos(angle)*spread*(.2+phase),phase*rise,Math.sin(angle)*spread*(.2+phase));
+  }
+  positions.needsUpdate=true;
+ });
+ return <points position={position} geometry={plume.geometry} material={plume.material}/>;
+}
 function Beam({position,size,color=steel,rotation}:{position:[number,number,number];size:[number,number,number];color?:string;rotation?:[number,number,number]}){
  return <mesh position={position} scale={size} rotation={rotation} castShadow receiveShadow><boxGeometry/><meshStandardMaterial color={color} metalness={.42} roughness={.58}/></mesh>;
 }
@@ -22,14 +47,14 @@ function Run({a,b,color=pipe,r=.11}:{a:[number,number,number];b:[number,number,n
  </group>;
 }
 function Selectable({item,children}:{item:SiteItem;children:React.ReactNode}){
- const selected=useStore(s=>s.selected),select=useStore(s=>s.select),active=selected?.id===item.id;
- return <group position={item.position} onClick={e=>{e.stopPropagation();select(item)}} onPointerOver={()=>{document.body.style.cursor='pointer'}} onPointerOut={()=>{document.body.style.cursor='auto'}}>
-  {children}
-  {active&&<mesh position={[0,.11,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[5.1,5.35,56]}/><meshBasicMaterial color="#e5bc71"/></mesh>}
+ const root=useRef<THREE.Group>(null),select=useStore(s=>s.select),hovered=useStore(s=>s.hovered),setHovered=useStore(s=>s.setHovered);
+ return <group ref={root} position={item.position} onClick={e=>{e.stopPropagation();select(item)}} onPointerOver={e=>{e.stopPropagation();setHovered(item);document.body.style.cursor='pointer'}} onPointerOut={()=>{if(hovered?.id===item.id)setHovered(null);document.body.style.cursor='auto'}}>
+  {children}<InteractionFeedback item={item} root={root}/>
  </group>;
 }
 export function EquipmentTag({label,position}:{label:string;position:[number,number,number]}){
  const map=useMemo(()=>{const canvas=document.createElement('canvas');canvas.width=512;canvas.height=160;const c=canvas.getContext('2d');if(!c)return undefined;c.fillStyle='#293832';c.fillRect(0,0,512,160);c.fillStyle='#caa65f';c.fillRect(0,0,22,160);c.strokeStyle='#bba775';c.lineWidth=8;c.strokeRect(10,10,492,140);c.fillStyle='#e8e6d8';c.font='bold 72px Arial, sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(label,270,82);const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;return texture;},[label]);
+ useEffect(()=>()=>map?.dispose(),[map]);
  return <group position={position}><Beam position={[-.65,-.48,0]} size={[.06,.9,.06]} color="#46574e"/><Beam position={[.65,-.48,0]} size={[.06,.9,.06]} color="#46574e"/><mesh><boxGeometry args={[1.8,.62,.12]}/><meshStandardMaterial color="#fff" map={map} metalness={.22} roughness={.48}/></mesh></group>;
 }
 function Vessel({x,z,r,h,color=paleSteel,band=true}:{x:number;z:number;r:number;h:number;color?:string;band?:boolean}){
@@ -428,8 +453,8 @@ export function ElectricalSubstation({item}:{item:SiteItem}){
  </Selectable>;
 }
 function Fan({position,index}:{position:[number,number,number];index:number}){
- const rotor=useRef<THREE.Group>(null),playing=useStore(s=>s.playing);
- useFrame((_,dt)=>{if(rotor.current&&playing)rotor.current.rotation.y+=dt*(index%2?3.1:-2.7)});
+ const rotor=useRef<THREE.Group>(null),playing=useStore(s=>s.playing),speed=useStore(s=>s.speed),resetKey=useStore(s=>s.resetKey),lastReset=useRef(resetKey);
+ useFrame((_,dt)=>{const reset=resetKey!==lastReset.current;if(reset){if(rotor.current)rotor.current.rotation.y=0;lastReset.current=resetKey;}if(!playing&&!reset)return;if(rotor.current&&playing)rotor.current.rotation.y+=dt*speed*(index%2?3.1:-2.7)});
  return <group position={position}>
   <mesh position={[0,.06,0]}><cylinderGeometry args={[1.05,1.05,.14,24]}/><meshStandardMaterial color="#4d6158" metalness={.45}/></mesh>
   <group ref={rotor} position={[0,.17,0]}>
@@ -450,6 +475,7 @@ export function CoolingBattery({item}:{item:SiteItem}){
     <Beam position={[0,5.33,0]} size={[3.3,.18,5.35]} color="#9da99f"/>
     <mesh position={[0,5.47,0]}><cylinderGeometry args={[.92,.92,.16,24]}/><meshStandardMaterial color="#4b5d54" metalness={.35}/></mesh>
     <Fan position={[0,5.58,0]} index={i}/>
+    <SimulatedPlume position={[0,6.22,0]} color="#d6ded8" count={11} rise={2.8} spread={.48} size={.2}/>
     {[-1.2,1.2].map(z=><Beam key={z} position={[0,3.9,z]} size={[2.65,2.35,.055]} color="#b6aa87"/>)}
     <mesh position={[0,2.55,0]}><boxGeometry args={[2.8,.16,4.8]}/><meshStandardMaterial color="#a6b4a9"/></mesh>
   </group>)}

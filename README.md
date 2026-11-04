@@ -34,6 +34,8 @@ PetroVista 3D is a browser-based, interactive miniature of a refinery campus and
 - Drag to orbit or pan the scene; use the mouse wheel to zoom.
 - Select a unit, tank, or vehicle to open its information panel; use search to find an asset by name or tag.
 - Use the navigation rail to focus on a site zone. The toolbar provides day/night, flow, playback, speed, reset, and quality controls.
+- Rendering becomes on-demand while the simulation is paused and resumes continuously during playback. The selected resolution is kept steady during camera navigation; the scene is not adaptively pixelated.
+- Repeated box-shaped scene details use instanced rendering to reduce draw calls; moving vehicles and the fallback ship use separate updating batches so their motion and interaction remain intact.
 - Keyboard shortcuts: **W/A/S/D** or **arrow keys** to move the focus, **F** to focus the selected asset, **R** to reset, and **Esc** to clear the selection or close search/help.
 
 ### Run locally
@@ -59,11 +61,18 @@ npm run preview     # Serve the production build locally
 
 The repository includes a GitHub Actions workflow named **Deploy PetroVista 3D to GitHub Pages**. Configure **Settings → Pages → Build and deployment → Source** to **GitHub Actions**, then push to the `test` branch or run the workflow manually from the Actions tab. It installs the locked dependencies, type-checks, builds with the repository-specific Vite base path, and deploys `dist/`.
 
-For a local project-site build, set the base path to match the repository name:
+For a local project-site build, set the base path to match the repository name. The Pages workflow runs the same path check before uploading the artifact:
 
 ```bash
 VITE_BASE_PATH=/Petro-3d/ npm run build
+VITE_BASE_PATH=/Petro-3d/ npm run verify:pages
 ```
+
+`verify:pages` serves the generated files under the configured repository prefix and checks the built HTML, JavaScript, CSS, fonts, and both bundled GLB model URLs. The application entry point is relative, runtime model URLs use Vite's `BASE_URL`, and procedural textures are generated locally. No backend or external API is used.
+
+### Final verification scope
+
+The release workflow runs the TypeScript check, production build, and repository-base static asset test. Interactive WebGL behaviors still require a browser with working WebGL; the repository does not currently include an automated browser test runner.
 
 ### Project map
 
@@ -108,6 +117,8 @@ VITE_BASE_PATH=/Petro-3d/ npm run build
 - برای چرخاندن یا جابه‌جایی دید، صحنه را بکشید؛ برای بزرگ‌نمایی از چرخ ماوس استفاده کنید.
 - با انتخاب واحد، مخزن یا وسیله‌ی نقلیه، پنل اطلاعات آن را باز کنید؛ برای یافتن تجهیز می‌توانید از نام یا شناسه‌ی آن جست‌وجو کنید.
 - از نوار ناوبری برای رفتن به محدوده‌های سایت استفاده کنید. نوار ابزار، حالت روز/شب، نمایش جریان، پخش و سرعت شبیه‌سازی، بازنشانی و کیفیت صحنه را کنترل می‌کند.
+- هنگام توقف شبیه‌سازی، رندر صحنه به‌صورت درخواستی انجام می‌شود و با شروع پخش دوباره پیوسته خواهد بود. وضوح انتخاب‌شده هنگام حرکت دوربین ثابت می‌ماند و تصویر به‌صورت تطبیقی pixelate نمی‌شود.
+- جزئیات تکراری مکعبی با رندر instanced دسته‌بندی شده‌اند تا draw callها کم شوند؛ خودروها و کشتی fallback دسته‌های پویای جداگانه دارند تا حرکت و تعاملشان حفظ شود.
 - میان‌برها: **W/A/S/D** یا کلیدهای جهت‌دار برای حرکت نقطه‌ی تمرکز، **F** برای تمرکز روی تجهیز انتخاب‌شده، **R** برای بازنشانی و **Esc** برای پاک‌کردن انتخاب یا بستن جست‌وجو/راهنما.
 
 ### اجرا در سیستم محلی
@@ -133,11 +144,18 @@ npm run preview     # اجرای محلی نسخه‌ی ساخته‌شده
 
 مخزن یک گردش‌کار GitHub Actions با نام **Deploy PetroVista 3D to GitHub Pages** دارد. در **Settings → Pages → Build and deployment → Source** گزینه‌ی **GitHub Actions** را انتخاب کنید؛ سپس به شاخه‌ی `test` push کنید یا گردش‌کار را از زبانه‌ی Actions به‌صورت دستی اجرا کنید. گردش‌کار وابستگی‌های قفل‌شده را نصب می‌کند، TypeScript را بررسی می‌کند، با مسیر پایه‌ی متناسب با نام مخزن build می‌گیرد و پوشه‌ی `dist/` را منتشر می‌کند.
 
-برای build محلی با مسیر پروژه، مسیر پایه را مطابق نام مخزن تنظیم کنید:
+برای build محلی با مسیر پروژه، مسیر پایه را مطابق نام مخزن تنظیم کنید. گردش‌کار Pages پیش از بارگذاری artifact همین بررسی مسیر را اجرا می‌کند:
 
 ```bash
 VITE_BASE_PATH=/Petro-3d/ npm run build
+VITE_BASE_PATH=/Petro-3d/ npm run verify:pages
 ```
+
+دستور `verify:pages` فایل‌های ساخته‌شده را زیر پیشوند مسیر مخزن به‌صورت محلی سرو می‌کند و مسیرهای HTML، JavaScript، CSS، فونت‌ها و نشانی هر دو مدل GLB همراه پروژه را بررسی می‌کند. مسیر ورودی برنامه نسبی است، نشانی مدل‌ها از `BASE_URL` ویت استفاده می‌کند و بافت‌ها به‌صورت محلی ساخته می‌شوند. پروژه به backend یا API خارجی وابسته نیست.
+
+### دامنه‌ی بررسی نهایی
+
+گردش‌کار انتشار، بررسی TypeScript، build انتشار و آزمون ایستای مسیر دارایی‌ها را اجرا می‌کند. رفتارهای تعاملی WebGL همچنان به مرورگر دارای WebGL نیاز دارند؛ مخزن در حال حاضر ابزار آزمون خودکار مرورگری ندارد.
 
 ### ساختار پروژه
 

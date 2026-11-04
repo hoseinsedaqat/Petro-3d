@@ -1,16 +1,22 @@
+import { useEffect, useMemo, useRef } from 'react';
+import * as THREE from 'three';
 import { useStore } from '../store';
 import type { SiteItem } from '../data/site';
-import { getWeatheredSteelMap } from './materials';
+import { createPaintedSteelMaterial } from './materials';
 import { VesselAccessDeck } from './VesselAccessDeck';
+import { InteractionFeedback } from './InteractionFeedback';
 
 function FrameMember({position,size,rotation,color='#68776e'}:{position:[number,number,number];size:[number,number,number];rotation?:[number,number,number];color?:string}){return <mesh position={position} rotation={rotation} castShadow><boxGeometry args={size}/><meshStandardMaterial color={color} metalness={.5} roughness={.55}/></mesh>}
 export function SphereTank({item}:{item:SiteItem}){
- const selected=useStore(s=>s.selected);const select=useStore(s=>s.select);const fill=item.fill??60;
- return <group position={item.position} onClick={e=>{e.stopPropagation();select(item)}} onPointerOver={()=>{document.body.style.cursor='pointer'}} onPointerOut={()=>{document.body.style.cursor='auto'}}>
+ const root=useRef<THREE.Group>(null),select=useStore(s=>s.select),hovered=useStore(s=>s.hovered),setHovered=useStore(s=>s.setHovered);const fill=item.fill??60;
+ const index=Math.min(3,Math.max(0,Number(item.id.slice(-3))-201));const sizeScale=[.9,.97,1.06,.93][index];
+ const vesselMaterial=useMemo(()=>createPaintedSteelMaterial('#b8beb2'),[]);
+ useEffect(()=>()=>vesselMaterial.dispose(),[vesselMaterial]);
+ return <group ref={root} position={item.position} onClick={e=>{e.stopPropagation();select(item)}} onPointerOver={e=>{e.stopPropagation();setHovered(item);document.body.style.cursor='pointer'}} onPointerOut={()=>{if(hovered?.id===item.id)setHovered(null);document.body.style.cursor='auto'}}>
   <mesh visible={false}><cylinderGeometry args={[2.8,2.8,9,12]}/><meshBasicMaterial transparent opacity={0}/></mesh>
-  {selected?.id===item.id&&<mesh position={[0,.08,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[2.45,2.62,48]}/><meshBasicMaterial color="#e6bd77"/></mesh>}
+  <group scale={sizeScale}>
   {/* Pressurized spherical vessel with reinforced lower skirt */}
-  <mesh position={[0,3.35,0]} castShadow receiveShadow><sphereGeometry args={[2.05,36,26]}/><meshStandardMaterial color="#b8beb2" map={getWeatheredSteelMap()} metalness={.42} roughness={.62}/></mesh>
+  <mesh position={[0,3.35,0]} castShadow receiveShadow><sphereGeometry args={[2.05,36,26]}/><primitive object={vesselMaterial} attach="material"/></mesh>
   <mesh position={[0,3.35,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[2.055,.045,8,48]}/><meshStandardMaterial color="#7d8980" metalness={.65}/></mesh>
   <mesh position={[0,5.31,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[2.1,.095,8,40]}/><meshStandardMaterial color="#8c9489" metalness={.38}/></mesh>
   {/* Braced legs and footings */}
@@ -31,5 +37,7 @@ export function SphereTank({item}:{item:SiteItem}){
   <mesh position={[-1.55,2.7,1.5]}><boxGeometry args={[.17,.13,.15]}/><meshStandardMaterial color={fill>80?'#e1a454':'#75b58c'} emissive={fill>80?'#5b3212':'#173923'} emissiveIntensity={.7}/></mesh>
   <FrameMember position={[0,.055,0]} size={[.2,.11,.2]} color="#b95d49"/>
   <mesh position={[0,6.08,0]}><sphereGeometry args={[.09,10,10]}/><meshBasicMaterial color="#f0b65e"/></mesh>
+  </group>
+  <InteractionFeedback item={item} root={root}/>
  </group>
 }

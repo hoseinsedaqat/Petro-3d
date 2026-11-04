@@ -151,21 +151,31 @@ function InspectionReadout({item,rtl,onSelect}:{item:SiteItem;rtl:boolean;onSele
 }
 type SceneCanvasProps={quality:'low'|'medium'|'high';playing:boolean;sceneReady:boolean;onReady:()=>void;onPointerMissed:()=>void};
 const SceneCanvas=memo(function SceneCanvas({quality,playing,sceneReady,onReady,onPointerMissed}:SceneCanvasProps){
- return <Canvas frameloop={playing?'always':'demand'} shadows={quality!=='low'} fallback={<WebGLUnavailable onReady={onReady}/>} dpr={quality==='low'?.75:quality==='medium'?1:[1,1.3]} onPointerMissed={onPointerMissed} orthographic camera={{position:[54,72,58],zoom:9.7,near:.1,far:300}} gl={{antialias:false,alpha:false,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.05}}>
+ return <Canvas frameloop={playing?'always':'demand'} shadows={quality!=='low'} fallback={<WebGLUnavailable onReady={onReady}/>} dpr={quality==='low'?.75:quality==='medium'?1:[1,1.3]} onPointerMissed={onPointerMissed} onCreated={({gl,scene})=>{gl.setClearColor('#c9d7d4',1);scene.background=new THREE.Color('#c9d7d4')}} orthographic camera={{position:[54,72,58],zoom:9.7,near:.1,far:300}} gl={{antialias:false,alpha:false,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.05}}>
   <SceneReadySignal onReady={onReady}/><AssetBoundary fallback={(error)=><SceneFallback message={error}/>}><World loadHighDetail={sceneReady&&quality!=='low'}/></AssetBoundary>
  </Canvas>;
 });
+function SimulationClockReadout({rtl,className,label}:{rtl:boolean;className:string;label?:string}){
+ const minutes=useStore(s=>s.simulationMinutes);
+ const value=useMemo(()=>{
+  const formatter=new Intl.NumberFormat(rtl?'fa-IR':'en-US',{minimumIntegerDigits:2,useGrouping:false});
+  return `${formatter.format(Math.floor(minutes/60))}:${formatter.format(minutes%60)}`;
+ },[minutes,rtl]);
+ return <b className={className} aria-label={label?`${label}: ${value}`:undefined}>{value}</b>;
+}
 function App(){
- const lang=useStore(s=>s.lang),quality=useStore(s=>s.quality),setPreference=useStore(s=>s.setPreference),setSimulation=useStore(s=>s.setSimulation),setUI=useStore(s=>s.setUI),setFocus=useStore(s=>s.setFocus),setLanguage=useStore(s=>s.setLanguage),selected=useStore(s=>s.selected),select=useStore(s=>s.select),mode=useStore(s=>s.mode),playing=useStore(s=>s.playing),speed=useStore(s=>s.speed),night=useStore(s=>s.night),flow=useStore(s=>s.flow),activeProcessStage=useStore(s=>s.activeProcessStage),search=useStore(s=>s.search),resetSimulation=useStore(s=>s.resetSimulation),clock=useStore(s=>s.simulationMinutes);
- const t=translations[lang];const rtl=lang==='fa',reduceMotion=Boolean(useReducedMotion()); const [help,setHelp]=useState(false); const [analytics,setAnalytics]=useState(false); const [mobileInspectorOpen,setMobileInspectorOpen]=useState(true); const [mobileMonitoringOpen,setMobileMonitoringOpen]=useState(false); const [settings,setSettings]=useState(false); const [tourActive,setTourActive]=useState(false); const [tourIndex,setTourIndex]=useState(0); const [notice,setNotice]=useState<ToastNotice|null>(null); const noticeTimer=useRef<number|undefined>(undefined),noticeSequence=useRef(0); const tourFlowBefore=useRef(false); const {progress:assetProgress}=useProgress(); const [sceneReady,setSceneReady]=useState(false); const [showLoading,setShowLoading]=useState(true);
- // Keep the readout tied to actual loader progress; 100% means the scene has rendered its first frame.
- const shownProgress=sceneReady?100:Math.min(94,Math.max(0,Math.round(assetProgress*.94)));
+ const lang=useStore(s=>s.lang),quality=useStore(s=>s.quality),setPreference=useStore(s=>s.setPreference),setSimulation=useStore(s=>s.setSimulation),setUI=useStore(s=>s.setUI),setFocus=useStore(s=>s.setFocus),setLanguage=useStore(s=>s.setLanguage),selected=useStore(s=>s.selected),select=useStore(s=>s.select),mode=useStore(s=>s.mode),playing=useStore(s=>s.playing),speed=useStore(s=>s.speed),night=useStore(s=>s.night),flow=useStore(s=>s.flow),activeProcessStage=useStore(s=>s.activeProcessStage),search=useStore(s=>s.search),resetSimulation=useStore(s=>s.resetSimulation);
+ const t=translations[lang];const rtl=lang==='fa',reduceMotion=Boolean(useReducedMotion()); const [help,setHelp]=useState(false); const [analytics,setAnalytics]=useState(false); const [mobileInspectorOpen,setMobileInspectorOpen]=useState(true); const [mobileMonitoringOpen,setMobileMonitoringOpen]=useState(false); const [settings,setSettings]=useState(false); const [tourActive,setTourActive]=useState(false); const [tourIndex,setTourIndex]=useState(0); const [notice,setNotice]=useState<ToastNotice|null>(null); const noticeTimer=useRef<number|undefined>(undefined),noticeSequence=useRef(0); const tourFlowBefore=useRef(false); const [sceneReady,setSceneReady]=useState(false); const [showLoading,setShowLoading]=useState(true);
  const resetDemo=useCallback(()=>{setTourActive(false);resetSimulation();setNotice({id:++noticeSequence.current,title:t.resetComplete,detail:t.resetCompleteDetail,tone:'success'});if(noticeTimer.current)window.clearTimeout(noticeTimer.current);noticeTimer.current=window.setTimeout(()=>setNotice(null),4200)},[resetSimulation,t.resetComplete,t.resetCompleteDetail]);
  useEffect(()=>()=>{if(noticeTimer.current)window.clearTimeout(noticeTimer.current)},[]);
  useEffect(()=>{if(!sceneReady)return;const timer=window.setTimeout(()=>setShowLoading(false),320);return()=>window.clearTimeout(timer)},[sceneReady]);
  useEffect(()=>{document.documentElement.lang=lang;document.documentElement.dir=rtl?'rtl':'ltr'},[lang,rtl]);
  useEffect(()=>{const onKey=(e:KeyboardEvent)=>{if((e.target as HTMLElement)?.tagName==='INPUT')return;const current=useStore.getState();const focus=current.focus||[0,0,0];if(e.key==='Escape'){select(null);setUI('search','');setHelp(false);setSettings(false);setAnalytics(false);setMobileInspectorOpen(false);setMobileMonitoringOpen(false);return}if(e.key.toLowerCase()==='r'){resetDemo();return}if(e.key.toLowerCase()==='f'&&current.selected){setFocus([...current.selected.position]);return}const step=e.shiftKey?10:4;const move:Record<string,[number,number,number]>={w:[0,0,-step],ArrowUp:[0,0,-step],s:[0,0,step],ArrowDown:[0,0,step],a:[-step,0,0],ArrowLeft:[-step,0,0],d:[step,0,0],ArrowRight:[step,0,0]};if(move[e.key]||move[e.key.toLowerCase()]){e.preventDefault();const [dx,dy,dz]=move[e.key]||move[e.key.toLowerCase()];setFocus([focus[0]+dx,focus[1]+dy,focus[2]+dz]);}};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[select,setUI,setFocus,resetDemo]);
- useEffect(()=>{const timer=setInterval(()=>useStore.getState().advanceSimulationClock(),1000);return()=>clearInterval(timer)},[]);
+ useEffect(()=>{
+  if(!playing)return;
+  const timer=window.setInterval(()=>useStore.getState().advanceSimulationClock(),1000);
+  return()=>window.clearInterval(timer);
+ },[playing]);
  useEffect(()=>{if(!tourActive)return;const stage=processStages[tourIndex];if(!stage){setTourActive(false);setSimulation('flow',tourFlowBefore.current);return}setUI('activeProcessStage',stage.id);setUI('mode',stage.zone);setFocus([...stage.position]);setSimulation('flow',true);const timer=window.setTimeout(()=>{if(tourIndex===processStages.length-1){setSimulation('flow',tourFlowBefore.current);setTourActive(false)}else setTourIndex(index=>index+1)},5200);return()=>window.clearTimeout(timer)},[tourActive,tourIndex,setUI,setFocus,setSimulation]);
  const results=useMemo(()=>search.trim()?inspectableItems.filter(i=>(i.fa+i.en+i.id+i.kind).toLowerCase().includes(search.toLowerCase())).slice(0,6):[],[search]);
  const currentZone=selected?zones.find(z=>z.id===selected.zone):null;
@@ -180,7 +190,6 @@ function App(){
  const closeDrawers=()=>{setMobileInspectorOpen(false);setMobileMonitoringOpen(false)};
  const fullScreen=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()};
  const markSceneReady=useCallback(()=>setSceneReady(true),[]),clearSceneSelection=useCallback(()=>select(null),[select]);
- const clockFormatter=new Intl.NumberFormat(rtl?'fa-IR':'en-US',{minimumIntegerDigits:2,useGrouping:false});const clockText=`${clockFormatter.format(Math.floor(clock/60))}:${clockFormatter.format(clock%60)}`;
  const scopeCount=sectionAssets(mode).length,scopePercent=Math.max(8,Math.round(scopeCount/Math.max(1,inspectableItems.length)*100));
  const mapLabel=mode==='overview'?t.overviewTitle:dashboardSections[mode]?(rtl?dashboardSections[mode].fa:dashboardSections[mode].en):t.overviewTitle;
  const stopTour=()=>{if(tourActive)setSimulation('flow',tourFlowBefore.current);setTourActive(false)};
@@ -188,7 +197,7 @@ function App(){
  return <div className={`app-shell ${night?'night':''}`} lang={lang} dir={rtl?'rtl':'ltr'}>
   <header className="topbar">
    <div className="brand-lockup"><div className="brand-mark"><Factory size={19}/><span/></div><div className="brand-name"><strong>PetroVista <b>3D</b></strong><small>{t.exploreUnderstandSimulate}</small></div></div>
-   <div className="header-context"><span className="live-dot"/><span>{t.demo}</span><span className="header-divider"/><Clock3 size={14}/><b className="clock-value">{clockText}</b><span className="timezone">UTC+03:30</span></div>
+   <div className="header-context"><span className="live-dot"/><span>{t.demo}</span><span className="header-divider"/><Clock3 size={14}/><SimulationClockReadout rtl={rtl} className="clock-value"/><span className="timezone">UTC+03:30</span></div>
    <div className="header-actions">
     <button className="icon-button drawer-toggle operations-drawer-toggle" onClick={toggleOperationsDrawer} title={t.operationsCenter} aria-label={t.operationsCenter} aria-pressed={mobileInspectorOpen}><PanelLeftOpen size={16}/></button>
     <button className="icon-button drawer-toggle monitoring-drawer-toggle" onClick={toggleMonitoringDrawer} title={t.siteMonitoring} aria-label={t.siteMonitoring} aria-pressed={mobileMonitoringOpen}><PanelRightOpen size={16}/></button>
@@ -263,9 +272,9 @@ function App(){
    </aside>
   </main>
   <footer className="bottom-bar">
-   <div className="bottom-left"><span className="bottom-state"><i/> {t.currentSimulation}</span><span className="bottom-sep"/><span><Building2 size={14}/>{rtl?'۲۱ واحد':'21 units'}</span><span><Cpu size={14}/>{inspectableItems.length} {t.demoAssets}</span><span><Users size={14}/>{demoPersonnelCount} {t.personnelLabel}</span></div>
+   <div className="bottom-left"><span className={`bottom-state ${playing?'':'paused'}`}><i/> {playing?t.currentSimulation:t.simulationPaused}</span><span className="bottom-sep"/><span><Building2 size={14}/>{rtl?'۲۱ واحد':'21 units'}</span><span><Cpu size={14}/>{inspectableItems.length} {t.demoAssets}</span><span><Users size={14}/>{demoPersonnelCount} {t.personnelLabel}</span></div>
    <div className="bottom-controls"><button className={`flow-toggle ${flow?'enabled':''}`} onClick={()=>setSimulation('flow',!flow)} title={t.toggleProcessFlow} aria-pressed={flow}><span className="flow-toggle-icon"><Activity size={15}/></span>{flow?t.flowOn:t.flow}</button><div className="playback"><button aria-label={playing?t.pause:t.play} onClick={()=>setSimulation('playing',!playing)} title={playing?t.pause:t.play}>{playing?<Pause size={15}/>:<Play size={15}/>}</button><button aria-label={t.reset} onClick={resetDemo} title={t.reset}><RotateCcw size={14}/></button><button className="speed-button" aria-label={rtl?`سرعت شبیه‌سازی ${speed} برابر`:`Simulation speed ${speed} times`} title={t.cycleSpeed} onClick={()=>setSimulation('speed',speed===.5?1:speed===1?2:speed===2?4:.5)}>{speed}×<ChevronDown size={12}/></button></div></div>
-   <div className="bottom-right"><button className="mode-pill" aria-label={night?t.switchToDay:t.switchToNight} title={t.toggleLighting} aria-pressed={night} onClick={()=>setPreference('night',!night)}>{night?<Moon size={14}/>:<Sun size={14}/>} {night?t.night:t.day}</button><span className="bottom-sep"/><span className="time-label">{t.time}</span><b className="bottom-clock" aria-label={`${t.time}: ${clockText}`}>{clockText}</b></div>
+   <div className="bottom-right"><button className="mode-pill" aria-label={night?t.switchToDay:t.switchToNight} title={t.toggleLighting} aria-pressed={night} onClick={()=>setPreference('night',!night)}>{night?<Moon size={14}/>:<Sun size={14}/>} {night?t.night:t.day}</button><span className="bottom-sep"/><span className="time-label">{t.time}</span><SimulationClockReadout rtl={rtl} className="bottom-clock" label={t.time}/></div>
   </footer>
   <div className="toast-region" aria-live="polite" aria-atomic="true">
    <AnimatePresence initial={false}>{notice&&<motion.div key={notice.id} className={`toast-notice ${notice.tone}`} role="status" dir={rtl?'rtl':'ltr'} initial={{opacity:0,y:8,scale:.985}} animate={{opacity:1,y:0,scale:1}} exit={{opacity:0,y:5,scale:.99}} transition={{duration:reduceMotion?0:.18,ease:[.22,1,.36,1]}}>
@@ -273,13 +282,15 @@ function App(){
    </motion.div>}</AnimatePresence>
   </div>
   <div className="right-zoom"><button onClick={()=>setFocus([0,0,0])} title={t.viewAll} aria-label={t.viewAll}><Compass size={14}/></button></div>
-  <AnimatePresence>{showLoading&&<SceneLoadingOverlay progress={shownProgress} rtl={rtl}/>}</AnimatePresence>
+  <AnimatePresence>{showLoading&&<SceneLoadingOverlay sceneReady={sceneReady} rtl={rtl}/>}</AnimatePresence>
   <AnimatePresence>{settings&&<Modal title={t.displaySettings} onClose={()=>setSettings(false)}><div className="settings-panel"><p>{t.chooseSceneQuality}</p><div className="quality-options">{(['low','medium','high'] as const).map(level=><button key={level} type="button" className={quality===level?'selected':''} aria-pressed={quality===level} onClick={()=>setPreference('quality',level)}><b>{rtl?({low:t.low,medium:t.medium,high:t.high} as const)[level]:({low:t.low,medium:t.medium,high:t.high} as const)[level]}</b><small>{rtl?({low:t.lowDescription,medium:t.mediumDescription,high:t.highDescription} as const)[level]:({low:t.lowDescription,medium:t.mediumDescription,high:t.highDescription} as const)[level]}</small></button>)}</div><div className="settings-demo-note"><Radio size={15}/>{t.simulatedNoConnection}</div></div></Modal>}</AnimatePresence>
   <AnimatePresence>{help&&<Modal title={t.environmentGuide} onClose={()=>setHelp(false)}><div className="help-grid"><HelpItem icon={<Compass/>} title={t.navigateScene} text={t.navigateSceneHelp}/><HelpItem icon={<Box/>} title={t.inspectAssets} text={t.inspectAssetsHelp}/><HelpItem icon={<Activity/>} title={t.flow} text={t.processFlowHelp}/><HelpItem icon={<Radio/>} title={t.demoData} text={t.demoDataHelp}/></div></Modal>}</AnimatePresence>
   <AnimatePresence>{analytics&&<Modal title={t.demoAnalytics} onClose={()=>setAnalytics(false)}><div className="analytics-summary"><Kpi icon={<Gauge/>} label={t.storageKpi} value="64%" meta="± 3.2%" color="blue"/><Kpi icon={<Activity/>} label={t.throughput} value="42.8" meta="kt/day · demo" color="blue"/><Kpi icon={<Bell/>} label={t.alerts} value="01" meta={t.reviewRequired} color="amber"/></div><div className="analytics-utility-grid"><div><small>{t.powerDemand}</small><b>18.6 <i>MW</i></b><span>74% {t.demoLoad}</span></div><div><small>{t.processSteam}</small><b>42.1 <i>t/h</i></b><span>61% {t.demoLoad}</span></div><div><small>{t.coolingWater}</small><b>124 <i>m³/h</i></b><span>48% {t.demoLoad}</span></div><div><small>{t.alarmState}</small><b>{rtl?'۱ بازبینی':'01 review'}</b><span>{t.simulatedEvent}</span></div></div><div className="large-chart"><MiniChart rtl={rtl}/><div>{t.performanceIndex}</div></div></Modal>}</AnimatePresence>
  </div>;
 }
-function SceneLoadingOverlay({progress,rtl}:{progress:number;rtl:boolean}){
+function SceneLoadingOverlay({sceneReady,rtl}:{sceneReady:boolean;rtl:boolean}){
+ const {progress:assetProgress}=useProgress();
+ const progress=sceneReady?100:Math.min(94,Math.max(0,Math.round(assetProgress*.94)));
  const t=translations[rtl?'fa':'en'],reduceMotion=Boolean(useReducedMotion());
  const stages=[t.crudeFeed,t.distillation,t.conversion,t.utilitiesStage,t.storageExport];
  const status=progress<22?t.startingRuntime:progress<58?t.buildingAssets:progress<90?t.preparingScene:t.finishingFrame;
@@ -326,7 +337,14 @@ function UtilityMetric({label,value,unit,fill,tip}:{label:string;value:string;un
 function WebGLUnavailable({onReady}:{onReady:()=>void}){
  const rtl=useStore(s=>s.lang==='fa');
  useEffect(()=>{onReady()},[onReady]);
- return <div className="webgl-fallback">{rtl?'مرورگر شما WebGL را فعال نکرده؛ شتاب‌دهی سخت‌افزاری مرورگر را روشن کنید.':'WebGL is unavailable. Enable browser hardware acceleration and reload.'}</div>;
+ return <div className="webgl-fallback" role="status" lang={rtl?'fa':'en'} dir={rtl?'rtl':'ltr'}>
+  <div className="webgl-fallback-card">
+   <span className="webgl-fallback-mark" aria-hidden="true">PV</span>
+   <strong>{rtl?'نمای سه‌بعدی در دسترس نیست':'3D scene is unavailable'}</strong>
+   <p>{rtl?'مرورگر WebGL را فعال نکرده است. پشتیبانی WebGL و شتاب‌دهی سخت‌افزاری را بررسی و صفحه را دوباره بارگذاری کنید.':'WebGL is disabled or unavailable. Check browser WebGL support and hardware acceleration, then reload the page.'}</p>
+   <button type="button" onClick={()=>window.location.reload()}>{rtl?'بارگذاری دوباره':'Reload scene'}</button>
+  </div>
+ </div>;
 }
 function AssetIcon({kind}:{kind:string}){if(kind==='worker')return <Users size={20}/>;if(kind==='tank'||kind==='sphere-tank')return <Layers3 size={20}/>;if(kind==='truck'||kind==='forklift')return <Truck size={20}/>;if(kind==='ship'||kind==='marine')return <Ship size={20}/>;if(kind==='process'||kind==='furnace')return <Factory size={20}/>;if(kind==='building')return <Building2 size={20}/>;if(kind==='cooling')return <Waves size={20}/>;return <Cpu size={20}/>}
 function Kpi({icon,label,value,meta,color,tip}:{icon:React.ReactNode;label:string;value:string;meta:string;color:string;tip?:string}){return <div className={`kpi-card ${color}`} title={tip} aria-label={`${label}: ${value}. ${tip??meta}`}><div className="kpi-icon">{icon}</div><span>{label}</span><b>{value}</b><small>{meta}</small></div>}

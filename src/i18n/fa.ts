@@ -9,7 +9,7 @@ export const fa = {
  exploreUnderstandSimulate:'کاوش · شناخت · شبیه‌سازی', siteMap:'نقشه سایت', clearDay:'۲۸° · هوای صاف', clearNight:'۲۲° · شب صاف', demoScenario:'سناریوی نمایشی ۰۱', focusSelection:'تمرکز روی انتخاب', fullscreen:'تمام‌صفحه',
  pipeline:'خط لوله', demoFlow:'جریان نمایشی', activeAsset:'تجهیز فعال', siteMonitoring:'پایش سایت', operationsNavigation:'پایش و ناوبری سایت', activeViewScope:'محدوده نمای فعلی', localAssetInventory:'فهرست محلی دارایی‌ها', assets:'دارایی',
  local:'محلی', siteZones:'محدوده‌های سایت', alarmSummary:'خلاصه هشدارها', scheduledReview:'بازبینی زمان‌بندی‌شده', visitorMode:'حالت بازدیدکننده', localProfile:'نشست محلی', assetDetails:'جزئیات تجهیز', operationsCenter:'مرکز عملیات', operationsCode:'PV / پایش', settings:'تنظیمات',
- currentSimulation:'شبیه‌سازی فعال', units:'واحد', demoAssets:'دارایی نمایشی', personnelLabel:'پرسنل', interactiveDemo:'محیط نمایشی تعاملی', noLiveConnection:'بدون اتصال به سامانه زنده',
+ currentSimulation:'شبیه‌سازی فعال', simulationPaused:'شبیه‌سازی متوقف', units:'واحد', demoAssets:'دارایی نمایشی', personnelLabel:'پرسنل', interactiveDemo:'محیط نمایشی تعاملی', noLiveConnection:'بدون اتصال به سامانه زنده',
  siteHealth:'وضعیت کلی مجتمع', operationsStable:'عملیات پایدار', updatedNow:'به‌تازگی به‌روزرسانی شد', utilityBalance:'تراز یوتیلیتی · نمایشی', power:'برق', steam:'بخار', coolingWater:'آب خنک‌کن', processInstruments:'نشانگرهای فرایندی',
  throughputTrend:'روند نمایشی تولید', recentActivity:'فعالیت‌های اخیر', viewAllActivity:'مشاهده همه',
  processPath:'مسیر فرایند پالایشگاه', illustrativeDemo:'مفهومی · نمایشی', connectedUnits:'واحدهای متصل', start:'آغاز', end:'پایان',

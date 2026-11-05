@@ -741,17 +741,12 @@ function QuayLight({position}:{position:[number,number,number]}){
  </group>;
 }
 function BerthWayfinding(){
- const night=useStore(s=>s.night),fa=useStore(s=>s.lang==='fa');
+ const night=useStore(s=>s.night);
  return <group position={[29.25,0,-5.2]}>
   <Box position={[0,.12,0]} scale={[.72,.24,.72]} color="#69756c"/>
   <Box position={[0,1.18,0]} scale={[.1,2.05,.1]} color="#66756b"/>
   <Box position={[0,2.0,.06]} scale={[1.28,.72,.12]} color="#293d3b"/>
   <Box position={[0,2.39,.13]} scale={[1.31,.06,.16]} color="#c8ae6c"/>
-  <Html center position={[0,2.02,.14]} zIndexRange={[1,0]} distanceFactor={6} style={{pointerEvents:'none',whiteSpace:'nowrap'}}>
-   <div style={{fontFamily:'ui-monospace,monospace',fontSize:'7px',fontWeight:700,letterSpacing:'.7px',color:'#f0ead8',textAlign:'center',textShadow:'0 1px 3px #101718'}}>
-    {fa?'اسکله ۰۱':'BERTH 01'}<br/><span style={{fontSize:'5px',fontWeight:500}}>{fa?'پایانه صادرات':'EXPORT TERMINAL'}</span>
-   </div>
-  </Html>
   {night&&<pointLight position={[0,2.1,.4]} color="#f2d789" intensity={.35} distance={2.4} decay={2}/ >}
  </group>;
 }
@@ -1434,18 +1429,13 @@ function SourWaterProcessNetwork(){
  </group>;
 }
 function CompanyMonumentSign(){
- const night=useStore(s=>s.night),fa=useStore(s=>s.lang==='fa');
+ const night=useStore(s=>s.night);
  return <group position={[-21.45,0,35.0]}>
   <Box position={[0,.48,0]} scale={[1.04,.96,.52]} color="#515f58"/>
   <Box position={[0,1.35,-.02]} scale={[.92,.78,.13]} color="#293a3b"/>
   <Box position={[0,1.76,.055]} scale={[.94,.055,.17]} color="#b69a61"/>
   <Box position={[-.3,1.36,.055]} scale={[.09,.38,.17]} color="#77928f"/>
   <Box position={[.06,1.36,.055]} scale={[.09,.38,.17]} color="#77928f"/>
-  <Html center position={[.1,1.39,.15]} zIndexRange={[1,0]} distanceFactor={7} style={{pointerEvents:'none',whiteSpace:'nowrap'}}>
-   <div lang={fa?'fa':'en'} dir={fa?'rtl':'ltr'} style={{fontFamily:'inherit',fontSize:'8px',fontWeight:700,letterSpacing:fa?'0':'1.2px',color:'#f3ead3',textShadow:'0 1px 3px #101718',textAlign:fa?'right':'left'}}>
-    PETROVISTA<br/><span style={{fontSize:'5px',letterSpacing:'1px',fontWeight:500}}>{fa?'ورودی مجتمع صنعتی':'INDUSTRIAL CAMPUS'}</span>
-   </div>
-  </Html>
   <Box position={[0,.08,0]} scale={[1.45,.16,.78]} color="#9d9b8d"/>
   {night&&<pointLight position={[0,1.65,.45]} color="#ffe0aa" intensity={.8} distance={3.5} decay={2}/>}
  </group>;
@@ -2418,7 +2408,7 @@ function PipewayLabel({position,label,color}:{position:[number,number,number];la
  const fa=useStore(s=>s.lang==='fa');
  const translated:Record<string,string>={'STEAM HEADER':'هدر بخار','INSTRUMENT AIR':'هوای ابزار دقیق','NITROGEN':'نیتروژن','SOUR GAS → SRU':'گاز ترش → بازیافت گوگرد','CRUDE FEED':'خوراک نفت خام','RESIDUE → CONVERSION':'باقی‌مانده → واحد تبدیل','ROAD LOADING':'بارگیری جاده‌ای','MARINE EXPORT':'صادرات دریایی'};
  const displayLabel=fa?(translated[label]??label):label;
- return <Html center position={position} zIndexRange={[1,0]} distanceFactor={9} style={{pointerEvents:'none',whiteSpace:'nowrap'}}>
+ return <Html center position={position} zIndexRange={[1,0]} style={{pointerEvents:'none',whiteSpace:'nowrap'}}>
   <span lang={fa?'fa':'en'} dir={fa?'rtl':'ltr'} style={{display:'inline-block',padding:'2px 4px',border:`1px solid ${color}`,borderRadius:'3px',background:'rgba(17,27,29,.9)',color:'#e7eee5',fontFamily:'inherit',fontSize:'7px',fontWeight:700,letterSpacing:fa?'0':'.25px',textShadow:'0 1px 2px #000'}}>{displayLabel}</span>
  </Html>;
 }

@@ -120,21 +120,17 @@ VITE_BASE_PATH=/Petro-3d/ npm run build
 VITE_BASE_PATH=/Petro-3d/ npm run verify:pages
 ```
 
-`verify:pages` serves the build under the configured repository prefix and checks HTML, JavaScript, CSS, fonts, both bundled GLB model URLs, and local-model size budgets. The GLBs use local Meshopt geometry/animation compression (no runtime CDN decoder), retaining their mesh detail and animation while reducing transfer size. The application entry point and model URLs respect Vite's base path, and procedural textures are generated locally. The site is static and uses no backend or external API.
-
-For repeatable scene-loading and responsive-zoom checks, run `npm run verify:scene` and `npm run verify:responsive`. To inspect live renderer counts and browser long tasks, open the site with `?perf=1` (for example `http://localhost:5173/?perf=1`). The optional panel reports recent FPS, draw calls, triangles, geometry/texture counts, and observed long tasks; use it while playing the simulation and moving/zooming the camera, and compare with the browser Performance panel.
+`verify:pages` serves the build under the configured repository prefix and checks HTML, JavaScript, CSS, fonts, and both bundled GLB model URLs. The application entry point and model URLs respect Vite's base path, and procedural textures are generated locally. The site is static and uses no backend or external API.
 
 ### Verification scope
 
-The release workflow runs TypeScript checks, a production build, static asset-path and size-budget tests, loading-contract checks, and responsive-zoom checks. Interactive WebGL appearance and low-end-device frame rates still require a browser with working WebGL; the repository does not currently include an automated browser test runner.
+The release workflow runs TypeScript checks, a production build, and a static asset-path test. Interactive WebGL behavior requires a browser with working WebGL; the repository does not currently include an automated browser test runner.
 
 ### Project map
 
 | Path | Purpose |
 | --- | --- |
 | `src/scene/World.tsx` | Site layout, environment, pipelines, and scene behavior |
-| `src/scene/PerformanceProbe.tsx` | Opt-in local renderer/FPS sampling for `?perf=1` |
-| `src/scene/responsiveZoom.ts` | Shared viewport-to-camera zoom rule with regression checks |
 | `src/scene/RefinerySections.tsx` | Selectable process and utility equipment |
 | `src/data/site.ts` | Bilingual demonstration asset and zone inventory |
 | `src/data/process.ts` | Conceptual process-path stages and connections |
@@ -260,21 +256,17 @@ VITE_BASE_PATH=/Petro-3d/ npm run build
 VITE_BASE_PATH=/Petro-3d/ npm run verify:pages
 ```
 
-`verify:pages` نسخه‌ی ساخته‌شده را زیر پیشوند مسیر مخزن سرو می‌کند و HTML، JavaScript، CSS، فونت‌ها، نشانی دو مدل GLB و سقف حجم مدل‌های محلی را بررسی می‌کند. GLBها با Meshopt محلی فشرده شده‌اند؛ جزئیات هندسه و انیمیشن حفظ شده و decoder از وابستگی‌های محلی برنامه می‌آید، نه CDN. نقطه‌ی ورود برنامه و نشانی مدل‌ها از مسیر پایه‌ی Vite پیروی می‌کنند و بافت‌های رویه‌ای محلی ساخته می‌شوند. سایت کاملاً ایستا است و backend یا API خارجی ندارد.
-
-برای آزمون قرارداد بارگذاری و زوم واکنش‌گرا، `npm run verify:scene` و `npm run verify:responsive` را اجرا کنید. برای دیدن شمارنده‌های زنده‌ی رندر و مکث‌های طولانی مرورگر، سایت را با `?perf=1` باز کنید (برای نمونه `http://localhost:5173/?perf=1`). پنل اختیاری FPS اخیر، draw call، مثلث‌ها، تعداد هندسه/بافت و long taskها را نشان می‌دهد؛ هنگام اجرای شبیه‌سازی و جابه‌جایی/زوم دوربین، آن را همراه پنل Performance مرورگر بررسی کنید.
+`verify:pages` نسخه‌ی ساخته‌شده را زیر پیشوند مسیر مخزن سرو می‌کند و HTML، JavaScript، CSS، فونت‌ها و نشانی هر دو مدل GLB را بررسی می‌کند. نقطه‌ی ورود برنامه و نشانی مدل‌ها از مسیر پایه‌ی Vite پیروی می‌کنند و بافت‌های رویه‌ای محلی ساخته می‌شوند. سایت کاملاً ایستا است و backend یا API خارجی ندارد.
 
 ### دامنه‌ی بررسی
 
-گردش‌کار انتشار بررسی TypeScript، build تولید، مسیر و سقف حجم دارایی‌ها، قرارداد بارگذاری و محاسبه‌ی زوم واکنش‌گرا را اجرا می‌کند. ظاهر تعاملی WebGL و نرخ فریم واقعی دستگاه‌های ضعیف‌تر همچنان به آزمون در مرورگر دارای WebGL نیاز دارد؛ مخزن در حال حاضر آزمونگر خودکار مرورگری ندارد.
+گردش‌کار انتشار بررسی TypeScript، build تولید و آزمون ایستای مسیر دارایی‌ها را اجرا می‌کند. رفتار تعاملی WebGL به مرورگری با WebGL سالم نیاز دارد؛ مخزن در حال حاضر آزمونگر خودکار مرورگری ندارد.
 
 ### ساختار پروژه
 
 | مسیر | کاربرد |
 | --- | --- |
 | `src/scene/World.tsx` | چیدمان سایت، محیط، خطوط لوله و رفتار صحنه |
-| `src/scene/PerformanceProbe.tsx` | اندازه‌گیری اختیاری FPS و شمارنده‌های رندر با `?perf=1` |
-| `src/scene/responsiveZoom.ts` | قانون مشترک زوم دوربین بر اساس عرض نما و آزمون بازگشتی |
 | `src/scene/RefinerySections.tsx` | تجهیزات فرایندی و یوتیلیتیِ قابل انتخاب |
 | `src/data/site.ts` | فهرست دوزبانه‌ی نمایشی تجهیزات و محدوده‌ها |
 | `src/data/process.ts` | مراحل و اتصالات مفهومی فرایند |

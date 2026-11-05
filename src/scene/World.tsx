@@ -7,7 +7,6 @@ import { items, type SiteItem } from '../data/site';
 import { interactionItems, relatedAssetIds } from '../data/interactions';
 import { processStageById } from '../data/process';
 import { InteractionFeedback } from './InteractionFeedback';
-import { responsiveZoomForWidth } from './responsiveZoom';
 import { useStore } from '../store';
 import { translations } from '../i18n/translations';
 import { ProcessRefinery } from './ProcessSteelwork';
@@ -31,8 +30,8 @@ const establishedLandscapeTrees:[number,number][]=[
  [-51,-22],[-51,-5],[-51,11],[-51,25],[-62,-44],[-49,-45],[-37,-44],[-25,-44],[14,-45],[28,-44],[42,-44],[56,-44],[-62,43],[-49,44],[-36,44],[-23,46],[-16,47],[8,45],[-57,31],[-43,32],[68,-44],[79,-44],[49,44],[63,44],[77,44],
  [-20,-44],[-10,-46],[1,-44],[11,-45],[15,43],[22,45],[38,43],[-14,42],[-65,-27],[-65,-13],[-65,1],[-65,15],[-65,27],[-46,-25],[-46,-19],[-46,23],[29,-43],[43,-44],[63,-43],
 ];
-type LandscapeInstance={position:[number,number,number];scale:[number,number,number];color:string;rotation?:number;euler?:[number,number,number]};
 const northWoodlandTrees:[number,number][]=[[10.8,-31.9],[15,-34.3],[19.1,-31.3],[23.3,-35.05],[27.5,-31.8],[31.8,-34.2],[35,-31.7],[12.5,-36.8],[16.8,-32.55],[21,-37.1],[25,-33.45],[29,-37.15],[33,-33.1],[18.1,-35.7],[27.2,-35.6],[32.2,-37.25]];
+type LandscapeInstance={position:[number,number,number];scale:[number,number,number];color:string;rotation?:number;euler?:[number,number,number]};
 function isSafeLandscapePlacement(x:number,z:number){
  // Conservative visual keep-outs: never scatter plants around hydrants or over vehicle/access corridors.
  if(fireHydrantSites.some(([hx,,hz])=>Math.hypot(x-hx,z-hz)<3))return false;
@@ -276,8 +275,7 @@ function SceneLighting({night,quality}:{night:boolean;quality:string}){
  },[gl,quality]);
  useFrame((_,delta)=>{
   if(resetKey!==lastReset.current){lastReset.current=resetKey;gl.shadowMap.needsUpdate=true;}
-  // Shadow-map rendering is the most expensive recurring pass in this dense scene. Keep full-resolution maps, but refresh at a bounded cadence while assets move.
-  if(quality!=='low'&&playing){shadowElapsed.current+=delta;const shadowInterval=quality==='high'?1/20:1/12;if(shadowElapsed.current>=shadowInterval){gl.shadowMap.needsUpdate=true;shadowElapsed.current=0;}}
+  if(quality!=='low'&&playing){shadowElapsed.current+=delta;if(shadowElapsed.current>=1/30){gl.shadowMap.needsUpdate=true;shadowElapsed.current=0;}}
   const target=night?1:0;
   if(Math.abs(target-blend.current)<.001)return;
   blend.current+=(target-blend.current)*(1-Math.exp(-2.4*delta));
@@ -349,7 +347,7 @@ function ClickGroup({item,children,position}: {item?:SiteItem;children:React.Rea
  const root=useRef<THREE.Group>(null),select=useStore(s=>s.select),hovered=useStore(s=>s.hovered),setHovered=useStore(s=>s.setHovered);
  return <group ref={root} position={position} onClick={e=>{if(item){e.stopPropagation();select(item)}}} onPointerOver={e=>{if(item){e.stopPropagation();setHovered(item);document.body.style.cursor='pointer'}}} onPointerOut={()=>{if(item&&hovered?.id===item.id)setHovered(null);document.body.style.cursor='auto'}}>
   {item&&<mesh visible={false} userData={{interactionDecoration:true}}><cylinderGeometry args={[2.8,2.8,8,8]}/><meshBasicMaterial transparent opacity={0}/></mesh>}{children}
-  {item&&item.kind!=='flare'&&item.id!=='FL-KO-01'&&<InteractionFeedback item={item} root={root}/>}
+  {item&&<InteractionFeedback item={item} root={root}/>}
  </group>;
 }
 const sharedBoxGeometry=new THREE.BoxGeometry(1,1,1);
@@ -362,9 +360,9 @@ function BoxInstanceManager({children,dynamic=false}:{children:ReactNode;dynamic
  const mesh=useRef<THREE.InstancedMesh>(null),invalidate=useThree(state=>state.invalidate);
  useEffect(()=>()=>{mesh.current?.dispose()},[]);
  useEffect(()=>{invalidate()},[children,invalidate]);
- return <Instances ref={mesh} limit={dynamic?512:4096} frames={dynamic?Infinity:1} geometry={sharedBoxGeometry} material={sharedBoxMaterial} castShadow={false} receiveShadow frustumCulled={false} dispose={null}><BoxInstanceContext.Provider value={dynamic?DynamicBoxInstance:StaticBoxInstance}>{children}</BoxInstanceContext.Provider></Instances>;
+ return <Instances ref={mesh} limit={dynamic?512:4096} frames={dynamic?Infinity:1} geometry={sharedBoxGeometry} material={sharedBoxMaterial} castShadow={false} receiveShadow frustumCulled={false} dispose={null}>{children}</Instances>;
 }
-function StaticBoxBatch({children}:{children:ReactNode}){return <BoxInstanceManager>{children}</BoxInstanceManager>}
+function StaticBoxBatch({children}:{children:ReactNode}){return <BoxInstanceManager><BoxInstanceContext.Provider value={StaticBoxInstance}>{children}</BoxInstanceContext.Provider></BoxInstanceManager>}
 function DynamicBoxBatch({children}:{children:ReactNode}){return <BoxInstanceManager dynamic><BoxInstanceContext.Provider value={DynamicBoxInstance}>{children}</BoxInstanceContext.Provider></BoxInstanceManager>}
 function Box({position,scale,color='#74857b',rotation}:any){const Instance=useContext(BoxInstanceContext);return <Instance position={position} scale={scale} color={color} rotation={rotation}/>}
 function Pipe({a,b,color='#b1844e',radius=.12,emissive,insulated=false}: {a:[number,number,number];b:[number,number,number];color?:string;radius?:number;emissive?:string;insulated?:boolean}) {
@@ -1326,7 +1324,7 @@ function OuterWoodlandBelts(){
  const woodland=useMemo(()=>{
   // Rewild only the outer land buffers; the fenced process footprint, approach roads, hydrants, seawall and harbor remain clear.
   const zones:[number,number,number,number][]=[[-67,-40,-29,31],[-67,36,-47.2,-40.4],[39,81.5,-47.2,-40.4],[-67,36,40.2,47.2],[40,81.5,40.2,47.2]];
-  const anchors:[number,number][]=[...establishedLandscapeTrees];
+  const anchors:[number,number][]=[...establishedLandscapeTrees,...northWoodlandTrees];
   const trees:[number,number,number][]=[];let seed=94721;const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
   zones.forEach(([minX,maxX,minZ,maxZ],zone)=>{
    const spacing=zone===0?4.65:4.9;let row=0;
@@ -1791,7 +1789,7 @@ function Flare({item}:{item:SiteItem}) {
     <cylinderGeometry args={[.34,.54,FLARE_STACK_HEIGHT,24,1,true]}/>
     <meshStandardMaterial color="#d1d2c8" metalness={.42} roughness={.58} side={THREE.DoubleSide}/>
    </mesh>
-   <mesh position={[0,.2,0]}><cylinderGeometry args={[.77,.84,.4,20]}/><meshStandardMaterial color="#858981" metalness={.32} roughness={.68}/></mesh>
+   <mesh position={[0,.2,0]}><cylinderGeometry args={[.77,.84,.4,20]}/><meshStandardMaterial color="#68756d" metalness={.4} roughness={.62}/></mesh>
    {[.32,4.2,8.2,12.2].map(y=><mesh key={`flare-shell-joint-${y}`} position={[0,y,0]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[stackRadius(y),.025,6,28]}/><meshStandardMaterial color="#858d81" metalness={.55} roughness={.5}/></mesh>)}
    {stripeLevels.map(y=><mesh key={`flare-paint-${y}`} position={[0,y,0]}><cylinderGeometry args={[stackRadius(y)+.006,stackRadius(y)+.012,1.05,24]}/><meshStandardMaterial color="#a8493d" roughness={.68}/></mesh>)}
    {/* Three open grated service decks: toe board, mid-rail, top rail, and braces. */}
@@ -2266,7 +2264,7 @@ function ModelStateNotice({item,state}:{item:SiteItem;state:'loading'|'fallback'
 }
 const shipModelUrl=`${import.meta.env.BASE_URL}models/ships/oil-tanker.glb`;
 const workerModelUrl=`${import.meta.env.BASE_URL}models/workers/cesium-man.glb`;
-// Request detailed local GLBs during the initial scene mount; lightweight local fallbacks cover loading and error states.
+// GLB models load lazily inside their Suspense boundaries; the initial site frame uses lightweight local fallbacks.
 function Ship({item}:{item:SiteItem}) {
  const ref=useRef<THREE.Group>(null); const playing=useStore(s=>s.playing),speed=useStore(s=>s.speed),resetKey=useStore(s=>s.resetKey);const phase=useRef(0),lastReset=useRef(resetKey),gl=useThree(state=>state.gl);const gltf=useGLTF(shipModelUrl);
  const model=useMemo(()=>gltf.scene.clone(true),[gltf.scene]);
@@ -2338,19 +2336,6 @@ function WorkerFallback({item,color}:{item:SiteItem;color:string}){const motion=
  <mesh position={[-.16,.78,.22]}><boxGeometry args={[.25,.28,.055]}/><meshStandardMaterial color="#27333a" metalness={.28}/></mesh>
  </group>
  </ClickGroup>}
-/** Detailed worker models participate in the initial loading phase; the fallback remains visible until each GLB resolves. */
-function ProgressiveWorker({item,color,index,enabled}:{item:SiteItem;color:string;index:number;enabled:boolean}){
- if(!enabled)return <WorkerFallback item={item} color={color}/>;
- return <AssetBoundary fallback={()=><><WorkerFallback item={item} color={color}/>{index===0&&<ModelStateNotice item={item} state="fallback"/>}</>}>
-  <Suspense fallback={<><WorkerFallback item={item} color={color}/>{index===0&&<ModelStateNotice item={item} state="loading"/>}</>}><Worker item={item} index={index} color={color}/></Suspense>
- </AssetBoundary>;
-}
-function ProgressiveShip({item,enabled}:{item:SiteItem;enabled:boolean}){
- if(!enabled)return <ShipFallback item={item}/>;
- return <AssetBoundary fallback={(_error)=><><ShipFallback item={item}/><ModelStateNotice item={item} state="fallback"/></>}>
-  <Suspense fallback={<><ShipFallback item={item}/><ModelStateNotice item={item} state="loading"/></>}><Ship item={item}/></Suspense>
- </AssetBoundary>;
-}
 function TankerHull(){
  const geometry=useMemo(()=>{
   const stations=[[-17,.08,.72,1.65],[-15,.72,.12,1.82],[-11,1.55,-.18,2],[-7,1.9,-.38,2.05],[7,1.9,-.38,2.05],[11,1.55,-.18,2],[15,.82,.12,1.85],[17,.12,.78,1.7]] as const;
@@ -2719,7 +2704,7 @@ function ZoneHighlight(){
  </group>;
 }
 function FocusCamera({controlsRef}:{controlsRef:React.RefObject<any>}){
- const focus=useStore(s=>s.focus),{camera,invalidate,size}=useThree();
+ const focus=useStore(s=>s.focus),{camera,invalidate}=useThree();
  const previous=useRef<[number,number,number]|null>(null),desired=useRef<THREE.Vector3|null>(null),desiredCamera=useRef<THREE.Vector3|null>(null);
  useEffect(()=>{
   const controls=controlsRef.current;if(!controls)return;
@@ -2729,8 +2714,6 @@ function FocusCamera({controlsRef}:{controlsRef:React.RefObject<any>}){
  },[controlsRef]);
  useFrame((_,delta)=>{
   if(focus&&(!previous.current||focus[0]!==previous.current[0]||focus[1]!==previous.current[1]||focus[2]!==previous.current[2])){
-   const isOverview=focus[0]===0&&focus[1]===0&&focus[2]===0;
-   if(isOverview&&'zoom' in camera){camera.zoom=responsiveZoomForWidth(size.width);camera.updateProjectionMatrix();invalidate();}
    const controls=controlsRef.current,current=controls?.target||new THREE.Vector3(0,0,0),offset=new THREE.Vector3(...focus).sub(current);
    desired.current=new THREE.Vector3(...focus);desiredCamera.current=camera.position.clone().add(offset);previous.current=focus;
   }
@@ -2744,16 +2727,13 @@ function FocusCamera({controlsRef}:{controlsRef:React.RefObject<any>}){
  });
  return null;
 }
-export function SceneReadySignal({onReady,ready}:{onReady:()=>void;ready:boolean}){const sent=useRef(false);useFrame(()=>{if(ready&&!sent.current){sent.current=true;onReady()}});return null;}
+export function SceneReadySignal({onReady}:{onReady:()=>void}){const sent=useRef(false);useFrame(()=>{if(!sent.current){sent.current=true;onReady()}});return null;}
 
 export function World({loadHighDetail=false}:{loadHighDetail?:boolean}){
  const controlsRef=useRef<any>(null);const night=useStore(s=>s.night);const quality=useStore(s=>s.quality); const mode=useStore(s=>s.mode); const filtered=useMemo(()=>items.filter(x=>mode==='overview'||x.zone===mode||(mode==='storage'&&['tank','sphere-tank'].includes(x.kind))||(mode==='refinery'&&['process','furnace','flare'].includes(x.kind))),[mode]);
  return <StaticBoxBatch><>
   <SceneLighting night={night} quality={quality}/><NightLighting night={night}/><ZoneHighlight/>
-  <SiteTerrain night={night}/>
-  <RefineryLandscapeBuffers/>
-  <NorthPerimeterForest/>
-  <OuterWoodlandBelts/>
+  <SiteTerrain night={night}/><RefineryLandscapeBuffers/><NorthPerimeterForest/><OuterWoodlandBelts/>
   {/* Raised, fenced industrial plot like a miniature engineering diorama */}
   <Box position={[8,.015,-29]} scale={[84,.24,.42]} color="#48534e"/>
   {/* Keep the south site-edge curb aligned with the unchanged fence, but leave the loading-yard apron open. */}
@@ -2798,57 +2778,47 @@ export function World({loadHighDetail=false}:{loadHighDetail?:boolean}){
   {/* Administration */}
   <ControlBuilding item={items.find(x=>x.id==='CCR-01')!}/><LaboratoryBuilding item={items.find(x=>x.id==='LAB-01')!}/>
    {/* Process vessels, pipe racks, furnace and flare */}
-  <Tower item={items[0]} scale={1.06}/><Tower item={items[1]} scale={.78}/><Furnace item={items[2]}/><Flare item={items[3]}/><FlareKnockoutDrum item={items.find(x=>x.id==='FL-KO-01')!}/><FlareSystemConnections/>
-  <ProcessRefinery/>
-  <MainPipeway/><FacilityInterconnects/><CDUOverheadPiping/><ElectricalFeed/><HydrogenSupplyNetwork/>
-  <InteractionTargets filtered={filtered}/>
-
-   <OverheadCondenser item={items.find(x=>x.id==='E-101')!}/><RefluxAccumulator item={items.find(x=>x.id==='V-102')!}/><RefluxPumpSet item={items.find(x=>x.id==='P-102A')!}/>
-   {filtered.filter(x=>x.id==='FCC-01'||x.id==='HDS-01').map(unit=><RefineryUnit key={unit.id} item={unit}/>)}
-   {filtered.filter(x=>x.id==='H2-01').map(unit=><HydrogenPlant key={unit.id} item={unit}/>)}
-   {filtered.filter(x=>x.id==='SWS-01').map(unit=><SourWaterStripper key={unit.id} item={unit}/>)}
-   {filtered.filter(x=>x.id==='DS-101').map(unit=><DesalterUnit key={unit.id} item={unit}/>)}
-   {filtered.filter(x=>x.id==='CRUDE-01').map(unit=><CrudeReceiving key={unit.id} item={unit}/>)}
-   {filtered.filter(x=>x.id==='SRU-01').map(unit=><SulfurRecovery key={unit.id} item={unit}/>)}
-   {[[-9,-3],[-7,-2],[-8,-1],[-5,-4],[-2,-2],[1,-5],[2,-1]].map(([x,z],i)=><group key={i} position={[x,0,z]}><mesh position={[0,2.1,0]}><cylinderGeometry args={[.48,.5,4.2,12]}/><meshStandardMaterial color={i%2?'#8e9b90':'#b5b9aa'} metalness={.5}/></mesh><mesh position={[0,4.2,0]}><cylinderGeometry args={[.7,.7,.12,12]}/><meshStandardMaterial color="#c9ad6a"/></mesh><mesh position={[0,.8,0]}><cylinderGeometry args={[.7,.7,.12,12]}/><meshStandardMaterial color="#747e72"/></mesh></group>)}
-   <FlowLines/><ProcessStageMarkers/>
-
-  {/* Tank-farm vessels, bunds and transfer header. */}
-
-   {filtered.filter(x=>x.kind==='tank').map(t=><Tank key={t.id} item={t}/>)}
-   {filtered.filter(x=>x.kind==='sphere-tank').map(t=><SphereTank key={t.id} item={t}/>)}
-   <Box position={[19.5,.34,-15.8]} scale={[22,.68,.38]} color="#777e73"/><Box position={[8.5,.34,-9]} scale={[.38,.68,13.2]} color="#777e73"/><Box position={[30.5,.34,-9]} scale={[.38,.68,13.2]} color="#777e73"/>
-   <Box position={[14,.34,-2.3]} scale={[11,.68,.38]} color="#777e73"/><Box position={[25,.34,-2.3]} scale={[11,.68,.38]} color="#777e73"/>
-   <TankFarmBundAccess/>
-   <Pipe a={[7,1.35,-19.6]} b={[30,1.35,-19.6]} color="#bd6c51" radius={.15}/>
-   {[9,15,21,27].map(x=><group key={`lpg-branch-${x}`}><Pipe a={[x-1.55,1.35,-19.6]} b={[x-1.55,1.35,-21.2]} color="#bd6c51" radius={.11}/><Pipe a={[x-1.55,1.35,-21.2]} b={[x-1.55,2.7,-21.2]} color="#bd6c51" radius={.09}/></group>)}
-
-  {/* Utility blocks and networks. */}
-
-   <CoolingBattery item={items.find(x=>x.id==='CW-01')!}/>
-   <WastewaterPlant item={items.find(x=>x.id==='WWT-01')!}/>
-   <ElectricalSubstation item={items.find(x=>x.id==='SUB-01')!}/>
-   <FirewaterFacility item={items.find(x=>x.id==='FW-01')!}/><FirewaterRing/>
-   <TransferPumpStation item={items.find(x=>x.id==='P-301A')!}/>
-   <WaterTreatmentFacility item={items.find(x=>x.id==='WW-01')!}/>
-   <SteamBoilerStation item={items.find(x=>x.id==='SB-01')!}/><SteamUtilityNetwork/>
-   <InstrumentAirNitrogenStation item={items.find(x=>x.id==='IA-01')!}/><AirNitrogenNetwork/>
-   <FireStation item={items.find(x=>x.id==='FIRE-01')!}/>
-
-
-   <VehicleTrafficClock/><TruckTrafficSafety/>
-   {/* Road-tanker top-loading arms and the palletized-drum forklift bay are intentionally separate operations. */}
-   <TruckLoadingRack/><DrumLoadingApron/><TruckDispatchSignal/>
-   {items.filter(x=>x.kind==='truck').map((t,i)=><Truck key={t.id} item={t} index={i}/>)}
-   <DrumLoadingForklift item={items.find(x=>x.id==='FL-027')!}/>
-
+  <Tower item={items[0]} scale={1.06}/><Tower item={items[1]} scale={.78}/><Furnace item={items[2]}/><Flare item={items[3]}/><FlareKnockoutDrum item={items.find(x=>x.id==='FL-KO-01')!}/><FlareSystemConnections/><ProcessRefinery/><MainPipeway/><FacilityInterconnects/><InteractionTargets filtered={filtered}/><CDUOverheadPiping/><ElectricalFeed/><HydrogenSupplyNetwork/>
+  <OverheadCondenser item={items.find(x=>x.id==='E-101')!}/><RefluxAccumulator item={items.find(x=>x.id==='V-102')!}/><RefluxPumpSet item={items.find(x=>x.id==='P-102A')!}/>
+  {filtered.filter(x=>x.id==='FCC-01'||x.id==='HDS-01').map(unit=><RefineryUnit key={unit.id} item={unit}/>)}
+  {filtered.filter(x=>x.id==='H2-01').map(unit=><HydrogenPlant key={unit.id} item={unit}/>)}
+  {filtered.filter(x=>x.id==='SWS-01').map(unit=><SourWaterStripper key={unit.id} item={unit}/>)}
+  {filtered.filter(x=>x.id==='DS-101').map(unit=><DesalterUnit key={unit.id} item={unit}/>)}
+  {filtered.filter(x=>x.id==='CRUDE-01').map(unit=><CrudeReceiving key={unit.id} item={unit}/>)}
+  {filtered.filter(x=>x.id==='SRU-01').map(unit=><SulfurRecovery key={unit.id} item={unit}/>)}
+  {[[-9,-3],[-7,-2],[-8,-1],[-5,-4],[-2,-2],[1,-5],[2,-1]].map(([x,z],i)=><group key={i} position={[x,0,z]}><mesh position={[0,2.1,0]}><cylinderGeometry args={[.48,.5,4.2,12]}/><meshStandardMaterial color={i%2?'#8e9b90':'#b5b9aa'} metalness={.5}/></mesh><mesh position={[0,4.2,0]}><cylinderGeometry args={[.7,.7,.12,12]}/><meshStandardMaterial color="#c9ad6a"/></mesh><mesh position={[0,.8,0]}><cylinderGeometry args={[.7,.7,.12,12]}/><meshStandardMaterial color="#747e72"/></mesh></group>)}
+  <FlowLines/><ProcessStageMarkers/>
+  {/* tank farm */}
+  {filtered.filter(x=>x.kind==='tank').map(t=><Tank key={t.id} item={t}/>)}
+  {filtered.filter(x=>x.kind==='sphere-tank').map(t=><SphereTank key={t.id} item={t}/>)}
+  {/* Secondary containment dyke and a dedicated LPG transfer header */}
+  <Box position={[19.5,.34,-15.8]} scale={[22,.68,.38]} color="#777e73"/><Box position={[8.5,.34,-9]} scale={[.38,.68,13.2]} color="#777e73"/><Box position={[30.5,.34,-9]} scale={[.38,.68,13.2]} color="#777e73"/>
+  <Box position={[14,.34,-2.3]} scale={[11,.68,.38]} color="#777e73"/><Box position={[25,.34,-2.3]} scale={[11,.68,.38]} color="#777e73"/>
+  <TankFarmBundAccess/>
+  <Pipe a={[7,1.35,-19.6]} b={[30,1.35,-19.6]} color="#bd6c51" radius={.15}/>
+  {[9,15,21,27].map(x=><group key={`lpg-branch-${x}`}><Pipe a={[x-1.55,1.35,-19.6]} b={[x-1.55,1.35,-21.2]} color="#bd6c51" radius={.11}/><Pipe a={[x-1.55,1.35,-21.2]} b={[x-1.55,2.7,-21.2]} color="#bd6c51" radius={.09}/></group>)}
+  {/* Utilities */}
+  <CoolingBattery item={items.find(x=>x.id==='CW-01')!}/>
+  <WastewaterPlant item={items.find(x=>x.id==='WWT-01')!}/>
+  <ElectricalSubstation item={items.find(x=>x.id==='SUB-01')!}/>
+  <FirewaterFacility item={items.find(x=>x.id==='FW-01')!}/><FirewaterRing/>
+  <TransferPumpStation item={items.find(x=>x.id==='P-301A')!}/>
+  <WaterTreatmentFacility item={items.find(x=>x.id==='WW-01')!}/>
+  <SteamBoilerStation item={items.find(x=>x.id==='SB-01')!}/><SteamUtilityNetwork/>
+  <InstrumentAirNitrogenStation item={items.find(x=>x.id==='IA-01')!}/><AirNitrogenNetwork/>
+  <FireStation item={items.find(x=>x.id==='FIRE-01')!}/>
+  <VehicleTrafficClock/><TruckTrafficSafety/>
+  {/* Road-tanker top-loading arms and the palletized-drum forklift bay are intentionally separate operations. */}
+  <TruckLoadingRack/><DrumLoadingApron/><TruckDispatchSignal/>
+  {items.filter(x=>x.kind==='truck').map((t,i)=><Truck key={t.id} item={t} index={i}/>)}
+  <DrumLoadingForklift item={items.find(x=>x.id==='FL-027')!}/>
   {/* ship, loading arm connecting to jetty */}
-  <ProgressiveShip item={items.find(x=>x.id==='VES-08')!} enabled={loadHighDetail}/>
+  {loadHighDetail?<AssetBoundary fallback={(_error)=><><ShipFallback item={items.find(x=>x.id==='VES-08')!}/><ModelStateNotice item={items.find(x=>x.id==='VES-08')!} state="fallback"/></>}><Suspense fallback={<><ShipFallback item={items.find(x=>x.id==='VES-08')!}/><ModelStateNotice item={items.find(x=>x.id==='VES-08')!} state="loading"/></>}><Ship item={items.find(x=>x.id==='VES-08')!}/></Suspense></AssetBoundary>:<ShipFallback item={items.find(x=>x.id==='VES-08')!}/> }
   <QuayLight position={[29.4,0,-1.5]}/><QuayLight position={[29.4,0,11]}/><QuayLight position={[29.4,0,24.5]}/><BerthWayfinding/>
   <MarineLoadingArm position={[32.2,0,4]} color="#c69d5d"/><MarineLoadingArm position={[32.2,0,18]} color="#d6d0bc"/>
-  {items.filter(x=>x.kind==='worker'&&(mode==='overview'||mode==='personnel'||x.zone===mode)).map((person,i)=><ProgressiveWorker key={person.id} item={person} index={i} enabled={loadHighDetail} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>)}
+  {items.filter(x=>x.kind==='worker'&&(mode==='overview'||mode==='personnel'||x.zone===mode)).map((person,i)=>loadHighDetail?<AssetBoundary key={person.id} fallback={()=><><WorkerFallback item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>{i===0&&<ModelStateNotice item={person} state="fallback"/>}</>}><Suspense fallback={<><WorkerFallback item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>{i===0&&<ModelStateNotice item={person} state="loading"/>}</>}><Worker item={person} index={i} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/></Suspense></AssetBoundary>:<WorkerFallback key={`fallback-${person.id}`} item={person} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>)}
   {mode==='personnel'&&items.filter(it=>it.kind==='worker').map((it)=><mesh key={'pin'+it.id} position={[it.position[0],3.6,it.position[2]]} raycast={()=>null}><sphereGeometry args={[.35,10,10]}/><meshBasicMaterial color="#f4cb79"/></mesh>)}
-  <AdaptiveEvents/><OrbitControls ref={controlsRef} makeDefault target={[0,0,0]} minPolarAngle={.25} maxPolarAngle={Math.PI/2.12} minDistance={24} maxDistance={100} minZoom={3.2} maxZoom={14} enableDamping dampingFactor={.08} />
+  <AdaptiveEvents/><OrbitControls ref={controlsRef} makeDefault target={[0,0,0]} minPolarAngle={.25} maxPolarAngle={Math.PI/2.12} minDistance={24} maxDistance={100} enableDamping dampingFactor={.08} />
   <FocusCamera controlsRef={controlsRef}/>
  </></StaticBoxBatch>;
 }

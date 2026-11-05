@@ -7,8 +7,6 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "verify:pages": "node scripts/verify-pages-build.mjs",
-    "verify:scene": "node scripts/verify-scene-performance.mjs",
-    "verify:responsive": "node scripts/verify-responsive-layout.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc -b --pretty"
   },

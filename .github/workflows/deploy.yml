@@ -31,6 +31,10 @@ jobs:
         run: npm ci
       - name: Type check
         run: npm run typecheck
+      - name: Verify loading and performance contracts
+        run: npm run verify:scene
+      - name: Verify responsive layout rules
+        run: npm run verify:responsive
       - name: Build static site
         run: npm run build
         env:

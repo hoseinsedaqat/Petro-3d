@@ -18,6 +18,10 @@ assert.match(world, /if\(ready&&!sent\.current\)\{sent\.current=true;onReady\(\)
   'The scene-ready signal must not fire before the loaded frame.');
 assert.doesNotMatch(world, /DeferredSceneContent/,
   'Visual scene content must not be deferred until after the initial loader.');
+assert.doesNotMatch(world, /BerthWayfinding|distanceFactor=/,
+  'Oversized in-scene signage and zoom-scaled HTML labels must stay removed.');
+assert.doesNotMatch(world, /اسکله ۰۱|EXPORT TERMINAL|INDUSTRIAL CAMPUS/,
+  'Large berth/campus signage text must not return to the scene.');
 
 for (const [name, nextName] of [['ProgressiveWorker', 'ProgressiveShip'], ['ProgressiveShip', 'TankerHull']]) {
   const start = world.indexOf(`function ${name}(`);

@@ -32,7 +32,8 @@ export function InteractionFeedback({item,root,anchor=[0,0,0]}:Props){
  useEffect(()=>{scene.add(helper);return()=>{scene.remove(helper);helper.geometry.dispose();(helper.material as THREE.Material).dispose()}},[helper,scene]);
  useFrame((_,delta)=>{
   const material=helper.material as THREE.LineBasicMaterial;
-  const blend=reduceMotion?1:1-Math.exp(-13*delta),targetOpacity=isSelected?.78:related?.52:isHovered?.36:0;
+  // The flare already has a physical circular footing; suppress selection bounds there so no gold overlay can tint its base.
+  const blend=reduceMotion?1:1-Math.exp(-13*delta),targetOpacity=item.kind==='flare'?0:isSelected?.78:related?.52:isHovered?.36:0;
   material.opacity+=(targetOpacity-material.opacity)*blend;
   material.color.lerp(isSelected?selectedOutlineColor:related?relatedOutlineColor:hoverOutlineColor,blend);
   if(!reduceMotion&&Math.abs(targetOpacity-material.opacity)>.01)invalidate();
@@ -60,7 +61,7 @@ export function InteractionFeedback({item,root,anchor=[0,0,0]}:Props){
  const radius=markerRadius[item.kind]??2.4;
  const top=item.kind==='ship'?8:item.kind==='tank'||item.kind==='sphere-tank'?6:item.kind==='worker'?2.8:item.kind==='pipeline'?3:item.kind==='loading-bay'?5:5.5;
  return <>
-  {(active||isHovered)&&<mesh userData={{interactionDecoration:true}} position={[anchor[0],.075,anchor[2]]} rotation={[-Math.PI/2,0,0]}>
+  {item.kind!=='flare'&&(active||isHovered)&&<mesh userData={{interactionDecoration:true}} position={[anchor[0],.075,anchor[2]]} rotation={[-Math.PI/2,0,0]}>
    <ringGeometry args={[radius*.92,radius,48]}/><meshBasicMaterial color={isSelected?'#e7bd73':related?'#72b4aa':'#c4d0c7'} transparent opacity={isSelected?.78:related?.48:.3} depthWrite={false} toneMapped={false}/>
   </mesh>}
   {isHovered&&<Html center position={[anchor[0],top,anchor[2]]} zIndexRange={[40,0]} style={{pointerEvents:'none',whiteSpace:'nowrap'}}>

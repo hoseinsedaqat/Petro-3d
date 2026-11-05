@@ -1,10 +1,12 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useProgress } from '@react-three/drei';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Activity, Anchor, ArrowDownLeft, Bell, Box, Building2, Check, ChevronDown, CircleHelp, Clock3, Compass, Cpu, Factory, Gauge, GitBranch, Globe2, Layers3, LayoutDashboard, Maximize2, Moon, Pause, Play, Plus, Radio, RotateCcw, Search, Settings2, ShieldAlert, Ship, Sun, Truck, Users, Waves, X, Zap, PanelLeftOpen, PanelRightOpen } from 'lucide-react';
 import { AssetBoundary, SceneFallback, SceneReadySignal, World } from './scene/World';
+import { ScenePerformanceProbe, type ScenePerformanceSample } from './scene/PerformanceProbe';
+import { responsiveZoomForWidth } from './scene/responsiveZoom';
 import { items, zones, type SiteItem, type SiteMode } from './data/site';
 import { categoryName, inspectableItems, mainFunction, relatedItemsFor, statusName } from './data/interactions';
 import { processStageAssets, processStages } from './data/process';
@@ -149,12 +151,29 @@ function InspectionReadout({item,rtl,onSelect}:{item:SiteItem;rtl:boolean;onSele
   </div>
  </section>;
 }
-type SceneCanvasProps={quality:'low'|'medium'|'high';playing:boolean;sceneReady:boolean;onReady:()=>void;onPointerMissed:()=>void};
-const SceneCanvas=memo(function SceneCanvas({quality,playing,sceneReady,onReady,onPointerMissed}:SceneCanvasProps){
+type SceneCanvasProps={quality:'low'|'medium'|'high';playing:boolean;assetsReady:boolean;performanceEnabled:boolean;onPerformanceSample:(sample:ScenePerformanceSample)=>void;onReady:()=>void;onPointerMissed:()=>void};
+const SceneCanvas=memo(function SceneCanvas({quality,playing,assetsReady,performanceEnabled,onPerformanceSample,onReady,onPointerMissed}:SceneCanvasProps){
  return <Canvas frameloop={playing?'always':'demand'} shadows={quality!=='low'} fallback={<WebGLUnavailable onReady={onReady}/>} dpr={quality==='low'?.75:quality==='medium'?1:[1,1.3]} onPointerMissed={onPointerMissed} onCreated={({gl,scene})=>{gl.setClearColor('#c9d7d4',1);scene.background=new THREE.Color('#c9d7d4')}} orthographic camera={{position:[54,72,58],zoom:9.7,near:.1,far:300}} gl={{antialias:false,alpha:false,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.05}}>
-  <SceneReadySignal onReady={onReady}/><AssetBoundary fallback={(error)=><SceneFallback message={error}/>}><World loadHighDetail={sceneReady&&quality!=='low'}/></AssetBoundary>
+  <ResponsiveOrthographicZoom/><SceneReadySignal onReady={onReady} ready={assetsReady}/>{performanceEnabled&&<ScenePerformanceProbe enabled onSample={onPerformanceSample}/>}<AssetBoundary fallback={(error)=><SceneFallback message={error}/>}><World loadHighDetail={quality!=='low'}/></AssetBoundary>
  </Canvas>;
 });
+/** Keep the whole refinery framed on narrow screens and bound wheel zoom so world-space labels cannot fill the viewport. */
+function ResponsiveOrthographicZoom(){
+ const {camera,size,invalidate}=useThree();
+ const lastWidth=useRef(0);
+ useLayoutEffect(()=>{
+  if(!('isOrthographicCamera' in camera)||size.width<=0)return;
+  if(lastWidth.current===0){
+   camera.zoom=responsiveZoomForWidth(size.width);
+  }else if(lastWidth.current!==size.width){
+   camera.zoom=THREE.MathUtils.clamp(camera.zoom*size.width/lastWidth.current,3.2,14);
+  }
+  lastWidth.current=size.width;
+  camera.updateProjectionMatrix();
+  invalidate();
+ },[camera,size.width,invalidate]);
+ return null;
+}
 function SimulationClockReadout({rtl,className,label}:{rtl:boolean;className:string;label?:string}){
  const minutes=useStore(s=>s.simulationMinutes);
  const value=useMemo(()=>{
@@ -165,10 +184,20 @@ function SimulationClockReadout({rtl,className,label}:{rtl:boolean;className:str
 }
 function App(){
  const lang=useStore(s=>s.lang),quality=useStore(s=>s.quality),setPreference=useStore(s=>s.setPreference),setSimulation=useStore(s=>s.setSimulation),setUI=useStore(s=>s.setUI),setFocus=useStore(s=>s.setFocus),setLanguage=useStore(s=>s.setLanguage),selected=useStore(s=>s.selected),select=useStore(s=>s.select),mode=useStore(s=>s.mode),playing=useStore(s=>s.playing),speed=useStore(s=>s.speed),night=useStore(s=>s.night),flow=useStore(s=>s.flow),activeProcessStage=useStore(s=>s.activeProcessStage),search=useStore(s=>s.search),resetSimulation=useStore(s=>s.resetSimulation);
- const t=translations[lang];const rtl=lang==='fa',reduceMotion=Boolean(useReducedMotion()); const [help,setHelp]=useState(false); const [analytics,setAnalytics]=useState(false); const [mobileInspectorOpen,setMobileInspectorOpen]=useState(true); const [mobileMonitoringOpen,setMobileMonitoringOpen]=useState(false); const [settings,setSettings]=useState(false); const [tourActive,setTourActive]=useState(false); const [tourIndex,setTourIndex]=useState(0); const [notice,setNotice]=useState<ToastNotice|null>(null); const noticeTimer=useRef<number|undefined>(undefined),noticeSequence=useRef(0); const tourFlowBefore=useRef(false); const [sceneReady,setSceneReady]=useState(false); const [showLoading,setShowLoading]=useState(true);
+ const t=translations[lang];const rtl=lang==='fa',reduceMotion=Boolean(useReducedMotion()); const [help,setHelp]=useState(false); const [analytics,setAnalytics]=useState(false); const [mobileInspectorOpen,setMobileInspectorOpen]=useState(true); const [mobileMonitoringOpen,setMobileMonitoringOpen]=useState(false); const [settings,setSettings]=useState(false); const [tourActive,setTourActive]=useState(false); const [tourIndex,setTourIndex]=useState(0); const [notice,setNotice]=useState<ToastNotice|null>(null); const noticeTimer=useRef<number|undefined>(undefined),noticeSequence=useRef(0); const tourFlowBefore=useRef(false); const [sceneReady,setSceneReady]=useState(false); const [showLoading,setShowLoading]=useState(true); const [performanceDiagnostics]=useState(()=>new URLSearchParams(window.location.search).get('perf')==='1'); const [performanceSample,setPerformanceSample]=useState<ScenePerformanceSample|null>(null); const [longTaskStats,setLongTaskStats]=useState({count:0,maxDuration:0}); const {active:assetsLoading,progress:assetsProgress}=useProgress(); const assetsReady=!assetsLoading&&(assetsProgress>=100||quality==='low');
  const resetDemo=useCallback(()=>{setTourActive(false);resetSimulation();setNotice({id:++noticeSequence.current,title:t.resetComplete,detail:t.resetCompleteDetail,tone:'success'});if(noticeTimer.current)window.clearTimeout(noticeTimer.current);noticeTimer.current=window.setTimeout(()=>setNotice(null),4200)},[resetSimulation,t.resetComplete,t.resetCompleteDetail]);
  useEffect(()=>()=>{if(noticeTimer.current)window.clearTimeout(noticeTimer.current)},[]);
+ // Keep the original loading overlay until all locally loaded scene assets are ready and a frame containing them has rendered.
  useEffect(()=>{if(!sceneReady)return;const timer=window.setTimeout(()=>setShowLoading(false),320);return()=>window.clearTimeout(timer)},[sceneReady]);
+ useEffect(()=>{
+  if(!performanceDiagnostics||typeof PerformanceObserver==='undefined')return;
+  const observer=new PerformanceObserver(list=>{
+   const tasks=list.getEntries();if(!tasks.length)return;
+   setLongTaskStats(current=>({count:current.count+tasks.length,maxDuration:Math.max(current.maxDuration,...tasks.map(task=>task.duration))}));
+  });
+  try{observer.observe({entryTypes:['longtask']})}catch{observer.disconnect();return}
+  return()=>observer.disconnect();
+ },[performanceDiagnostics]);
  useEffect(()=>{document.documentElement.lang=lang;document.documentElement.dir=rtl?'rtl':'ltr'},[lang,rtl]);
  useEffect(()=>{const onKey=(e:KeyboardEvent)=>{if((e.target as HTMLElement)?.tagName==='INPUT')return;const current=useStore.getState();const focus=current.focus||[0,0,0];if(e.key==='Escape'){select(null);setUI('search','');setHelp(false);setSettings(false);setAnalytics(false);setMobileInspectorOpen(false);setMobileMonitoringOpen(false);return}if(e.key.toLowerCase()==='r'){resetDemo();return}if(e.key.toLowerCase()==='f'&&current.selected){setFocus([...current.selected.position]);return}const step=e.shiftKey?10:4;const move:Record<string,[number,number,number]>={w:[0,0,-step],ArrowUp:[0,0,-step],s:[0,0,step],ArrowDown:[0,0,step],a:[-step,0,0],ArrowLeft:[-step,0,0],d:[step,0,0],ArrowRight:[step,0,0]};if(move[e.key]||move[e.key.toLowerCase()]){e.preventDefault();const [dx,dy,dz]=move[e.key]||move[e.key.toLowerCase()];setFocus([focus[0]+dx,focus[1]+dy,focus[2]+dz]);}};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[select,setUI,setFocus,resetDemo]);
  useEffect(()=>{
@@ -189,7 +218,7 @@ function App(){
  const toggleMonitoringDrawer=()=>{setMobileMonitoringOpen(open=>!open);setMobileInspectorOpen(false)};
  const closeDrawers=()=>{setMobileInspectorOpen(false);setMobileMonitoringOpen(false)};
  const fullScreen=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()};
- const markSceneReady=useCallback(()=>setSceneReady(true),[]),clearSceneSelection=useCallback(()=>select(null),[select]);
+ const markSceneReady=useCallback(()=>setSceneReady(true),[]),clearSceneSelection=useCallback(()=>select(null),[select]),onPerformanceSample=useCallback((sample:ScenePerformanceSample)=>setPerformanceSample(sample),[]);
  const scopeCount=sectionAssets(mode).length,scopePercent=Math.max(8,Math.round(scopeCount/Math.max(1,inspectableItems.length)*100));
  const mapLabel=mode==='overview'?t.overviewTitle:dashboardSections[mode]?(rtl?dashboardSections[mode].fa:dashboardSections[mode].en):t.overviewTitle;
  const stopTour=()=>{if(tourActive)setSimulation('flow',tourFlowBefore.current);setTourActive(false)};
@@ -213,7 +242,14 @@ function App(){
 
   <main className="workspace">
    <div className="scene-wrap">
-    <SceneCanvas quality={quality} playing={playing} sceneReady={sceneReady} onReady={markSceneReady} onPointerMissed={clearSceneSelection}/>
+    <SceneCanvas quality={quality} playing={playing} assetsReady={assetsReady} performanceEnabled={performanceDiagnostics} onPerformanceSample={onPerformanceSample} onReady={markSceneReady} onPointerMissed={clearSceneSelection}/>
+    {performanceDiagnostics&&<aside className="performance-diagnostics" lang={rtl?'fa':'en'} dir={rtl?'rtl':'ltr'} aria-label={rtl?'پایش عملکرد صحنه':'Scene performance diagnostics'}>
+     <b><Cpu size={12}/>{rtl?'پایش زنده':'Live performance'} <small>?perf=1</small></b>
+     <div><span>FPS</span><strong>{performanceSample?.fps??'—'}</strong><span>{rtl?'فراخوانی رسم':'draw calls'}</span><strong>{performanceSample?.drawCalls??'—'}</strong></div>
+     <div><span>{rtl?'مثلث':'triangles'}</span><strong>{performanceSample?performanceSample.triangles.toLocaleString(rtl?'fa-IR':'en-US'):'—'}</strong><span>{rtl?'هندسه / بافت':'geometries / textures'}</span><strong>{performanceSample?`${performanceSample.geometries} / ${performanceSample.textures}`:'—'}</strong></div>
+     <div><span>{rtl?'سایه':'shadows'}</span><strong>{quality==='low'?(rtl?'خاموش':'off'):`${quality==='high'?'2048':'1024'}px · ${playing?(quality==='high'?'20':'12')+'Hz':(rtl?'مکث':'paused')}`}</strong><span>{rtl?'کیفیت':'quality'}</span><strong>{quality.toUpperCase()}</strong></div>
+     <small>{rtl?`${longTaskStats.count} مکث طولانی · بیشینه ${Math.round(longTaskStats.maxDuration)} ms`:`${longTaskStats.count} long tasks · max ${Math.round(longTaskStats.maxDuration)} ms`}</small>
+    </aside>}
     <div className="scene-topline"><div className="breadcrumb"><span>PetroVista</span><span className="crumb-slash">/</span><b>{mode==='overview'?t.overviewTitle:dashboardSections[mode]?(rtl?dashboardSections[mode].fa:dashboardSections[mode].en):t[mode as keyof typeof t]||t.overviewTitle}</b></div><button className={`cinematic-tour-trigger ${tourActive?'active':''}`} onClick={tourActive?stopTour:startTour}><span className="tour-trigger-icon">{tourActive?<X size={13}/>:<Play size={13}/>}</span><span>{tourActive?(rtl?t.stopTour:'Stop tour'):(rtl?t.siteTour:'Guided site tour')}</span></button><div className="scene-badges"><span className="weather"><Sun size={14}/>{night?t.clearNight:t.clearDay}</span><span className="scenario-label"><span/> {t.demoScenario}</span></div></div>
     <AnimatePresence mode="wait">{tourActive&&<motion.div key={tourIndex} className="cinematic-tour-card" initial={{opacity:0,y:-10,scale:.98}} animate={{opacity:1,y:0,scale:1}} exit={{opacity:0,y:-8}} transition={{duration:reduceMotion?0:.28}}>
      <div className="cinematic-tour-meta"><span><i/> {t.guidedTour}</span><b>{(tourIndex+1).toLocaleString(rtl?'fa-IR':'en-US',{minimumIntegerDigits:2,useGrouping:false})} <small>/ {processStages.length.toLocaleString(rtl?'fa-IR':'en-US',{minimumIntegerDigits:2,useGrouping:false})}</small></b><button onClick={stopTour} aria-label={rtl?'پایان تور':'Stop tour'}><X size={14}/></button></div>

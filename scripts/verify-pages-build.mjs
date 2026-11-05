@@ -46,6 +46,14 @@ for (const model of models) {
   const modelPath = path.join(distRoot, model);
   assert.ok(existsSync(modelPath) && statSync(modelPath).isFile(), `Local model was not copied into dist/: ${model}`);
 }
+const localModelBudgets = new Map([
+  ['models/ships/oil-tanker.glb', 2.5 * 1024 * 1024],
+  ['models/workers/cesium-man.glb', 300 * 1024],
+]);
+for (const [model, maximumBytes] of localModelBudgets) {
+  const modelSize = statSync(path.join(distRoot, model)).size;
+  assert.ok(modelSize <= maximumBytes, `Local model exceeds its size budget (${modelSize} bytes): ${model}`);
+}
 function* walk(directory) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const fullPath = path.join(directory, entry.name);

@@ -740,16 +740,6 @@ function QuayLight({position}:{position:[number,number,number]}){
   {night&&<pointLight position={[0,4.85,.12]} color="#f4dda0" intensity={1.05} distance={8} decay={2}/ >}
  </group>;
 }
-function BerthWayfinding(){
- const night=useStore(s=>s.night);
- return <group position={[29.25,0,-5.2]}>
-  <Box position={[0,.12,0]} scale={[.72,.24,.72]} color="#69756c"/>
-  <Box position={[0,1.18,0]} scale={[.1,2.05,.1]} color="#66756b"/>
-  <Box position={[0,2.0,.06]} scale={[1.28,.72,.12]} color="#293d3b"/>
-  <Box position={[0,2.39,.13]} scale={[1.31,.06,.16]} color="#c8ae6c"/>
-  {night&&<pointLight position={[0,2.1,.4]} color="#f2d789" intensity={.35} distance={2.4} decay={2}/ >}
- </group>;
-}
 function MarineLoadingArm({position,color}:{position:[number,number,number];color:string}){return <group position={position}>
  <Box position={[0,.24,0]} scale={[2.1,.34,2.8]} color="#6e786f"/>
  {[-.82,.82].map(x=><Box key={x} position={[x,1.65,-.72]} scale={[.14,3.05,.14]} color="#64736a"/>)}
@@ -2834,7 +2824,7 @@ export function World({loadHighDetail=false}:{loadHighDetail?:boolean}){
 
   {/* ship, loading arm connecting to jetty */}
   <ProgressiveShip item={items.find(x=>x.id==='VES-08')!} enabled={loadHighDetail}/>
-  <QuayLight position={[29.4,0,-1.5]}/><QuayLight position={[29.4,0,11]}/><QuayLight position={[29.4,0,24.5]}/><BerthWayfinding/>
+  <QuayLight position={[29.4,0,-1.5]}/><QuayLight position={[29.4,0,11]}/><QuayLight position={[29.4,0,24.5]}/>
   <MarineLoadingArm position={[32.2,0,4]} color="#c69d5d"/><MarineLoadingArm position={[32.2,0,18]} color="#d6d0bc"/>
   {items.filter(x=>x.kind==='worker'&&(mode==='overview'||mode==='personnel'||x.zone===mode)).map((person,i)=><ProgressiveWorker key={person.id} item={person} index={i} enabled={loadHighDetail} color={['#e0b44f','#d97746','#d7a83f','#c8aa55'][i%4]}/>)}
   {mode==='personnel'&&items.filter(it=>it.kind==='worker').map((it)=><mesh key={'pin'+it.id} position={[it.position[0],3.6,it.position[2]]} raycast={()=>null}><sphereGeometry args={[.35,10,10]}/><meshBasicMaterial color="#f4cb79"/></mesh>)}

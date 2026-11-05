@@ -20,6 +20,8 @@ assert.doesNotMatch(world, /DeferredSceneContent/,
   'Visual scene content must not be deferred until after the initial loader.');
 assert.doesNotMatch(world, /distanceFactor=/,
   'Zoom-scaled HTML signage can balloon over the scene when zooming out.');
+assert.doesNotMatch(world, /BerthWayfinding/,
+  'The oversized berth sign should stay removed from the overview scene.');
 assert.doesNotMatch(world, /اسکله ۰۱|EXPORT TERMINAL|INDUSTRIAL CAMPUS/,
   'Oversized berth/campus signage text must stay out of the 3D overlay.');
 
